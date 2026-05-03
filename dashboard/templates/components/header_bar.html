@@ -49,5 +49,19 @@
         📥 Export
       </button>
     </div>
+
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 border-t border-white/10 pt-3 mt-2 w-full">
+      <label class="flex items-center gap-2 cursor-pointer select-none hover:text-slate-300">
+        <input type="checkbox" class="rounded border-slate-600 bg-black/40 accent-cyan-500"
+          :checked="state.agent_runtime?.run_off_hours_auto !== false"
+          @change="setRunOffHoursAuto($event.target.checked)" />
+        <span title="When off, outside Mon–Fri 9:30–16:00 ET the agent idles (no LLM) until RTH or Run now">Auto cycles outside market hours</span>
+      </label>
+      <button type="button" @click="requestCycleNow()"
+        class="px-2.5 py-1 rounded-lg bg-slate-700/90 hover:bg-slate-600 text-slate-100 text-xs transition-colors">
+        ▶ Run AI cycle now
+      </button>
+      <span class="text-slate-600 hidden sm:inline" x-text="state.us_equity_rth ? 'US equity session — full cadence' : 'Outside RTH — interval follows .env or idle if auto is off'"></span>
+    </div>
   </div>
 </header>

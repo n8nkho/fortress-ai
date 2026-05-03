@@ -26,7 +26,13 @@ from flask import Flask, Response, jsonify, render_template, request
 
 from utils.alpaca_env import is_alpaca_paper
 from utils.api_costs import week_cost_usd
+from utils.agent_runtime import (
+    read_runtime_prefs,
+    request_on_demand_cycle,
+    write_runtime_prefs,
+)
 from utils.operator_halt import get_halt_state, set_trading_halt
+from utils.us_equity_hours import effective_loop_interval_seconds, is_us_equity_rth_et
 
 _MACRO_CACHE: dict[str, Any] = {"t": 0.0, "spy": None, "vix": None, "rsi": None}
 
@@ -327,7 +333,13 @@ def build_current_state() -> dict[str, Any]:
     except ValueError:
         cap = 1.0
 
-    loop_sec = float(os.environ.get("FORTRESS_AI_LOOP_SECONDS") or "300")
+    if latest_metric and latest_metric.get("next_sleep_sec") is not None:
+        try:
+            loop_sec = float(latest_metric["next_sleep_sec"])
+        except (TypeError, ValueError):
+            loop_sec = effective_loop_interval_seconds()
+    else:
+        loop_sec = effective_loop_interval_seconds()
 
     status = _infer_ui_status(latest_metric, last_row)
 
@@ -338,6 +350,7 @@ def build_current_state() -> dict[str, Any]:
         last_ts = last_row["ts"]
 
     portfolio = _alpaca_snapshot()
+    ar = read_runtime_prefs()
 
     return {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -351,6 +364,7 @@ def build_current_state() -> dict[str, Any]:
         "today_llm_spend_usd": _today_llm_cost_usd(),
         "llm_calls_today": _calls_today_from_ledger(),
         "loop_interval_seconds": loop_sec,
+        "us_equity_rth": is_us_equity_rth_et(),
         "last_decision_ts": last_ts,
         "reasoning": reasoning,
         "market_assessment": market_assessment,
@@ -363,6 +377,10 @@ def build_current_state() -> dict[str, Any]:
         "portfolio": portfolio,
         "halt": get_halt_state(),
         "macro": _macro_snapshot(),
+        "agent_runtime": {
+            "run_off_hours_auto": bool(ar.get("run_off_hours_auto", True)),
+            "updated_at_utc": ar.get("updated_at_utc"),
+        },
     }
 
 
@@ -469,6 +487,28 @@ def api_halt_post():
     actor = (request.json.get("actor") if request.is_json else request.form.get("actor")) or "dashboard"
     st = set_trading_halt(active, reason=str(reason), actor=str(actor))
     return jsonify({"ok": True, "state": get_halt_state(), "file": st})
+
+
+@app.route("/api/agent/runtime", methods=["GET"])
+def api_agent_runtime_get():
+    return jsonify(read_runtime_prefs())
+
+
+@app.route("/api/agent/runtime", methods=["POST"])
+def api_agent_runtime_post():
+    if not request.is_json:
+        return jsonify({"ok": False, "error": "application/json required"}), 400
+    body = request.get_json(silent=True) or {}
+    if "run_off_hours_auto" not in body:
+        return jsonify({"ok": False, "error": "run_off_hours_auto required"}), 400
+    rec = write_runtime_prefs(run_off_hours_auto=bool(body["run_off_hours_auto"]))
+    return jsonify({"ok": True, **rec})
+
+
+@app.route("/api/agent/run-cycle", methods=["POST"])
+def api_agent_run_cycle():
+    request_on_demand_cycle()
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

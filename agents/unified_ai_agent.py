@@ -38,7 +38,14 @@ from utils.api_costs import (
     estimate_llm_cost_usd,
     weekly_budget_exceeded,
 )
+from utils.agent_runtime import (
+    consume_on_demand_cycle,
+    get_run_off_hours_auto,
+    off_hours_poll_seconds,
+    sleep_until_next_cycle_or_wake,
+)
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
+from utils.us_equity_hours import effective_loop_interval_seconds, is_us_equity_rth_et
 
 
 def _data_dir() -> Path:
@@ -352,7 +359,6 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
 
 def run_loop(iterations: int | None = None, interval_sec: float | None = None) -> None:
     _ensure_dirs()
-    interval = float(interval_sec or os.environ.get("FORTRESS_AI_LOOP_SECONDS") or "300")
     state = load_state()
     n = 0
     while iterations is None or n < iterations:
@@ -369,6 +375,17 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             print(json.dumps(rec))
             return
 
+        on_demand = consume_on_demand_cycle()
+        if (
+            iterations is None
+            and interval_sec is None
+            and not is_us_equity_rth_et()
+            and not get_run_off_hours_auto()
+            and not on_demand
+        ):
+            time.sleep(off_hours_poll_seconds())
+            continue
+
         t_cycle = time.perf_counter()
         obs = observe()
         try:
@@ -381,7 +398,7 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             }
             append_decision(err)
             append_metric({**err, "latency_ms_decision": None})
-            time.sleep(interval)
+            sleep_until_next_cycle_or_wake(effective_loop_interval_seconds(interval_sec))
             n += 1
             continue
 
@@ -412,6 +429,7 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             "min_confidence": _min_confidence_execute(),
         }
         append_decision(log_rec)
+        sleep_sec = effective_loop_interval_seconds(interval_sec)
         snap = {
             "ts": log_rec["ts"],
             "opportunity_detection": decision.get("action") not in ("wait",),
@@ -421,22 +439,40 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             "llm_cost_usd": usage.get("cost_usd"),
             "weekly_llm_spend_usd": weekly_budget_exceeded()[1],
             "executed": bool(act_result.get("executed")),
+            "us_equity_rth": is_us_equity_rth_et(),
+            "next_sleep_sec": sleep_sec,
         }
         append_metric(snap)
         (_data_dir() / "ai_latest_metric.json").write_text(json.dumps(snap, indent=2), encoding="utf-8")
 
-        print(json.dumps({"ok": True, "action": decision.get("action"), "latency_ms": latency_total}, default=str))
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "action": decision.get("action"),
+                    "latency_ms": latency_total,
+                    "us_equity_rth": is_us_equity_rth_et(),
+                    "next_sleep_sec": sleep_sec,
+                },
+                default=str,
+            )
+        )
         n += 1
         if iterations is not None and n >= iterations:
             break
-        time.sleep(interval)
+        sleep_until_next_cycle_or_wake(sleep_sec)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Fortress AI unified agent")
     ap.add_argument("--dry-run", action="store_true", help="Force dry-run (no orders)")
     ap.add_argument("--once", action="store_true", help="Single decision cycle then exit")
-    ap.add_argument("--interval", type=float, default=None, help="Override loop interval seconds")
+    ap.add_argument(
+        "--interval",
+        type=float,
+        default=None,
+        help="Fixed loop interval (seconds); overrides RTH vs off-hours split",
+    )
     args = ap.parse_args()
     if args.dry_run:
         os.environ["FORTRESS_AI_DRY_RUN"] = "1"

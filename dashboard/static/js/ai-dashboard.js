@@ -33,6 +33,7 @@ document.addEventListener("alpine:init", () => {
       halt: { effective_halted: false },
       loop_interval_seconds: 300,
       last_decision_ts: null,
+      agent_runtime: { run_off_hours_auto: true },
     },
 
     comparison: null,
@@ -193,6 +194,23 @@ document.addEventListener("alpine:init", () => {
       const sp = Number(this.state.weekly_llm_spend_usd || 0);
       if (!cap || cap <= 0) return 0;
       return Math.min(100, (sp / cap) * 100);
+    },
+
+    async setRunOffHoursAuto(enabled) {
+      try {
+        await fetch("/api/agent/runtime", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ run_off_hours_auto: !!enabled }),
+        });
+        await this.refresh();
+      } catch (_) {}
+    },
+
+    async requestCycleNow() {
+      try {
+        await fetch("/api/agent/run-cycle", { method: "POST" });
+      } catch (_) {}
     },
 
     async postHalt(active) {
