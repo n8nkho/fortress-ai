@@ -69,6 +69,33 @@
     </ul>
   </div>
 
+  <div class="rounded-xl border border-violet-500/25 bg-violet-950/15 p-3 mt-3 space-y-2">
+    <h3 class="text-xs font-semibold text-violet-300 uppercase tracking-wide">Domain intelligence</h3>
+    <p class="text-[10px] text-slate-500" x-show="!state.domain_intel">Loading…</p>
+    <p class="text-[10px] text-amber-200/90 fai-text-mono break-words" x-show="state.domain_intel?.error" x-text="state.domain_intel.error"></p>
+    <p class="text-[10px] text-slate-500" x-show="state.domain_intel && state.domain_intel.enabled === false">
+      Layer off — set <code class="fai-text-mono text-slate-400">FORTRESS_AI_DOMAIN_INTEL=1</code> and restart agent/dashboard.
+    </p>
+    <div class="text-[11px] text-slate-300 space-y-1" x-show="state.domain_intel?.enabled">
+      <p><span class="text-slate-500">Regime hint:</span> <span class="text-violet-200 font-medium" x-text="state.domain_intel?.regime_hint || '—'"></span></p>
+      <p><span class="text-slate-500">Strategy hint:</span> <span class="fai-text-mono text-slate-200" x-text="state.domain_intel?.strategy_hint || '—'"></span></p>
+      <p x-show="state.domain_intel?.rsi_hint != null"><span class="text-slate-500">SPY RSI(14):</span> <span x-text="Number(state.domain_intel.rsi_hint).toFixed(1)"></span></p>
+      <p><span class="text-slate-500">Knowledge entries:</span> <span x-text="state.domain_intel?.total_concepts ?? 0"></span></p>
+      <p class="text-[10px] text-slate-500">LLM learn: <span x-text="state.domain_intel?.llm_learn_enabled ? 'on' : 'off'"></span> (<code class="fai-text-mono">FORTRESS_AI_DOMAIN_LLM_LEARN</code>)</p>
+    </div>
+    <div x-show="state.domain_intel?.enabled && (state.domain_intel?.recent_learnings || []).length" class="border-t border-white/10 pt-2 mt-1">
+      <p class="text-[10px] text-slate-500 uppercase mb-1">Recent learnings</p>
+      <ul class="space-y-1 max-h-28 overflow-y-auto fai-scroll text-[10px] text-slate-300">
+        <template x-for="row in (state.domain_intel?.recent_learnings || []).slice().reverse()" :key="row.ts_utc + (row.insight || '')">
+          <li class="border-b border-white/5 pb-1">
+            <span class="text-slate-500 fai-text-mono" x-text="(row.ts_utc || '').slice(5, 16)"></span>
+            <span x-text="row.insight || row.category || '—'"></span>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </div>
+
   <div x-show="expertMode" x-transition class="rounded-lg bg-black/50 p-3 border border-cyan-500/20 space-y-3">
     <div class="flex flex-wrap gap-1 border-b border-white/10 pb-2">
       <button type="button" class="px-2 py-1 text-xs rounded-md transition-colors"

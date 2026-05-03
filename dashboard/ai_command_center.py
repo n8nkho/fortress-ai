@@ -590,6 +590,13 @@ def build_current_state() -> dict[str, Any]:
 
     portfolio = _alpaca_snapshot()
     ar = read_runtime_prefs()
+    macro = _macro_snapshot()
+    try:
+        from knowledge.intel import domain_intel_snapshot
+
+        domain_intel = domain_intel_snapshot(macro, beliefs=ai_state.get("beliefs") or {})
+    except Exception as e:
+        domain_intel = {"enabled": False, "error": str(e)[:120]}
 
     return {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -615,7 +622,8 @@ def build_current_state() -> dict[str, Any]:
         "recent_decisions": decisions[-15:],
         "portfolio": portfolio,
         "halt": get_halt_state(),
-        "macro": _macro_snapshot(),
+        "macro": macro,
+        "domain_intel": domain_intel,
         "agent_runtime": {
             "run_off_hours_auto": bool(ar.get("run_off_hours_auto", False)),
             "updated_at_utc": ar.get("updated_at_utc"),

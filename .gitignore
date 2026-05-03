@@ -7,3 +7,5 @@ data/*.json
 !data/.gitkeep
 # Runtime toggles (dashboard / agent); recreated as needed
 data/*.flag
+# Domain intelligence JSON (generated locally)
+data/domain_knowledge/

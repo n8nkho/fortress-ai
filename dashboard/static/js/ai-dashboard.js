@@ -58,6 +58,7 @@ document.addEventListener("alpine:init", () => {
       agent_schedule: { manual_only: false, rth: false },
       screener: { symbols: [], ts: null },
       learning: { decisions_logged: 0, beliefs_keys: 0 },
+      domain_intel: null,
     },
 
     comparison: null,

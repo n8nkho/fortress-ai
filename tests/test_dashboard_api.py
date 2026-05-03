@@ -34,6 +34,13 @@ class TestDashboardApi(unittest.TestCase):
         if d.get("connected"):
             self.assertIn(d.get("positions_fetch"), ("ok", "error"))
 
+    def test_current_state_has_domain_intel(self):
+        r = self.client.get("/api/ai/current_state")
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.get_json()
+        self.assertIn("domain_intel", d)
+        self.assertIsInstance(d["domain_intel"], dict)
+
     def test_build_endpoint_shape(self):
         r = self.client.get("/api/build")
         self.assertEqual(r.status_code, 200)

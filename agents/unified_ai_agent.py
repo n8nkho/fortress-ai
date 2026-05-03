@@ -52,6 +52,8 @@ from utils.us_equity_hours import (
     manual_only_schedule,
 )
 
+from knowledge.intel import build_domain_prompt_appendix
+
 
 def _data_dir() -> Path:
     raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
@@ -244,6 +246,9 @@ def build_prompt(
     extra = (appendix or "").strip()
     if extra:
         constraints += " ADDITIONAL_OPERATOR_GUIDANCE: " + extra
+    domain_blob = build_domain_prompt_appendix(observation, state)
+    if domain_blob:
+        constraints += " DOMAIN_INTEL_JSON:" + domain_blob
     return f"""You are Fortress AI. Respond with ONE JSON object only (no markdown).
 
 CURRENT_STATE:{obs}
