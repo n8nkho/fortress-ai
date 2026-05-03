@@ -2,7 +2,10 @@
 """Fortress AI Command Center — futuristic dashboard + SSE + comparison APIs."""
 from __future__ import annotations
 
+import hmac
 import json
+import math
+import numbers
 import os
 import sys
 import time
@@ -38,6 +41,27 @@ from utils.agent_runtime import (
 )
 from utils.operator_halt import get_halt_state, set_trading_halt
 from utils.us_equity_hours import effective_loop_interval_seconds, is_us_equity_rth_et
+
+
+def _json_sanitize_for_api(value: Any) -> Any:
+    """Make payloads safe for Flask jsonify (NaN/Inf, numpy scalars, odd nested types from logs)."""
+    if value is None or isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value
+    if isinstance(value, numbers.Integral):
+        return int(value)
+    if isinstance(value, numbers.Real):
+        f = float(value)
+        if math.isnan(f) or math.isinf(f):
+            return None
+        return f
+    if isinstance(value, dict):
+        return {str(k): _json_sanitize_for_api(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_sanitize_for_api(v) for v in value]
+    return str(value)
+
 
 _MACRO_CACHE: dict[str, Any] = {"t": 0.0, "spy": None, "vix": None, "rsi": None}
 
@@ -113,6 +137,58 @@ register_governance_routes(app)
 
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
 _DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-03-gov").strip()
+
+
+def _dashboard_basic_credentials() -> tuple[str, str]:
+    """HTTP Basic user + password from env (empty if disabled)."""
+    u = (os.environ.get("FORTRESS_AI_DASHBOARD_BASIC_USER") or "").strip()
+    p = (os.environ.get("FORTRESS_AI_DASHBOARD_BASIC_PASSWORD") or "").strip()
+    if not p:
+        p = (os.environ.get("FORTRESS_AI_DASHBOARD_BASIC_PASS") or "").strip()
+    return u, p
+
+
+def _dashboard_basic_auth_configured() -> bool:
+    u, p = _dashboard_basic_credentials()
+    return bool(u and p)
+
+
+def _dashboard_basic_auth_ok() -> bool:
+    auth = request.authorization
+    if not auth:
+        return False
+    u, p = _dashboard_basic_credentials()
+    if not u or not p:
+        return False
+    try:
+        return hmac.compare_digest(auth.username.encode("utf-8"), u.encode("utf-8")) and hmac.compare_digest(
+            auth.password.encode("utf-8"), p.encode("utf-8")
+        )
+    except Exception:
+        return False
+
+
+@app.before_request
+def _dashboard_optional_basic_auth():
+    """Optional lock: set FORTRESS_AI_DASHBOARD_BASIC_USER + FORTRESS_AI_DASHBOARD_BASIC_PASSWORD in .env."""
+    if not _dashboard_basic_auth_configured():
+        return None
+    path = request.path or ""
+    exempt_health = str(os.environ.get("FORTRESS_AI_DASHBOARD_AUTH_EXEMPT_HEALTH", "0")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    if exempt_health and path == "/api/health":
+        return None
+    if _dashboard_basic_auth_ok():
+        return None
+    return Response(
+        "Authentication required\n",
+        401,
+        {"WWW-Authenticate": 'Basic realm="Fortress-AI Dashboard"'},
+    )
 
 
 @app.after_request
@@ -745,7 +821,7 @@ def api_build():
 @app.route("/api/fortress_ai/status")
 def ai_status():
     """Legacy aggregate — prefer /api/ai/current_state."""
-    cs = build_current_state()
+    cs = _json_sanitize_for_api(build_current_state())
     return jsonify(
         {
             "instance": cs["instance"],
@@ -760,7 +836,7 @@ def ai_status():
 
 @app.route("/api/ai/current_state")
 def api_current_state():
-    return jsonify(build_current_state())
+    return jsonify(_json_sanitize_for_api(build_current_state()))
 
 
 @app.route("/api/comparison")
@@ -770,11 +846,13 @@ def api_comparison():
 
 @app.route("/api/export/bundle")
 def api_export_bundle():
-    bundle = {
-        "exported_at_utc": datetime.now(timezone.utc).isoformat(),
-        "current_state": build_current_state(),
-        "comparison": _comparison_payload(),
-    }
+    bundle = _json_sanitize_for_api(
+        {
+            "exported_at_utc": datetime.now(timezone.utc).isoformat(),
+            "current_state": build_current_state(),
+            "comparison": _comparison_payload(),
+        }
+    )
     return Response(
         json.dumps(bundle, indent=2, default=str),
         mimetype="application/json",
@@ -794,7 +872,7 @@ def stream_decisions():
             try:
                 snap = {
                     "ts": datetime.now(timezone.utc).isoformat(),
-                    "state": build_current_state(),
+                    "state": _json_sanitize_for_api(build_current_state()),
                 }
                 blob = json.dumps(snap, default=str)
                 if blob != last_sent:
@@ -824,9 +902,12 @@ def api_halt_get():
 
 @app.route("/api/operator/halt", methods=["POST"])
 def api_halt_post():
-    active = bool(request.json.get("active")) if request.is_json else request.form.get("active") == "1"
-    reason = (request.json.get("reason") if request.is_json else request.form.get("reason")) or ""
-    actor = (request.json.get("actor") if request.is_json else request.form.get("actor")) or "dashboard"
+    body = request.get_json(silent=True) if request.is_json else None
+    if not isinstance(body, dict):
+        body = {}
+    active = bool(body.get("active")) if request.is_json else request.form.get("active") == "1"
+    reason = (body.get("reason") if request.is_json else request.form.get("reason")) or ""
+    actor = (body.get("actor") if request.is_json else request.form.get("actor")) or "dashboard"
     st = set_trading_halt(active, reason=str(reason), actor=str(actor))
     return jsonify({"ok": True, "state": get_halt_state(), "file": st})
 
@@ -1052,5 +1133,6 @@ def api_prompt_evolution_ab_end():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("FORTRESS_AI_DASHBOARD_PORT") or os.environ.get("DASHBOARD_PORT") or "8084")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    port = int(os.environ.get("FORTRESS_AI_DASHBOARD_PORT") or os.environ.get("DASHBOARD_PORT") or "8050")
+    host = (os.environ.get("FORTRESS_AI_DASHBOARD_HOST") or "0.0.0.0").strip() or "0.0.0.0"
+    app.run(host=host, port=port, debug=False)

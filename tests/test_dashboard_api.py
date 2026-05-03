@@ -1,9 +1,12 @@
 """Dashboard HTTP API shape checks — uses Flask test client (no live server)."""
 from __future__ import annotations
 
+import base64
+import os
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
@@ -116,6 +119,41 @@ class TestDashboardApi(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         d = r.get_json()
         self.assertIn("veto_pending", d)
+
+    def test_optional_basic_auth_blocks_anonymous(self):
+        with patch.dict(
+            os.environ,
+            {
+                "FORTRESS_AI_DASHBOARD_BASIC_USER": "alice",
+                "FORTRESS_AI_DASHBOARD_BASIC_PASSWORD": "s3cret!",
+            },
+        ):
+            r = self.client.get("/api/health")
+            self.assertEqual(r.status_code, 401)
+
+    def test_optional_basic_auth_allows_with_header(self):
+        hdr = "Basic " + base64.b64encode(b"alice:s3cret!").decode("ascii")
+        with patch.dict(
+            os.environ,
+            {
+                "FORTRESS_AI_DASHBOARD_BASIC_USER": "alice",
+                "FORTRESS_AI_DASHBOARD_BASIC_PASSWORD": "s3cret!",
+            },
+        ):
+            r = self.client.get("/api/health", headers={"Authorization": hdr})
+            self.assertEqual(r.status_code, 200)
+
+    def test_optional_basic_auth_exempt_health(self):
+        with patch.dict(
+            os.environ,
+            {
+                "FORTRESS_AI_DASHBOARD_BASIC_USER": "alice",
+                "FORTRESS_AI_DASHBOARD_BASIC_PASSWORD": "s3cret!",
+                "FORTRESS_AI_DASHBOARD_AUTH_EXEMPT_HEALTH": "1",
+            },
+        ):
+            r = self.client.get("/api/health")
+            self.assertEqual(r.status_code, 200)
 
 
 if __name__ == "__main__":

@@ -119,7 +119,7 @@ def domain_intel_snapshot(
         "recent_experience": [],
         "llm_learn_enabled": str(os.environ.get("FORTRESS_AI_DOMAIN_LLM_LEARN", "0")).strip().lower()
         in ("1", "true", "yes", "on"),
-        "web_ingest_default": str(os.environ.get("FORTRESS_AI_DOMAIN_WEB_INGEST", "1")).strip().lower()
+        "web_ingest_default": str(os.environ.get("FORTRESS_AI_DOMAIN_WEB_INGEST", "0")).strip().lower()
         in ("1", "true", "yes", "on"),
     }
     if not out["enabled"]:

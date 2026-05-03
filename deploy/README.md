@@ -52,6 +52,23 @@ sudo systemctl stop fortress-ai-agent
 sudo systemctl disable fortress-ai-agent
 ```
 
+## Dashboard security (LAN or public VM)
+
+1. **HTTP Basic in the app (simplest)** — In `~/fortress-ai/.env` set **both**:
+
+   - `FORTRESS_AI_DASHBOARD_BASIC_USER=...`
+   - `FORTRESS_AI_DASHBOARD_BASIC_PASSWORD=...` (long random string)
+
+   Restart `fortress-ai-dashboard`. The browser will prompt for a password; same protection applies to `/api/*` and static files.
+
+   **Plain HTTP** (port 8050 without TLS) means the password is only **Base64-encoded**, not encrypted—anyone on the same Wi‑Fi or path can sniff it. For real privacy use step 2.
+
+2. **HTTPS in front (recommended for a public IP)** — Keep Flask on `127.0.0.1:8050` and put **nginx** (or Caddy) on 443 with a certificate (Let’s Encrypt). See `deploy/nginx-fortress-dashboard.example.conf` for a starting template. Set `FORTRESS_AI_DASHBOARD_HOST=127.0.0.1` so Flask does not listen on the public interface.
+
+3. **Firewall** — Allow only your IP to TCP 8050 or 443 in the cloud security list.
+
+4. **Optional** — `FORTRESS_AI_DASHBOARD_AUTH_EXEMPT_HEALTH=1` if a monitor must call `GET /api/health` without Basic auth.
+
 ## Kill switch
 
 - Dashboard/API or env: see main `README.md` (`FORTRESS_TRADING_HALT`, halt file).
