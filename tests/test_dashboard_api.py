@@ -23,6 +23,15 @@ class TestDashboardApi(unittest.TestCase):
         d = r.get_json()
         self.assertTrue(d.get("ok"))
 
+    def test_alpaca_diagnose_shape(self):
+        r = self.client.get("/api/alpaca/diagnose")
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.get_json()
+        self.assertIn("connected", d)
+        self.assertIn("sdk_installed", d)
+        self.assertIn("keys_configured", d)
+        self.assertIn("paper_mode", d)
+
     def test_build_endpoint_shape(self):
         r = self.client.get("/api/build")
         self.assertEqual(r.status_code, 200)

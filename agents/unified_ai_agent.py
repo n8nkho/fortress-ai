@@ -32,7 +32,7 @@ except Exception:
 
 import yfinance as yf
 
-from utils.alpaca_env import is_alpaca_paper
+from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
 from utils.api_costs import (
     append_llm_cost_record,
     estimate_llm_cost_usd,
@@ -103,15 +103,14 @@ def append_metric(record: dict[str, Any]) -> None:
 
 
 def _alpaca_client():
-    key = (os.environ.get("ALPACA_API_KEY") or "").strip()
-    sec = (os.environ.get("ALPACA_SECRET_KEY") or "").strip()
+    key, sec = alpaca_credentials()
     if not key or not sec:
         return None
     try:
         from alpaca.trading.client import TradingClient
     except ImportError:
         return None
-    return TradingClient(key, sec, paper=is_alpaca_paper())
+    return TradingClient(key, sec, **alpaca_trading_client_kwargs())
 
 
 def observe() -> dict[str, Any]:

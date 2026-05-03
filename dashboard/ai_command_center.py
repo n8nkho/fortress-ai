@@ -25,7 +25,11 @@ except Exception:
 
 from flask import Flask, Response, jsonify, render_template, request
 
-from utils.alpaca_env import is_alpaca_paper
+from utils.alpaca_env import (
+    alpaca_credentials,
+    alpaca_trading_client_kwargs,
+    is_alpaca_paper,
+)
 from utils.api_costs import week_cost_usd
 from utils.agent_runtime import (
     read_runtime_prefs,
@@ -229,14 +233,13 @@ def _infer_ui_status(
 
 
 def _alpaca_snapshot() -> dict[str, Any]:
-    key = (os.environ.get("ALPACA_API_KEY") or "").strip()
-    sec = (os.environ.get("ALPACA_SECRET_KEY") or "").strip()
+    key, sec = alpaca_credentials()
     if not key or not sec:
         return {"connected": False, "reason": "missing_keys"}
     try:
         from alpaca.trading.client import TradingClient
 
-        tc = TradingClient(key, sec, paper=is_alpaca_paper())
+        tc = TradingClient(key, sec, **alpaca_trading_client_kwargs())
         acct = tc.get_account()
         pos = tc.get_all_positions()
         positions = []
@@ -636,6 +639,50 @@ def mockup():
 @app.route("/api/health")
 def health():
     return jsonify({"ok": True, "service": "fortress-ai-dashboard"})
+
+
+@app.route("/api/alpaca/diagnose")
+def api_alpaca_diagnose():
+    """Safe Alpaca connectivity check (no secrets). Use when the UI shows offline."""
+    from urllib.parse import urlparse
+
+    key, sec = alpaca_credentials()
+    kw = alpaca_trading_client_kwargs()
+    base = (os.getenv("ALPACA_BASE_URL") or "").strip()
+    host = urlparse(base).netloc if base else ""
+    out: dict[str, Any] = {
+        "sdk_installed": False,
+        "keys_configured": bool(key and sec),
+        "api_key_tail": key[-4:] if len(key) >= 4 else None,
+        "paper_mode": is_alpaca_paper(),
+        "base_url_host": host or None,
+        "client_uses_url_override": bool(kw.get("url_override")),
+        "connected": False,
+        "reason": None,
+    }
+    try:
+        from alpaca.trading.client import TradingClient
+
+        out["sdk_installed"] = True
+    except ImportError:
+        out["reason"] = "alpaca_sdk_missing"
+        return jsonify(out)
+
+    if not key or not sec:
+        out["reason"] = "missing_keys"
+        return jsonify(out)
+
+    try:
+        tc = TradingClient(key, sec, **kw)
+        acct = tc.get_account()
+        out["connected"] = True
+        out["account_status"] = str(getattr(acct, "status", "") or "")
+        eq = getattr(acct, "equity", None)
+        out["equity"] = float(eq) if eq is not None else None
+    except Exception as e:
+        out["reason"] = f"{type(e).__name__}:{e}"[:300]
+
+    return jsonify(out)
 
 
 @app.route("/api/build")
