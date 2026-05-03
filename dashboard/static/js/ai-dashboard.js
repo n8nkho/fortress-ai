@@ -364,17 +364,6 @@ document.addEventListener("alpine:init", () => {
       return Math.min(100, (sp / cap) * 100);
     },
 
-    async setRunOffHoursAuto(enabled) {
-      try {
-        await fetch("/api/agent/runtime", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ run_off_hours_auto: !!enabled }),
-        });
-        await this.refresh();
-      } catch (_) {}
-    },
-
     async requestCycleNow() {
       try {
         await fetch("/api/agent/run-cycle", { method: "POST" });

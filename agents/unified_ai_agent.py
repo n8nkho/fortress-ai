@@ -40,7 +40,6 @@ from utils.api_costs import (
 )
 from utils.agent_runtime import (
     consume_on_demand_cycle,
-    get_run_off_hours_auto,
     off_hours_poll_seconds,
     sleep_until_next_cycle_or_wake,
 )
@@ -376,11 +375,12 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             return
 
         on_demand = consume_on_demand_cycle()
+        # Outside US equity RTH: never run scheduled LLM cycles — only "Run AI cycle now"
+        # (on-demand flag). Off-hours auto-loop toggle was removed from agent behavior.
         if (
             iterations is None
             and interval_sec is None
             and not is_us_equity_rth_et()
-            and not get_run_off_hours_auto()
             and not on_demand
         ):
             time.sleep(off_hours_poll_seconds())

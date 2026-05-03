@@ -28,7 +28,8 @@ Deploy path on server: `/home/ubuntu/fortress-ai` (copy this tree).
 
 ## Cost controls
 
-- Default loop: **every 5 minutes** (`FORTRESS_AI_LOOP_SECONDS=300`)
+- **US market hours (RTH):** automatic loop interval from `FORTRESS_AI_LOOP_SECONDS` (default **5 minutes**).
+- **Nights / weekends:** no automatic LLM cycles; use the dashboard **Run AI cycle now** (on-demand) if you want an off-hours decision.
 - Prompt budget: `FORTRESS_AI_MAX_PROMPT_CHARS` / `FORTRESS_AI_MAX_OBS_CHARS`
 - **Weekly** LLM spend cap: `FORTRESS_AI_WEEKLY_COST_CAP_USD` (default **$1**); agent **stops** when exceeded
 

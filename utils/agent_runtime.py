@@ -24,8 +24,7 @@ def on_demand_flag_path() -> Path:
     return _data_root() / "agent_on_demand_cycle.flag"
 
 
-# Default False: outside Mon–Fri 9:30–16:00 America/New_York, agent idles until you enable
-# the dashboard toggle or use "Run AI cycle now".
+# Legacy prefs key — agent no longer schedules LLM cycles outside US RTH; only on-demand.
 DEFAULT_RUN_OFF_HOURS_AUTO = False
 
 
