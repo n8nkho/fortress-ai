@@ -6,7 +6,8 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -240,11 +241,70 @@ def _alpaca_snapshot() -> dict[str, Any]:
         return {"connected": False, "reason": f"{type(e).__name__}:{e}"}
 
 
+def _symbols_from_ai_rows(rows: list[dict]) -> set[str]:
+    syms: set[str] = set()
+    for r in rows:
+        d = r.get("decision")
+        if not isinstance(d, dict):
+            continue
+        p = d.get("parameters")
+        if isinstance(p, dict):
+            s = p.get("symbol") or p.get("sym")
+            if s:
+                syms.add(str(s).strip().upper()[:12])
+    return syms
+
+
+def _walk_symbols(o: Any, syms: set[str], depth: int = 0) -> None:
+    if depth > 10:
+        return
+    if isinstance(o, dict):
+        for k, v in o.items():
+            if str(k).lower() in ("ticker", "symbol", "sym") and isinstance(v, str):
+                t = v.strip().upper()
+                if 1 <= len(t) <= 12:
+                    syms.add(t)
+            else:
+                _walk_symbols(v, syms, depth + 1)
+    elif isinstance(o, list):
+        for x in o[:80]:
+            _walk_symbols(x, syms, depth + 1)
+
+
+def _symbols_from_classic_jsonl(path: Path, max_lines: int = 400) -> set[str]:
+    syms: set[str] = set()
+    if not path.exists():
+        return syms
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()[-max_lines:]
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                _walk_symbols(json.loads(line), syms)
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return syms
+
+
 def _comparison_payload() -> dict[str, Any]:
-    ai_rows = _tail_jsonl(_data_dir() / "ai_metrics.jsonl", 500)
+    dd = _data_dir()
+    ai_rows = _tail_jsonl(dd / "ai_metrics.jsonl", 500)
+    decisions_recent = _tail_jsonl(dd / "ai_decisions.jsonl", 220)
     classic_dir = _classic_data_dir()
     classic_win_rate = None
     classic_pnls: list[float] = []
+    today_u = datetime.now(timezone.utc).date().isoformat()
+    cycles_today = sum(1 for r in decisions_recent if str(r.get("ts") or "").startswith(today_u))
+    executed_today = sum(
+        1
+        for r in decisions_recent
+        if str(r.get("ts") or "").startswith(today_u) and (r.get("act") or {}).get("executed")
+    )
+
     if classic_dir and classic_dir.is_dir():
         log_path = classic_dir / "decisions_log.jsonl"
         if log_path.exists():
@@ -267,6 +327,12 @@ def _comparison_payload() -> dict[str, Any]:
         classic_win_rate = round(wins / len(classic_pnls), 4)
 
     ai_non_wait = sum(1 for r in ai_rows if r.get("opportunity_detection"))
+    ai_syms = _symbols_from_ai_rows(decisions_recent)
+    classic_syms: set[str] = set()
+    if classic_dir and classic_dir.is_dir():
+        classic_syms = _symbols_from_classic_jsonl(classic_dir / "decisions_log.jsonl")
+    overlap_syms = sorted(ai_syms & classic_syms)[:16]
+
     return {
         "classic": {
             "data_dir": str(classic_dir) if classic_dir else None,
@@ -277,7 +343,14 @@ def _comparison_payload() -> dict[str, Any]:
         "fortress_ai": {
             "metrics_cycles": len(ai_rows),
             "opportunity_cycles": ai_non_wait,
+            "cycles_today": cycles_today,
+            "executed_today": executed_today,
             "dry_run": str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes"),
+        },
+        "overlap": {
+            "symbols": overlap_syms,
+            "ai_unique_symbols": len(ai_syms),
+            "classic_unique_symbols": len(classic_syms),
         },
         "note": (
             "Portfolio + Alpaca snapshot use ALPACA_* from this instance's environment. "
@@ -285,6 +358,124 @@ def _comparison_payload() -> dict[str, Any]:
             "they do not update when you rotate Alpaca keys unless that file changes."
         ),
     }
+
+
+def _chart_spy_intraday() -> dict[str, Any]:
+    try:
+        import yfinance as yf
+
+        h = yf.Ticker("SPY").history(period="3d", interval="1h")
+        if h is None or len(h.index) < 2:
+            return {"labels": [], "prices": [], "change_pct": None}
+        closes = h["Close"].astype(float)
+        labels = [idx.strftime("%m/%d %H:%M") for idx in closes.index]
+        prices = [float(x) for x in closes.tolist()]
+        labels = labels[-40:]
+        prices = prices[-40:]
+        first, last = prices[0], prices[-1]
+        chg = ((last - first) / first * 100) if first else None
+        return {
+            "labels": labels,
+            "prices": prices,
+            "change_pct": round(chg, 3) if chg is not None else None,
+        }
+    except Exception as e:
+        return {"labels": [], "prices": [], "change_pct": None, "error": str(e)[:120]}
+
+
+def _chart_llm_daily(days: int = 14) -> dict[str, Any]:
+    dd = _data_dir()
+    p = dd / "ai_llm_cost_ledger.jsonl"
+    by_day: dict[str, float] = defaultdict(float)
+    if p.exists():
+        try:
+            with open(p, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        o = json.loads(line)
+                        ts = str(o.get("timestamp") or "")[:10]
+                        if len(ts) >= 10:
+                            by_day[ts] += float(o.get("cost_usd") or 0)
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+    end = datetime.now(timezone.utc).date()
+    labels: list[str] = []
+    values: list[float] = []
+    for i in range(days - 1, -1, -1):
+        d = end - timedelta(days=i)
+        ds = d.isoformat()
+        labels.append(ds[5:])
+        values.append(round(by_day.get(ds, 0.0), 6))
+    return {"labels": labels, "ai_daily_usd": values}
+
+
+def _tail_text_file(path: Path, max_lines: int = 50) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        return "\n".join(lines[-max_lines:])
+    except Exception:
+        return None
+
+
+def _expert_bundle() -> dict[str, Any]:
+    dd = _data_dir()
+    ledger_tail: list[dict] = []
+    lp = dd / "ai_llm_cost_ledger.jsonl"
+    if lp.exists():
+        try:
+            for line in lp.read_text(encoding="utf-8").splitlines()[-30:]:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    ledger_tail.append(json.loads(line))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    decisions = _tail_jsonl(dd / "ai_decisions.jsonl", 80)
+    last_decision = decisions[-1] if decisions else None
+    log_hint = (os.environ.get("FORTRESS_AI_DASHBOARD_LOG") or "").strip()
+    log_path = Path(log_hint).expanduser() if log_hint else (_ROOT / "logs" / "fortress_ai.log")
+    system_logs = _tail_text_file(log_path, 50)
+    if system_logs is None:
+        alt = dd / "agent_stdout.log"
+        system_logs = _tail_text_file(alt, 50) or ""
+    return {
+        "cost_ledger_tail": ledger_tail[-20:],
+        "last_decision": last_decision,
+        "decisions_tail_count": len(decisions),
+        "prompt_note": (
+            "Full DeepSeek prompts are not persisted in data/ by default. "
+            "Extend unified_ai_agent to log prompts, or inspect server logs."
+        ),
+        "system_logs": system_logs,
+        "system_log_path": str(log_path) if log_path.exists() else None,
+    }
+
+
+def _screener_hint(decisions: list[dict]) -> dict[str, Any]:
+    """Best-effort last screen_market watchlist from decision logs."""
+    for r in reversed(decisions):
+        d = r.get("decision")
+        if not isinstance(d, dict):
+            continue
+        if (d.get("action") or "").lower() != "screen_market":
+            continue
+        p = d.get("parameters") if isinstance(d.get("parameters"), dict) else {}
+        wl = p.get("watchlist") or p.get("symbols") or p.get("tickers")
+        if isinstance(wl, list) and wl:
+            return {"symbols": [str(x).upper()[:12] for x in wl[:12]], "ts": r.get("ts")}
+        if isinstance(wl, str) and wl.strip():
+            return {"symbols": [s.strip().upper() for s in wl.split(",") if s.strip()][:12], "ts": r.get("ts")}
+    return {"symbols": [], "ts": None}
 
 
 def build_current_state() -> dict[str, Any]:
@@ -380,6 +571,11 @@ def build_current_state() -> dict[str, Any]:
         "agent_runtime": {
             "run_off_hours_auto": bool(ar.get("run_off_hours_auto", False)),
             "updated_at_utc": ar.get("updated_at_utc"),
+        },
+        "screener": _screener_hint(decisions),
+        "learning": {
+            "decisions_logged": len(decisions),
+            "beliefs_keys": len((ai_state.get("beliefs") or {}).keys()),
         },
     }
 
@@ -509,6 +705,21 @@ def api_agent_runtime_post():
 def api_agent_run_cycle():
     request_on_demand_cycle()
     return jsonify({"ok": True})
+
+
+@app.route("/api/charts/dashboard")
+def api_charts_dashboard():
+    return jsonify(
+        {
+            "spy": _chart_spy_intraday(),
+            "llm_cost": _chart_llm_daily(14),
+        }
+    )
+
+
+@app.route("/api/expert/bundle")
+def api_expert_bundle():
+    return jsonify(_expert_bundle())
 
 
 if __name__ == "__main__":

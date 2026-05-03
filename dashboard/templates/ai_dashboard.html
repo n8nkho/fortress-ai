@@ -8,10 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=2" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=2" />
   <style>[x-cloak]{display:none!important}</style>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=2"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=2" defer></script>
 </head>
 <body class="fai-dashboard">
   <div id="app" class="max-w-[1600px] mx-auto px-3 md:px-6 py-4 min-h-screen" x-data="fortressDashboard()" x-cloak>
@@ -39,22 +43,67 @@
       <span class="mx-2">·</span>
       <span class="fai-text-mono">H</span> halt ·
       <span class="fai-text-mono">E</span> expert ·
-      <span class="fai-text-mono">C</span> compare
+      <span class="fai-text-mono">C</span> compare ·
+      <span class="fai-text-mono">R</span> run cycle ·
+      <span class="fai-text-mono">?</span> shortcuts
     </footer>
 
     {% include 'components/comparison_drawer.html' %}
 
+    <!-- Keyboard shortcuts overlay -->
+    <div x-show="shortcutsOpen" x-transition.opacity class="fai-shortcuts-overlay" @click.self="shortcutsOpen = false"
+      @keydown.escape.window="shortcutsOpen = false">
+      <div class="fai-shortcuts-panel shadow-2xl" @click.stop role="dialog" aria-label="Keyboard shortcuts">
+        <h3 class="text-lg font-semibold text-cyan-300 mb-4">Keyboard shortcuts</h3>
+        <ul class="space-y-2 text-sm text-slate-300 fai-text-mono">
+          <li><span class="text-cyan-500/90">H</span> — Toggle halt (POST halt)</li>
+          <li><span class="text-cyan-500/90">E</span> — Toggle expert mode</li>
+          <li><span class="text-cyan-500/90">C</span> — Toggle Classic vs AI panel</li>
+          <li><span class="text-cyan-500/90">R</span> — Request AI cycle now</li>
+          <li><span class="text-cyan-500/90">?</span> or <span class="text-cyan-500/90">Shift+/</span> — This help</li>
+          <li><span class="text-cyan-500/90">Esc</span> — Close overlays</li>
+        </ul>
+        <button type="button" class="mt-6 w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm" @click="shortcutsOpen = false">Close</button>
+      </div>
+    </div>
+
     <!-- Decision detail modal -->
     <div x-show="detailModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
       x-transition.opacity @click="closeDetail()" @keydown.escape.window="closeDetail()">
-      <div class="max-w-3xl w-full fai-glass-strong p-6 max-h-[85vh] overflow-hidden flex flex-col border border-cyan-500/20 shadow-2xl shadow-cyan-900/20"
+      <div class="max-w-3xl w-full fai-glass-strong fai-v2-card p-6 max-h-[85vh] overflow-hidden flex flex-col border border-cyan-500/20 shadow-2xl shadow-cyan-900/20"
         @click.stop role="dialog" aria-modal="true">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-cyan-300">Decision detail</h3>
-          <button type="button" class="text-slate-400 hover:text-white text-2xl leading-none" @click="closeDetail()" aria-label="Close">×</button>
+        <div class="flex justify-between items-start mb-4 gap-4">
+          <div>
+            <h3 class="text-lg font-semibold text-cyan-300">Decision detail</h3>
+            <p class="text-xs text-slate-500 mt-1 fai-text-mono" x-text="detailModal ? fmtTime(rowTime(detailModal)) : ''"></p>
+            <p class="text-sm text-cyan-200 mt-1" x-text="detailModal?.decision?.action || detailModal?.error || '—'"></p>
+          </div>
+          <button type="button" class="text-slate-400 hover:text-white text-2xl leading-none shrink-0" @click="closeDetail()" aria-label="Close">×</button>
         </div>
-        <pre class="text-[11px] leading-relaxed overflow-auto fai-scroll flex-1 text-emerald-100/90 fai-text-mono"
-          x-text="detailModal ? JSON.stringify(detailModal, null, 2) : ''"></pre>
+
+        <div class="flex-1 overflow-y-auto fai-scroll space-y-4 text-sm">
+          <div class="rounded-lg border border-white/10 bg-black/30 p-3">
+            <p class="text-xs font-semibold text-purple-300 mb-2">Market context</p>
+            <template x-if="detailMarketContext() != null">
+              <pre class="text-[11px] text-slate-300 fai-text-mono whitespace-pre-wrap" x-text="typeof detailMarketContext() === 'object' ? JSON.stringify(detailMarketContext(), null, 2) : String(detailMarketContext())"></pre>
+            </template>
+            <template x-if="detailMarketContext() == null">
+              <p class="text-slate-500 text-xs">No structured market context on this row.</p>
+            </template>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-black/30 p-3">
+            <p class="text-xs font-semibold text-emerald-300 mb-2">AI reasoning</p>
+            <p class="text-slate-200 leading-relaxed" x-text="detailReasoning() || '—'"></p>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-black/20 p-3">
+            <div class="flex justify-between items-center mb-2">
+              <p class="text-xs font-semibold text-slate-400">Raw decision JSON</p>
+              <button type="button" class="text-xs px-2 py-1 rounded bg-cyan-900/40 text-cyan-300 hover:bg-cyan-800/50" @click="copyDetailJson()">Copy</button>
+            </div>
+            <pre class="text-[11px] leading-relaxed overflow-auto max-h-48 text-emerald-100/90 fai-text-mono"
+              x-text="detailModal ? JSON.stringify(detailModal, null, 2) : ''"></pre>
+          </div>
+        </div>
       </div>
     </div>
   </div>

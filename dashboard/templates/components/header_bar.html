@@ -6,11 +6,19 @@
         <div class="flex items-center gap-2 flex-wrap">
           <h1 class="text-lg font-semibold tracking-tight fai-text-mono fai-glow-cyan" x-text="state.instance || 'Fortress-AI'"></h1>
           <span class="text-xs px-2 py-0.5 rounded-full border border-cyan-500/40 text-cyan-300 fai-text-mono" x-text="state.dry_run ? 'DRY-RUN' : 'AUTONOMOUS'"></span>
+          <span class="relative inline-flex items-center text-xs font-semibold uppercase tracking-wider fai-text-mono px-3 py-1 rounded-full border border-white/10 overflow-visible"
+            :class="statusBadgeClass()">
+            <span class="fai-status-pulse-ring" aria-hidden="true"></span>
+            <span class="relative z-10" x-text="state.ui_status || 'WAITING'"></span>
+          </span>
         </div>
-        <p class="text-xs text-slate-400 mt-0.5">
-          <span x-text="fmtTime(state.timestamp_utc || new Date().toISOString())"></span> ·
-          <span class="fai-tip" title="Inferred from last cycle">Status:</span>
-          <span class="font-semibold text-purple-300" x-text="state.ui_status || 'WAITING'"></span>
+        <p class="text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-1">
+          <span x-text="fmtTime(state.timestamp_utc || new Date().toISOString())"></span>
+          <span>·</span>
+          <span class="fai-tip" title="Inferred from last cycle / metrics">Neural state</span>
+          <template x-if="(state.ui_status || '') === 'THINKING'">
+            <span class="fai-thinking-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+          </template>
         </p>
       </div>
     </div>
@@ -36,8 +44,9 @@
         🛑 Halt
       </button>
       <button type="button" @click="comparisonOpen = true; fetchComparison()"
-        class="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-sm transition-colors">
+        class="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-sm transition-colors inline-flex items-center gap-1.5">
         📊 Classic
+        <span x-show="comparisonOpen" class="text-emerald-300 text-xs" title="Panel open">✓</span>
       </button>
       <button type="button" @click="toggleExpert()"
         class="px-3 py-1.5 rounded-lg border border-slate-600 hover:border-cyan-500/60 text-sm transition-colors"

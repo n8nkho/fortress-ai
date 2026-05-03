@@ -1,26 +1,63 @@
 <section class="space-y-4">
-  <div class="fai-glass p-4">
+  <div class="fai-v2-card p-4">
     <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider mb-3">🎯 Market pulse</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 fai-text-mono text-sm">
-      <div class="rounded-lg bg-black/30 p-3 border border-cyan-500/15">
-        <span class="text-xs text-slate-500 block">SPY</span>
-        <span class="text-lg text-cyan-200" x-text="state.macro?.spy != null ? state.macro.spy.toFixed(2) : '—'"></span>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="sm:col-span-2 rounded-lg bg-black/30 p-3 border border-cyan-500/15 min-w-0">
+        <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+          <div>
+            <span class="text-xs text-slate-500 block">SPY</span>
+            <span class="text-xl text-cyan-200 fai-text-mono" x-text="state.macro?.spy != null ? state.macro.spy.toFixed(2) : '—'"></span>
+          </div>
+          <span class="text-sm fai-text-mono" :class="spyChangeClass()" x-text="spyChangeDisplay()"></span>
+        </div>
+        <p class="text-[10px] text-slate-500 mb-1">~3d hourly trend (last 40 bars)</p>
+        <div class="fai-chart-box">
+          <canvas id="fai-chart-spy" aria-label="SPY intraday trend"></canvas>
+        </div>
       </div>
-      <div class="rounded-lg bg-black/30 p-3 border border-purple-500/15">
-        <span class="text-xs text-slate-500 block">VIX</span>
-        <span class="text-lg text-purple-200" x-text="state.macro?.vix != null ? state.macro.vix.toFixed(2) : '—'"></span>
-      </div>
-      <div class="rounded-lg bg-black/30 p-3 border border-amber-500/15">
-        <span class="text-xs text-slate-500 block">SPY RSI(14)</span>
-        <span class="text-lg text-amber-200" x-text="state.macro?.rsi != null ? Number(state.macro.rsi).toFixed(1) : '—'"></span>
+      <div class="space-y-3">
+        <div class="rounded-lg bg-black/30 p-3 border border-purple-500/15">
+          <span class="text-xs text-slate-500 block">VIX</span>
+          <span class="text-lg text-purple-200 fai-text-mono" x-text="state.macro?.vix != null ? state.macro.vix.toFixed(2) : '—'"></span>
+        </div>
+        <div class="rounded-lg bg-black/30 p-2 border border-amber-500/15 flex flex-col items-center">
+          <span class="text-xs text-slate-500 self-start w-full text-left mb-1">RSI(14)</span>
+          <template x-if="state.macro?.rsi != null">
+            <div class="flex flex-col items-center w-full">
+              <svg viewBox="0 0 100 56" class="w-full max-w-[120px] h-16" role="img" :aria-label="'RSI ' + Number(state.macro.rsi).toFixed(1)">
+                <path d="M 12 50 A 38 38 0 0 1 88 50" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5" stroke-linecap="round"/>
+                <path :d="rsiArcPath(state.macro.rsi)" fill="none" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>
+                <line x1="50" y1="50" :x2="rsiGaugeCoords(state.macro.rsi).x" :y2="rsiGaugeCoords(state.macro.rsi).y" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"/>
+                <text x="50" y="44" text-anchor="middle" class="fill-amber-200" style="font-size: 11px; font-family: var(--mono, monospace);" x-text="Number(state.macro.rsi).toFixed(1)"></text>
+              </svg>
+              <span class="text-[10px] text-slate-500 mt-0.5">Daily closes · indicative</span>
+            </div>
+          </template>
+          <template x-if="state.macro?.rsi == null">
+            <span class="text-lg text-amber-200/80">—</span>
+          </template>
+        </div>
       </div>
     </div>
-    <p class="text-xs text-slate-500 mt-2">
-      Daily closes · RSI is indicative only. Per-symbol cards (volume, AI score) remain v2 — portfolio below stays live.
-    </p>
   </div>
 
-  <div class="fai-glass p-4 overflow-hidden">
+  <div class="fai-v2-card p-4">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider">🔍 Active scan</h2>
+      <span class="text-xs text-slate-500 fai-text-mono" x-text="screenerSymbols().length + ' / ' + screenerTotal() + ' symbols'"></span>
+    </div>
+    <p class="text-[10px] text-slate-500 mb-3" x-show="state.screener?.ts" x-text="'Last screen_market: ' + (state.screener?.ts || '')"></p>
+    <div class="flex flex-wrap gap-2">
+      <template x-for="sym in screenerSymbols()" :key="sym">
+        <span class="px-2.5 py-1 rounded-md bg-cyan-950/40 border border-cyan-500/25 text-cyan-200 text-xs fai-text-mono" x-text="sym"></span>
+      </template>
+      <template x-if="screenerSymbols().length === 0">
+        <p class="text-xs text-slate-500">No watchlist in recent <code class="fai-text-mono">screen_market</code> decisions. When the agent screens, tickers appear here.</p>
+      </template>
+    </div>
+  </div>
+
+  <div class="fai-v2-card p-4 overflow-hidden">
     <div class="flex justify-between items-center mb-3">
       <h2 class="text-sm font-semibold text-emerald-300 uppercase tracking-wider">📊 Positions</h2>
       <span class="text-xs text-slate-500" x-text="(state.portfolio?.position_count ?? 0) + ' open'"></span>
@@ -28,8 +65,8 @@
     <template x-if="!state.portfolio?.connected">
       <p class="text-sm text-amber-200/90">Alpaca not configured or unreachable — add keys in <code class="fai-text-mono text-xs">.env</code>.</p>
     </template>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left fai-text-mono">
+    <div class="overflow-x-auto -mx-1 px-1">
+      <table class="w-full text-sm text-left fai-text-mono min-w-[320px]">
         <thead>
           <tr class="text-xs text-slate-500 border-b border-white/10">
             <th class="pb-2 pr-2">Sym</th>

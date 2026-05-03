@@ -1,16 +1,20 @@
-<section class="fai-glass p-4 space-y-4">
+<section class="fai-v2-card p-4 space-y-4">
   <div>
-    <h2 class="text-sm font-semibold text-amber-300 uppercase tracking-wider mb-3">📈 Performance</h2>
+    <h2 class="text-sm font-semibold text-amber-300 uppercase tracking-wider mb-1">📈 Performance</h2>
     <p class="text-xs text-slate-500 mb-2" x-text="dryRunLabel()"></p>
-    <div class="space-y-2 text-sm">
+    <div class="space-y-2 text-sm mb-3">
       <div class="flex justify-between">
         <span class="text-slate-400">Win rate</span>
         <span class="fai-text-mono text-slate-300">N/A <span class="text-xs text-slate-600">(need trades)</span></span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">Cycles logged</span>
+        <span class="text-slate-400">Cycles in panel</span>
         <span class="fai-text-mono" x-text="(state.recent_decisions || []).length"></span>
       </div>
+    </div>
+    <p class="text-xs text-slate-500 mb-2">LLM spend by day (USD) — proxy cost curve</p>
+    <div class="fai-chart-box-lg">
+      <canvas id="fai-chart-perf" aria-label="Daily LLM spend"></canvas>
     </div>
   </div>
 
@@ -55,8 +59,67 @@
     </ul>
   </div>
 
-  <div x-show="expertMode" x-transition class="rounded-lg bg-black/50 p-3 border border-cyan-500/20">
-    <p class="text-xs text-cyan-300 mb-2">Raw current_state (subset)</p>
-    <pre class="text-[10px] overflow-auto max-h-64 text-slate-300 fai-scroll" x-text="JSON.stringify(state, null, 2)"></pre>
+  <div x-show="expertMode" x-transition class="rounded-lg bg-black/50 p-3 border border-cyan-500/20 space-y-3">
+    <div class="flex flex-wrap gap-1 border-b border-white/10 pb-2">
+      <button type="button" class="px-2 py-1 text-xs rounded-md transition-colors"
+        :class="expertTab === 'prompt' ? 'bg-cyan-900/50 text-cyan-200' : 'text-slate-400 hover:text-slate-200'"
+        @click="expertTab = 'prompt'; fetchExpertBundle()">Prompt</button>
+      <button type="button" class="px-2 py-1 text-xs rounded-md transition-colors"
+        :class="expertTab === 'json' ? 'bg-cyan-900/50 text-cyan-200' : 'text-slate-400 hover:text-slate-200'"
+        @click="expertTab = 'json'; fetchExpertBundle()">JSON</button>
+      <button type="button" class="px-2 py-1 text-xs rounded-md transition-colors"
+        :class="expertTab === 'costs' ? 'bg-cyan-900/50 text-cyan-200' : 'text-slate-400 hover:text-slate-200'"
+        @click="expertTab = 'costs'; fetchExpertBundle()">Costs</button>
+      <button type="button" class="px-2 py-1 text-xs rounded-md transition-colors"
+        :class="expertTab === 'logs' ? 'bg-cyan-900/50 text-cyan-200' : 'text-slate-400 hover:text-slate-200'"
+        @click="expertTab = 'logs'; fetchExpertBundle()">Logs</button>
+    </div>
+
+    <div x-show="expertTab === 'prompt'" class="text-sm">
+      <p class="text-xs text-slate-400 mb-2">Last prompt to DeepSeek (note)</p>
+      <p class="text-slate-300 text-xs leading-relaxed p-2 rounded bg-black/30 border border-white/5" x-text="expertBundle?.prompt_note || 'Loading…'"></p>
+      <p class="text-[10px] text-slate-600 mt-2">Enable prompt logging in the agent to see full text here.</p>
+    </div>
+
+    <div x-show="expertTab === 'json'" class="text-sm">
+      <div class="flex justify-end mb-1">
+        <button type="button" class="text-xs px-2 py-0.5 rounded bg-cyan-900/40 text-cyan-300" @click="copyExpertJson()">Copy last decision</button>
+      </div>
+      <pre class="text-[10px] overflow-auto max-h-56 text-slate-300 fai-scroll" x-text="JSON.stringify(expertBundle?.last_decision || {}, null, 2)"></pre>
+    </div>
+
+    <div x-show="expertTab === 'costs'" class="text-sm overflow-x-auto">
+      <table class="w-full text-[10px] fai-text-mono text-left">
+        <thead>
+          <tr class="text-slate-500 border-b border-white/10">
+            <th class="py-1 pr-2">Time</th>
+            <th class="py-1 pr-2">In</th>
+            <th class="py-1 pr-2">Out</th>
+            <th class="py-1">USD</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="row in (expertBundle?.cost_ledger_tail || [])" :key="row.timestamp + (row.cost_usd || '')">
+            <tr class="border-b border-white/5 text-slate-300">
+              <td class="py-1 pr-2 whitespace-nowrap" x-text="(row.timestamp || '').slice(11, 19)"></td>
+              <td class="py-1 pr-2" x-text="row.tokens_in ?? row.prompt_tokens ?? '—'"></td>
+              <td class="py-1 pr-2" x-text="row.tokens_out ?? row.completion_tokens ?? '—'"></td>
+              <td class="py-1" x-text="row.cost_usd != null ? Number(row.cost_usd).toFixed(5) : '—'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p class="text-[10px] text-slate-600 mt-2" x-show="!(expertBundle?.cost_ledger_tail || []).length">No ledger rows yet.</p>
+    </div>
+
+    <div x-show="expertTab === 'logs'" class="text-sm">
+      <p class="text-[10px] text-slate-600 mb-1" x-show="expertBundle?.system_log_path" x-text="expertBundle?.system_log_path"></p>
+      <pre class="text-[10px] overflow-auto max-h-56 text-slate-400 fai-scroll whitespace-pre-wrap font-mono" x-text="expertBundle?.system_logs || '(no log tail — set FORTRESS_AI_DASHBOARD_LOG or add data/agent_stdout.log)'"></pre>
+    </div>
+
+    <details class="mt-2 text-xs">
+      <summary class="cursor-pointer text-slate-500 hover:text-slate-300">Raw current_state</summary>
+      <pre class="text-[10px] overflow-auto max-h-40 mt-2 text-slate-500 fai-scroll" x-text="JSON.stringify(state, null, 2)"></pre>
+    </details>
   </div>
 </section>

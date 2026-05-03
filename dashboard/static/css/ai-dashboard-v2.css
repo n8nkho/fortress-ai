@@ -1,0 +1,205 @@
+/* Fortress AI Dashboard V2 — polish, motion, glass, gauges */
+
+/* -------- Status badge pulse rings -------- */
+.fai-status-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.fai-status-badge .fai-status-pulse-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  opacity: 0.35;
+  animation: fai-pulse-ring 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes fai-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+.fai-status-badge--OBSERVING {
+  color: #00e5ff;
+}
+.fai-status-badge--THINKING {
+  color: #b24bf3;
+}
+.fai-status-badge--EXECUTING {
+  color: #ff6b35;
+}
+.fai-status-badge--WAITING {
+  color: #64748b;
+  animation: none;
+}
+.fai-status-badge--WAITING .fai-status-pulse-ring {
+  display: none;
+}
+
+/* -------- Glass cards V2 -------- */
+.fai-v2-card {
+  background: rgba(26, 31, 58, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border-radius: 1rem;
+  position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.fai-v2-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1rem 1rem 0 0;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #00e5ff 100%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.fai-v2-card:hover {
+  border-color: rgba(0, 229, 255, 0.28);
+  box-shadow: 0 8px 32px rgba(0, 229, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+/* -------- Confidence track zones -------- */
+.fai-confidence-v2 {
+  position: relative;
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 71, 87, 0.25) 0%,
+    rgba(255, 71, 87, 0.25) 50%,
+    rgba(255, 217, 61, 0.2) 50%,
+    rgba(255, 217, 61, 0.2) 75%,
+    rgba(0, 255, 136, 0.2) 75%,
+    rgba(0, 255, 136, 0.2) 100%
+  );
+  overflow: hidden;
+}
+
+.fai-confidence-v2 .fai-confidence-fill-v2 {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, #ff4757, #ffd93d, #00ff88);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.35);
+}
+
+.fai-confidence-high .fai-confidence-fill-v2 {
+  box-shadow: 0 0 24px rgba(0, 255, 136, 0.55);
+}
+
+/* -------- Thinking dots -------- */
+.fai-thinking-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.fai-thinking-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #b24bf3;
+  animation: fai-dot-pulse 1.5s ease-in-out infinite;
+}
+.fai-thinking-dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.fai-thinking-dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes fai-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* -------- RSI gauge -------- */
+.fai-rsi-gauge {
+  width: 72px;
+  height: 72px;
+  transform: rotate(-90deg);
+}
+.fai-rsi-gauge text {
+  transform: rotate(90deg);
+  transform-origin: center;
+  font-size: 11px;
+  fill: #fbbf24;
+}
+
+/* -------- Chart containers -------- */
+.fai-chart-box {
+  height: 100px;
+  position: relative;
+}
+.fai-chart-box-lg {
+  height: 140px;
+}
+
+/* -------- Shortcuts overlay -------- */
+.fai-shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+}
+.fai-shortcuts-panel {
+  max-width: 420px;
+  width: 90%;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: linear-gradient(135deg, rgba(26, 31, 58, 0.95), rgba(10, 14, 39, 0.98));
+}
+
+/* -------- Decision row expand -------- */
+.fai-decision-row {
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.fai-decision-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* -------- Mobile -------- */
+@media (max-width: 640px) {
+  .fai-status-badge .fai-status-pulse-ring {
+    animation-duration: 2.8s;
+  }
+  .fai-v2-card:hover {
+    transform: none;
+  }
+}

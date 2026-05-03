@@ -4,7 +4,7 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h2 class="text-lg font-semibold text-indigo-300">Classic vs Fortress AI</h2>
-        <p class="text-xs text-slate-500 mt-1">Logical comparison — shared Alpaca keys share one book.</p>
+        <p class="text-xs text-slate-500 mt-1">Classic stats are from Classic's ledger file on disk. Header portfolio uses this app's Alpaca keys.</p>
       </div>
       <button type="button" class="text-slate-400 hover:text-white text-xl leading-none" @click="comparisonOpen = false" aria-label="Close">×</button>
     </div>
@@ -30,6 +30,16 @@
               <td>N/A</td>
             </tr>
             <tr class="border-b border-white/5">
+              <td class="py-2">Trades today (log)</td>
+              <td>—</td>
+              <td x-text="comparison.fortress_ai?.executed_today ?? '—'"></td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">Cycles today (UTC)</td>
+              <td>—</td>
+              <td x-text="comparison.fortress_ai?.cycles_today ?? '—'"></td>
+            </tr>
+            <tr class="border-b border-white/5">
               <td class="py-2">Closed trades (sample)</td>
               <td x-text="comparison.classic?.closed_sample_trades ?? '—'"></td>
               <td>—</td>
@@ -40,14 +50,26 @@
               <td>—</td>
             </tr>
             <tr class="border-b border-white/5">
-              <td class="py-2">AI cycles</td>
+              <td class="py-2">AI metrics rows</td>
               <td>—</td>
               <td x-text="comparison.fortress_ai?.metrics_cycles ?? 0"></td>
             </tr>
-            <tr>
+            <tr class="border-b border-white/5">
               <td class="py-2">Opportunity flags</td>
               <td>—</td>
               <td x-text="comparison.fortress_ai?.opportunity_cycles ?? 0"></td>
+            </tr>
+            <tr>
+              <td class="py-2 align-top">Overlap symbols</td>
+              <td colspan="2" class="py-2">
+                <div class="flex flex-wrap gap-1">
+                  <template x-for="s in (comparison.overlap?.symbols || [])" :key="s">
+                    <span class="px-1.5 py-0.5 rounded bg-indigo-950/50 border border-indigo-500/30 text-indigo-200 text-[10px]" x-text="s"></span>
+                  </template>
+                  <span x-show="!(comparison.overlap?.symbols || []).length" class="text-slate-500 text-[10px]">None detected</span>
+                </div>
+                <p class="text-[10px] text-slate-600 mt-1">AI unique: <span x-text="comparison.overlap?.ai_unique_symbols ?? 0"></span> · Classic unique: <span x-text="comparison.overlap?.classic_unique_symbols ?? 0"></span></p>
+              </td>
             </tr>
           </tbody>
         </table>
