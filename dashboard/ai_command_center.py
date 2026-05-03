@@ -16,14 +16,9 @@ sys.path.insert(0, str(_ROOT))
 os.chdir(_ROOT)
 
 try:
-    from dotenv import load_dotenv
+    from utils.env_load import load_fortress_dotenv
 
-    _dotenv_override = str(os.environ.get("FORTRESS_DOTENV_OVERRIDE", "")).lower() in (
-        "1",
-        "true",
-        "yes",
-    )
-    load_dotenv(_ROOT / ".env", override=_dotenv_override)
+    load_fortress_dotenv(_ROOT)
 except Exception:
     pass
 

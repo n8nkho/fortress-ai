@@ -24,9 +24,9 @@ sys.path.insert(0, str(_ROOT))
 os.chdir(_ROOT)
 
 try:
-    from dotenv import load_dotenv
+    from utils.env_load import load_fortress_dotenv
 
-    load_dotenv(_ROOT / ".env", override=False)
+    load_fortress_dotenv(_ROOT)
 except Exception:
     pass
 
