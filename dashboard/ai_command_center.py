@@ -638,6 +638,41 @@ def health():
     return jsonify({"ok": True, "service": "fortress-ai-dashboard"})
 
 
+@app.route("/api/build")
+def api_build():
+    """Verify deployed revision from the browser (no dashboard HTML cache involved)."""
+    git_short = None
+    try:
+        import subprocess
+
+        proc = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        if proc.returncode == 0:
+            git_short = (proc.stdout or "").strip() or None
+    except Exception:
+        pass
+    dash_html = _DASH / "templates" / "ai_dashboard.html"
+    has_ops_hint = False
+    try:
+        has_ops_hint = "fai-ops-panels-hint" in dash_html.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    return jsonify(
+        {
+            "ui_build": _DASHBOARD_UI_BUILD,
+            "git_short": git_short,
+            "default_ui_build_in_code": "v2-2026-05-03-gov",
+            "template_has_ops_panels_hint": has_ops_hint,
+            "repo_root": str(_ROOT),
+        }
+    )
+
+
 @app.route("/api/fortress_ai/status")
 def ai_status():
     """Legacy aggregate — prefer /api/ai/current_state."""

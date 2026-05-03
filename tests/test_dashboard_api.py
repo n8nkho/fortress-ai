@@ -23,6 +23,13 @@ class TestDashboardApi(unittest.TestCase):
         d = r.get_json()
         self.assertTrue(d.get("ok"))
 
+    def test_build_endpoint_shape(self):
+        r = self.client.get("/api/build")
+        self.assertEqual(r.status_code, 200)
+        d = r.get_json()
+        self.assertIn("ui_build", d)
+        self.assertTrue(d.get("template_has_ops_panels_hint"))
+
     def test_index_no_cache_and_build(self):
         import dashboard.ai_command_center as acc
 
