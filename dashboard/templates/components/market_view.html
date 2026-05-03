@@ -63,7 +63,11 @@
       <span class="text-xs text-slate-500" x-text="(state.portfolio?.position_count ?? 0) + ' open'"></span>
     </div>
     <template x-if="!state.portfolio?.connected">
-      <p class="text-sm text-amber-200/90">Alpaca not configured or unreachable — add keys in <code class="fai-text-mono text-xs">.env</code>.</p>
+      <div class="space-y-1 mb-2">
+        <p class="text-sm text-amber-200/90">Alpaca not configured or unreachable — add keys in <code class="fai-text-mono text-xs">.env</code> under the repo root.</p>
+        <p class="text-[10px] text-slate-500 fai-text-mono break-words" x-show="state.portfolio?.reason"
+          x-text="'Detail: ' + String(state.portfolio.reason || '').slice(0, 240)"></p>
+      </div>
     </template>
     <div class="overflow-x-auto -mx-1 px-1">
       <table class="w-full text-sm text-left fai-text-mono min-w-[320px]">

@@ -47,9 +47,15 @@
         Kill switch: <span x-text="state.halt?.effective_halted ? 'HALTED' : 'clear'"></span>
       </li>
       <li class="flex gap-2"><span class="text-emerald-400">✓</span> Dashboard SSE / poll</li>
-      <li class="flex gap-2">
-        <span :class="state.portfolio?.connected ? 'text-emerald-400' : 'text-amber-400'" x-text="state.portfolio?.connected ? '✓' : '!'"></span>
-        Alpaca: <span x-text="state.portfolio?.connected ? 'connected' : 'offline'"></span>
+      <li class="flex flex-col gap-0.5">
+        <span class="flex gap-2">
+          <span :class="state.portfolio?.connected ? 'text-emerald-400' : 'text-amber-400'" x-text="state.portfolio?.connected ? '✓' : '!'"></span>
+          Alpaca: <span x-text="state.portfolio?.connected ? 'connected' : 'offline'"></span>
+        </span>
+        <template x-if="!state.portfolio?.connected && state.portfolio?.reason">
+          <span class="text-[10px] text-amber-300/90 fai-text-mono break-words pl-5 max-w-full leading-snug"
+            x-text="String(state.portfolio.reason).slice(0, 200)"></span>
+        </template>
       </li>
       <li class="flex gap-2">
         <span class="text-emerald-400">✓</span>
