@@ -39,6 +39,7 @@ document.addEventListener("alpine:init", () => {
       loop_interval_seconds: 300,
       last_decision_ts: null,
       agent_runtime: { run_off_hours_auto: false },
+      agent_schedule: { manual_only: false, rth: false },
       screener: { symbols: [], ts: null },
       learning: { decisions_logged: 0, beliefs_keys: 0 },
     },

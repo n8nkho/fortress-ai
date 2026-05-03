@@ -587,6 +587,11 @@ def build_current_state() -> dict[str, Any]:
             "run_off_hours_auto": bool(ar.get("run_off_hours_auto", False)),
             "updated_at_utc": ar.get("updated_at_utc"),
         },
+        "agent_schedule": {
+            "manual_only": str(os.environ.get("FORTRESS_AI_MANUAL_ONLY", "0")).strip().lower()
+            in ("1", "true", "yes"),
+            "rth": is_us_equity_rth_et(),
+        },
         "screener": _screener_hint(decisions),
         "learning": {
             "decisions_logged": len(decisions),

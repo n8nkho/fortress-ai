@@ -6,6 +6,15 @@ import os
 from datetime import datetime
 
 
+def manual_only_schedule() -> bool:
+    """If True, agent never loops automatically — even during RTH — until Run AI cycle now."""
+    return str(os.environ.get("FORTRESS_AI_MANUAL_ONLY", "0")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
 def is_us_equity_rth_et() -> bool:
     """NYSE regular session Mon–Fri 09:30–16:00 America/New_York. No holiday calendar."""
     try:

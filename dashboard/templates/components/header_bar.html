@@ -63,14 +63,22 @@
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 border-t border-white/10 pt-3 mt-2 w-full">
       <p class="text-slate-500 max-w-3xl leading-snug">
-        <span class="text-slate-400">Outside Mon–Fri 9:30–4:00 PM ET</span>, the agent <span class="text-cyan-400/95 font-medium">does not</span> run scheduled cycles — use
-        <span class="fai-text-mono text-cyan-400/90">Run AI cycle now</span> when you want one off-hours decision.
+        <template x-if="state.agent_schedule?.manual_only">
+          <span><span class="text-amber-300/95 font-medium">Manual-only mode</span>
+          (<span class="fai-text-mono">FORTRESS_AI_MANUAL_ONLY=1</span>) — no automatic cycles even in RTH. Use
+          <span class="fai-text-mono text-cyan-400/90">Run AI cycle now</span>.</span>
+        </template>
+        <template x-if="!state.agent_schedule?.manual_only">
+          <span><span class="text-slate-400">Outside Mon–Fri 9:30–4:00 PM ET</span>, the agent <span class="text-cyan-400/95 font-medium">does not</span> run scheduled cycles — use
+          <span class="fai-text-mono text-cyan-400/90">Run AI cycle now</span> for off-hours. During RTH it loops per <span class="fai-text-mono">FORTRESS_AI_LOOP_SECONDS</span>.</span>
+        </template>
       </p>
       <button type="button" @click="requestCycleNow()"
         class="px-2.5 py-1 rounded-lg bg-slate-700/90 hover:bg-slate-600 text-slate-100 text-xs transition-colors shrink-0">
         ▶ Run AI cycle now
       </button>
-      <span class="text-slate-600 hidden lg:inline shrink-0" x-text="state.us_equity_rth ? 'RTH: cadence from FORTRESS_AI_LOOP_SECONDS (.env)' : 'Off-hours: on-demand only (no 30m timer)'"></span>
+      <span class="text-slate-600 hidden lg:inline shrink-0"
+        x-text="state.agent_schedule?.manual_only ? 'Manual-only: no auto cadence' : (state.us_equity_rth ? 'RTH: cadence from FORTRESS_AI_LOOP_SECONDS (.env)' : 'Off-hours: on-demand only')"></span>
     </div>
   </div>
 </header>

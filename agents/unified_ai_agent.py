@@ -44,7 +44,11 @@ from utils.agent_runtime import (
     sleep_until_next_cycle_or_wake,
 )
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
-from utils.us_equity_hours import effective_loop_interval_seconds, is_us_equity_rth_et
+from utils.us_equity_hours import (
+    effective_loop_interval_seconds,
+    is_us_equity_rth_et,
+    manual_only_schedule,
+)
 
 
 def _data_dir() -> Path:
@@ -358,6 +362,18 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
 
 def run_loop(iterations: int | None = None, interval_sec: float | None = None) -> None:
     _ensure_dirs()
+    print(
+        json.dumps(
+            {
+                "event": "fortress_ai_loop_boot",
+                "manual_only": manual_only_schedule(),
+                "us_equity_rth": is_us_equity_rth_et(),
+                "branch": "idle_until_run_now_when_manual_or_off_hours",
+            },
+            default=str,
+        ),
+        flush=True,
+    )
     state = load_state()
     n = 0
     while iterations is None or n < iterations:
@@ -375,13 +391,12 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             return
 
         on_demand = consume_on_demand_cycle()
-        # Outside US equity RTH: never run scheduled LLM cycles — only "Run AI cycle now"
-        # (on-demand flag). Off-hours auto-loop toggle was removed from agent behavior.
+        # Idle until on-demand: (a) outside US RTH, or (b) FORTRESS_AI_MANUAL_ONLY=1 (no auto loops even in RTH).
         if (
             iterations is None
             and interval_sec is None
-            and not is_us_equity_rth_et()
             and not on_demand
+            and (not is_us_equity_rth_et() or manual_only_schedule())
         ):
             time.sleep(off_hours_poll_seconds())
             continue
