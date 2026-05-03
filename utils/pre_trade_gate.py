@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from typing import Any
 
 from utils.operator_halt import is_trading_halted
+from utils.tunable_overrides import get_position_size_pct
 
 
 _EQUITY_SYMBOL_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
@@ -52,6 +53,7 @@ def evaluate_pre_trade_submission(
     symbol: str,
     qty: float,
     estimated_notional_usd: float | None = None,
+    portfolio_equity_usd: float | None = None,
     order_class: str = "equity",
     bid: float | None = None,
     ask: float | None = None,
@@ -71,6 +73,21 @@ def evaluate_pre_trade_submission(
         max_notional = float(os.environ.get("FORTRESS_MAX_ORDER_NOTIONAL_USD", "25000"))
     except ValueError:
         max_notional = 25000.0
+
+    # Equity × tunable position_size_pct (tighter cap for new BUY exposure)
+    position_pct_cap: float | None = None
+    if (
+        (side or "").strip().upper() == "BUY"
+        and portfolio_equity_usd is not None
+        and float(portfolio_equity_usd) > 0
+    ):
+        try:
+            position_pct_cap = float(portfolio_equity_usd) * float(get_position_size_pct())
+        except (TypeError, ValueError):
+            position_pct_cap = None
+        if position_pct_cap is not None and position_pct_cap > 0:
+            max_notional = min(max_notional, position_pct_cap)
+
     if estimated_notional_usd is not None and estimated_notional_usd > max_notional:
         reasons.append(f"estimated_notional_exceeds_cap:{max_notional}")
 

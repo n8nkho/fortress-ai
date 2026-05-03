@@ -44,6 +44,8 @@ from utils.agent_runtime import (
     sleep_until_next_cycle_or_wake,
 )
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
+from utils.prompt_evolution_store import get_prompt_appendix_for_cycle
+from utils.tunable_overrides import get_rsi_entry_threshold_int
 from utils.us_equity_hours import (
     effective_loop_interval_seconds,
     is_us_equity_rth_et,
@@ -218,7 +220,9 @@ def call_deepseek(prompt: str, *, max_out_tokens: int = 512) -> tuple[str, dict[
     }
 
 
-def build_prompt(observation: dict[str, Any], state: dict[str, Any]) -> str:
+def build_prompt(
+    observation: dict[str, Any], state: dict[str, Any], *, appendix: str = ""
+) -> str:
     """Keep total prompt under ~2K tokens by tight formatting."""
     obs = json.dumps(observation, separators=(",", ":"), default=str)[:4500]
     mem = json.dumps(
@@ -229,14 +233,18 @@ def build_prompt(observation: dict[str, Any], state: dict[str, Any]) -> str:
         separators=(",", ":"),
         default=str,
     )[:1200]
+    rsi_thr = get_rsi_entry_threshold_int()
     constraints = (
         "Mean-reversion bias; equities only in MVP. "
         "Max position notional respects FORTRESS_MAX_ORDER_NOTIONAL_USD. "
-        "RSI<43 typical for dip entries when screening — you may reference levels conceptually."
+        f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually."
     )
     bias = (os.environ.get("FORTRESS_AI_PROMPT_BIAS") or "").strip()
     if bias:
         constraints += " " + bias
+    extra = (appendix or "").strip()
+    if extra:
+        constraints += " ADDITIONAL_OPERATOR_GUIDANCE: " + extra
     return f"""You are Fortress AI. Respond with ONE JSON object only (no markdown).
 
 CURRENT_STATE:{obs}
@@ -255,24 +263,25 @@ Output schema:
 
 
 def reason(observation: dict[str, Any], state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    prompt = build_prompt(observation, state)
+    appendix, variant = get_prompt_appendix_for_cycle(state)
+    prompt = build_prompt(observation, state, appendix=appendix)
     max_chars = int(os.environ.get("FORTRESS_AI_MAX_PROMPT_CHARS", "7500"))
     if len(prompt) > max_chars:
         observation = {"note": "prompt_trimmed", "spy": observation.get("spy_last"), "vix": observation.get("vix_last")}
-        prompt = build_prompt(observation, state)
+        prompt = build_prompt(observation, state, appendix=appendix)
     text, usage = call_deepseek(prompt)
     decision = _parse_llm_json(text)
     if decision.get("action") not in ALLOWED_ACTIONS:
         raise ValueError(f"invalid action: {decision.get('action')}")
     decision["_raw_response"] = text[:4000]
+    decision["prompt_variant"] = variant
     return decision, usage
 
 
 def _min_confidence_execute() -> float:
-    try:
-        return float(os.environ.get("FORTRESS_AI_MIN_CONFIDENCE", "0.8"))
-    except ValueError:
-        return 0.8
+    from utils.tunable_overrides import get_confidence_threshold
+
+    return get_confidence_threshold()
 
 
 def _dry_run() -> bool:
@@ -310,6 +319,8 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         result["detail"] = "invalid_symbol_or_qty"
         return result
 
+    qty_requested = qty
+
     side = "BUY" if action == "enter_position" else "SELL"
     # Price estimate for notional gate
     px = None
@@ -318,7 +329,28 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         px = float(t.fast_info.get("last_price") or t.history(period="1d")["Close"].iloc[-1])
     except Exception:
         px = float(observation.get("_fallback_px") or 0) or None
+
+    try:
+        equity = float(observation.get("equity") or 0)
+    except (TypeError, ValueError):
+        equity = 0.0
+
     est = qty * px if px else None
+
+    # Clamp BUY size to equity × tunable position_size_pct (before spread quotes).
+    if side == "BUY" and equity > 0 and px and px > 0:
+        from utils.tunable_overrides import get_position_size_pct
+
+        max_usd = equity * float(get_position_size_pct())
+        max_q = int(max_usd // float(px))
+        if max_q < 1:
+            result["detail"] = "position_size_pct_cap_blocks_order:below_one_share"
+            return result
+        if qty > max_q:
+            qty = max_q
+            result["qty_clamped_by_position_pct"] = True
+            result["qty_requested"] = qty_requested
+        est = qty * px
 
     bid_e = ask_e = None
     quote_age = None
@@ -333,6 +365,7 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         symbol=sym,
         qty=float(qty),
         estimated_notional_usd=est,
+        portfolio_equity_usd=equity if equity > 0 else None,
         order_class="equity",
         bid=bid_e,
         ask=ask_e,
@@ -413,7 +446,13 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             }
             append_decision(err)
             append_metric({**err, "latency_ms_decision": None})
-            sleep_until_next_cycle_or_wake(effective_loop_interval_seconds(interval_sec))
+            _sleep = effective_loop_interval_seconds(interval_sec)
+            from utils.tunable_overrides import get_decision_interval_seconds as _gi
+
+            _ov = _gi(interval_sec)
+            if _ov is not None:
+                _sleep = float(_ov)
+            sleep_until_next_cycle_or_wake(_sleep)
             n += 1
             continue
 
@@ -445,6 +484,11 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
         }
         append_decision(log_rec)
         sleep_sec = effective_loop_interval_seconds(interval_sec)
+        from utils.tunable_overrides import get_decision_interval_seconds as _gi
+
+        _ov = _gi(interval_sec)
+        if _ov is not None:
+            sleep_sec = float(_ov)
         snap = {
             "ts": log_rec["ts"],
             "opportunity_detection": decision.get("action") not in ("wait",),

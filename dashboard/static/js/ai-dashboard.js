@@ -18,6 +18,22 @@ document.addEventListener("alpine:init", () => {
     lastTick: Date.now(),
     loopSeconds: 300,
 
+    siStatus: null,
+    siProposals: [],
+    siTotalLogLines: 0,
+    siLoading: false,
+    siError: null,
+
+    peStatus: null,
+    peAnalysis: null,
+    peRecentEvents: [],
+    peLoading: false,
+    peError: null,
+
+    govVetoPending: null,
+    govTiers: null,
+    govError: null,
+
     state: {
       ui_status: "WAITING",
       reasoning: "",
@@ -57,6 +73,9 @@ document.addEventListener("alpine:init", () => {
       this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
       this.loopSeconds = Number(this.state.loop_interval_seconds || 300);
       window.addEventListener("keydown", (e) => this.onKey(e));
+      this.fetchSelfImprovement();
+      this.fetchPromptEvolution();
+      this.fetchGovernance();
 
       const self = this;
       window.__faiRedrawCharts = function () {
@@ -412,6 +431,301 @@ document.addEventListener("alpine:init", () => {
 
     dryRunLabel() {
       return this.state.dry_run ? "WEEK 1 DRY-RUN" : "LIVE PAPER PATH";
+    },
+
+    async fetchSelfImprovement() {
+      this.siLoading = true;
+      this.siError = null;
+      try {
+        const [rs, rp] = await Promise.all([
+          fetch("/api/self_improvement/status"),
+          fetch("/api/self_improvement/proposals"),
+        ]);
+        if (!rs.ok) throw new Error(await rs.text());
+        if (!rp.ok) throw new Error(await rp.text());
+        this.siStatus = await rs.json();
+        const pj = await rp.json();
+        this.siProposals = pj.proposals || [];
+        this.siTotalLogLines = Number(pj.total_lines || 0);
+      } catch (err) {
+        this.siError = String(err);
+      } finally {
+        this.siLoading = false;
+      }
+    },
+
+    async proposeSelfImprovement() {
+      this.siLoading = true;
+      this.siError = null;
+      try {
+        const r = await fetch("/api/self_improvement/propose", { method: "POST" });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchSelfImprovement();
+      } catch (err) {
+        this.siError = String(err);
+      } finally {
+        this.siLoading = false;
+      }
+    },
+
+    async approveSelfImprovement(proposalId) {
+      this.siLoading = true;
+      this.siError = null;
+      try {
+        const r = await fetch("/api/self_improvement/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposal_id: proposalId || null }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchSelfImprovement();
+      } catch (err) {
+        this.siError = String(err);
+      } finally {
+        this.siLoading = false;
+      }
+    },
+
+    async rejectSelfImprovement() {
+      this.siLoading = true;
+      this.siError = null;
+      try {
+        const r = await fetch("/api/self_improvement/reject", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "dashboard_reject" }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchSelfImprovement();
+      } catch (err) {
+        this.siError = String(err);
+      } finally {
+        this.siLoading = false;
+      }
+    },
+
+    async revertSelfImprovement() {
+      this.siLoading = true;
+      this.siError = null;
+      try {
+        const r = await fetch("/api/self_improvement/revert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "dashboard_revert" }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchSelfImprovement();
+      } catch (err) {
+        this.siError = String(err);
+      } finally {
+        this.siLoading = false;
+      }
+    },
+
+    async monitorSelfImprovement() {
+      this.siLoading = true;
+      this.siError = null;
+      try {
+        const r = await fetch("/api/self_improvement/monitor", { method: "POST" });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        await this.fetchSelfImprovement();
+      } catch (err) {
+        this.siError = String(err);
+      } finally {
+        this.siLoading = false;
+      }
+    },
+
+    async fetchPromptEvolution() {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/status");
+        if (!r.ok) throw new Error(await r.text());
+        this.peStatus = await r.json();
+        this.peRecentEvents = this.peStatus.recent_events || [];
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async analyzePromptEvolution() {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/analyze", { method: "POST" });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        this.peAnalysis = j.analysis;
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async proposePromptEvolution() {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/propose", { method: "POST" });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchPromptEvolution();
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async approvePromptEvolution(proposalId) {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposal_id: proposalId || null }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchPromptEvolution();
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async rejectPromptEvolution() {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/reject", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "dashboard_reject" }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchPromptEvolution();
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async revertPromptEvolution() {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/revert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "dashboard_revert" }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchPromptEvolution();
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async startAbPromptEvolution(days) {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/ab/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ duration_days: days || 7 }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchPromptEvolution();
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async endAbPromptEvolution(winner) {
+      this.peLoading = true;
+      this.peError = null;
+      try {
+        const r = await fetch("/api/prompt_evolution/ab/end", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ winner, reason: "dashboard_end_ab" }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchPromptEvolution();
+      } catch (err) {
+        this.peError = String(err);
+      } finally {
+        this.peLoading = false;
+      }
+    },
+
+    async fetchGovernance() {
+      this.govError = null;
+      try {
+        const r = await fetch("/api/governance/pending");
+        if (!r.ok) throw new Error(await r.text());
+        const j = await r.json();
+        this.govVetoPending = j.veto_pending || null;
+      } catch (err) {
+        this.govError = String(err);
+      }
+    },
+
+    async fetchGovernanceTiers() {
+      this.govError = null;
+      try {
+        const r = await fetch("/api/governance/tiers");
+        if (!r.ok) throw new Error(await r.text());
+        this.govTiers = await r.json();
+      } catch (err) {
+        this.govError = String(err);
+      }
+    },
+
+    async processGovernanceVetoWindows() {
+      this.govError = null;
+      try {
+        const r = await fetch("/api/governance/process-veto-windows", { method: "POST" });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchGovernance();
+      } catch (err) {
+        this.govError = String(err);
+      }
+    },
+
+    async vetoGovernanceProposal(id) {
+      this.govError = null;
+      try {
+        const r = await fetch("/api/governance/veto/" + encodeURIComponent(id), { method: "POST" });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchGovernance();
+      } catch (err) {
+        this.govError = String(err);
+      }
     },
   }));
 });

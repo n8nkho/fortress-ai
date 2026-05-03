@@ -1,0 +1,85 @@
+<section class="fai-v2-card p-4 mt-4">
+  <div class="flex flex-wrap justify-between items-start gap-3 mb-3">
+    <div>
+      <h2 class="text-sm font-semibold text-fuchsia-300 uppercase tracking-wider">🧬 Self-improvement</h2>
+      <p class="text-[11px] text-slate-500 mt-1 max-w-3xl">
+        Bounded parameter proposals from logs + optional DeepSeek; immutable risk rails stay in pre-trade gate / env.
+        Overrides live in <code class="fai-text-mono text-[10px]">data/tunable_params_overrides.json</code>.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" @click="fetchSelfImprovement()"
+        class="px-2.5 py-1 rounded-lg bg-slate-700/90 hover:bg-slate-600 text-xs text-slate-100">Refresh</button>
+      <button type="button" @click="proposeSelfImprovement()"
+        class="px-2.5 py-1 rounded-lg bg-fuchsia-900/50 hover:bg-fuchsia-800/50 border border-fuchsia-500/30 text-xs text-fuchsia-100">Propose change</button>
+      <button type="button" @click="monitorSelfImprovement()"
+        class="px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-slate-400 hover:text-slate-200" title="Run win-rate safety check">Monitor</button>
+    </div>
+  </div>
+
+  <template x-if="siError">
+    <p class="text-xs text-red-300 mb-2" x-text="siError"></p>
+  </template>
+
+  <template x-if="siStatus && !siLoading">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs mb-4">
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Log entries</span>
+        <span class="text-slate-200 fai-text-mono" x-text="siTotalLogLines"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Approved (recent sample)</span>
+        <span class="text-emerald-300/90 fai-text-mono" x-text="(siStatus.counts && siStatus.counts.approved_total_sampled) || 0"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">State</span>
+        <span class="text-slate-200" x-text="siStatus.state && siStatus.state.halted ? 'HALTED — ' + (siStatus.state.halt_reason || '') : 'Active'"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Active overrides</span>
+        <pre class="text-[10px] text-emerald-200/90 fai-text-mono overflow-x-auto max-h-24" x-text="JSON.stringify(siStatus.active_overrides || {}, null, 2)"></pre>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3 md:col-span-4">
+        <span class="text-slate-500 block mb-1">Velocity caps</span>
+        <span class="text-slate-300" x-text="'Applied changes: week ≤ ' + (siStatus.velocity ? siStatus.velocity.max_per_week : 1) + ', month ≤ ' + (siStatus.velocity ? siStatus.velocity.max_per_month : 3)"></span>
+      </div>
+    </div>
+  </template>
+
+  <template x-if="siStatus && siStatus.pending && siStatus.pending.proposal">
+    <div class="rounded-xl border border-fuchsia-500/25 bg-fuchsia-950/20 p-4 mb-4">
+      <h3 class="text-xs font-semibold text-fuchsia-200 uppercase mb-2">Pending proposal</h3>
+      <p class="text-sm text-slate-200"><span class="text-fuchsia-300" x-text="siStatus.pending.proposal.parameter"></span>:
+        <span class="fai-text-mono" x-text="siStatus.pending.proposal.current_value"></span>
+        → <span class="fai-text-mono text-amber-200" x-text="siStatus.pending.proposal.proposed_value"></span>
+      </p>
+      <p class="text-xs text-slate-400 mt-2" x-text="siStatus.pending.proposal.reasoning"></p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button type="button" @click="approveSelfImprovement(siStatus.pending.proposal_id)"
+          class="px-3 py-1.5 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 text-white text-xs">✓ Apply override</button>
+        <button type="button" @click="rejectSelfImprovement()"
+          class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-200">✗ Reject</button>
+      </div>
+    </div>
+  </template>
+
+  <div class="flex flex-wrap gap-2 mb-3">
+    <button type="button" @click="revertSelfImprovement()"
+      class="px-2.5 py-1 rounded-lg border border-amber-500/40 text-amber-200 text-xs hover:bg-amber-950/40">Revert overrides</button>
+  </div>
+
+  <details class="group">
+    <summary class="cursor-pointer text-xs text-slate-500 hover:text-fuchsia-300">Recent log (sample)</summary>
+    <ul class="mt-2 space-y-2 max-h-48 overflow-y-auto fai-scroll text-[11px] text-slate-400">
+      <template x-for="(row, idx) in (siProposals || []).slice().reverse().slice(0, 12)" :key="(row.proposal_id || row.timestamp || '') + '-' + idx">
+        <li class="border-l-2 border-fuchsia-500/30 pl-2">
+          <span class="text-slate-500 fai-text-mono" x-text="(row.timestamp || '').slice(5, 22)"></span>
+          <span class="text-slate-300 ml-2" x-text="row.decision || '—'"></span>
+          <span x-show="row.proposal && row.proposal.parameter" x-text="' · ' + row.proposal.parameter" class="text-fuchsia-300/90"></span>
+        </li>
+      </template>
+    </ul>
+  </details>
+
+  <p x-show="siLoading" class="text-xs text-slate-500 mt-2">Loading…</p>
+</section>

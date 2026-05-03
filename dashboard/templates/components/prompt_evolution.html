@@ -1,0 +1,102 @@
+<section class="fai-v2-card p-4 mt-4 border border-violet-500/20">
+  <div class="flex flex-wrap justify-between items-start gap-3 mb-3">
+    <div>
+      <h2 class="text-sm font-semibold text-violet-300 uppercase tracking-wider">📝 Tier 2 — Prompt evolution</h2>
+      <p class="text-[11px] text-slate-500 mt-1 max-w-3xl">
+        Additive guidance only (<code class="fai-text-mono text-[10px]">ADDITIONAL_OPERATOR_GUIDANCE</code>); JSON schema unchanged.
+        Production overlay: <code class="fai-text-mono text-[10px]">data/prompt_evolution_overlay.json</code>.
+        All activations require human approval; optional A/B alternates baseline vs candidate per cycle.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" @click="fetchPromptEvolution()"
+        class="px-2.5 py-1 rounded-lg bg-slate-700/90 hover:bg-slate-600 text-xs text-slate-100">Refresh</button>
+      <button type="button" @click="analyzePromptEvolution()"
+        class="px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-violet-200 hover:bg-slate-700">Analyze</button>
+      <button type="button" @click="proposePromptEvolution()"
+        class="px-2.5 py-1 rounded-lg bg-violet-900/50 hover:bg-violet-800/50 border border-violet-500/30 text-xs text-violet-100">Propose appendix</button>
+    </div>
+  </div>
+
+  <template x-if="peError">
+    <p class="text-xs text-red-300 mb-2" x-text="peError"></p>
+  </template>
+
+  <template x-if="peStatus && !peLoading">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-4">
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3 md:col-span-3">
+        <span class="text-slate-500 block mb-1">Active appendix preview</span>
+        <p class="text-slate-300 text-[11px] whitespace-pre-wrap break-words max-h-24 overflow-y-auto"
+          x-text="peStatus.overlay_preview || '(none)'"></p>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">A/B test</span>
+        <span class="text-slate-200"
+          x-text="peStatus.ab_test && peStatus.ab_test.active ? 'ACTIVE until ' + (peStatus.ab_test.ends_utc || '?') : 'Off'"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Monthly approvals cap</span>
+        <span class="text-slate-300" x-text="peStatus.limits ? peStatus.limits.max_approvals_per_month : '—'"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Appendix max chars</span>
+        <span class="fai-text-mono text-slate-200" x-text="peStatus.limits ? peStatus.limits.max_appendix_chars : '—'"></span>
+      </div>
+    </div>
+  </template>
+
+  <template x-if="peAnalysis">
+    <div class="rounded-lg border border-violet-500/20 bg-violet-950/20 p-3 mb-4 text-[11px] text-slate-400">
+      <span class="text-violet-300 font-semibold uppercase text-[10px]">Last analysis</span>
+      <pre class="mt-2 text-slate-400 overflow-x-auto max-h-40 fai-text-mono" x-text="JSON.stringify(peAnalysis, null, 2)"></pre>
+    </div>
+  </template>
+
+  <template x-if="peStatus && peStatus.pending && peStatus.pending.proposed_appendix">
+    <div class="rounded-xl border border-violet-500/30 bg-violet-950/25 p-4 mb-4">
+      <h3 class="text-xs font-semibold text-violet-200 uppercase mb-2">Pending appendix</h3>
+      <p class="text-xs text-slate-400 mb-2" x-text="peStatus.pending.reasoning"></p>
+      <p class="text-sm text-slate-200 whitespace-pre-wrap border border-white/10 rounded p-2 bg-black/30"
+        x-text="peStatus.pending.proposed_appendix"></p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button type="button" @click="approvePromptEvolution(peStatus.pending.proposal_id)"
+          class="px-3 py-1.5 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 text-white text-xs">✓ Approve overlay</button>
+        <button type="button" @click="startAbPromptEvolution(7)"
+          class="px-3 py-1.5 rounded-lg bg-indigo-900/70 hover:bg-indigo-800 text-white text-xs border border-indigo-500/30">⇄ Start A/B (7d)</button>
+        <button type="button" @click="rejectPromptEvolution()"
+          class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-200">✗ Reject</button>
+      </div>
+    </div>
+  </template>
+
+  <template x-if="peStatus && peStatus.ab_test && peStatus.ab_test.active">
+    <div class="rounded-xl border border-amber-500/25 bg-amber-950/15 p-4 mb-4">
+      <h3 class="text-xs font-semibold text-amber-200 uppercase mb-2">End A/B test</h3>
+      <p class="text-[11px] text-slate-500 mb-2">Winner becomes production overlay (B = candidate; A = baseline snapshot).</p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" @click="endAbPromptEvolution('A')" class="px-2.5 py-1 rounded-lg bg-slate-700 text-xs text-slate-200">A wins</button>
+        <button type="button" @click="endAbPromptEvolution('B')" class="px-2.5 py-1 rounded-lg bg-emerald-900/60 text-xs text-emerald-100 border border-emerald-500/30">B wins</button>
+        <button type="button" @click="endAbPromptEvolution('discard')" class="px-2.5 py-1 rounded-lg border border-red-500/30 text-red-200 text-xs">Discard both</button>
+      </div>
+    </div>
+  </template>
+
+  <div class="flex flex-wrap gap-2 mb-3">
+    <button type="button" @click="revertPromptEvolution()"
+      class="px-2.5 py-1 rounded-lg border border-amber-500/40 text-amber-200 text-xs hover:bg-amber-950/40">Revert appendix overlay</button>
+  </div>
+
+  <details class="group">
+    <summary class="cursor-pointer text-xs text-slate-500 hover:text-violet-300">Recent prompt-evolution events</summary>
+    <ul class="mt-2 space-y-1 max-h-40 overflow-y-auto fai-scroll text-[11px] text-slate-500">
+      <template x-for="(ev, idx) in (peRecentEvents || []).slice().reverse()" :key="(ev.timestamp || '') + '-' + idx">
+        <li class="border-l-2 border-violet-500/25 pl-2">
+          <span class="fai-text-mono text-slate-600" x-text="(ev.timestamp || '').slice(5, 22)"></span>
+          <span class="text-slate-400 ml-1" x-text="ev.action || '—'"></span>
+        </li>
+      </template>
+    </ul>
+  </details>
+
+  <p x-show="peLoading" class="text-xs text-slate-500 mt-2">Loading…</p>
+</section>

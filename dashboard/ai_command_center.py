@@ -103,6 +103,10 @@ app = Flask(
     static_url_path="/static",
 )
 
+from dashboard.governance_panel import register_governance_routes  # noqa: E402
+
+register_governance_routes(app)
+
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
 _DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-04b").strip()
 
@@ -758,6 +762,189 @@ def api_charts_dashboard():
 @app.route("/api/expert/bundle")
 def api_expert_bundle():
     return jsonify(_expert_bundle())
+
+
+@app.route("/api/self_improvement/status")
+def api_self_improvement_status():
+    from agents.self_improvement_engine import get_engine
+
+    return jsonify(get_engine().status_dict())
+
+
+@app.route("/api/self_improvement/proposals")
+def api_self_improvement_proposals():
+    from agents.self_improvement_engine import get_engine
+
+    eng = get_engine()
+    return jsonify(
+        {
+            "proposals": eng.list_recent_log(120),
+            "total_lines": eng.count_log_lines(),
+        }
+    )
+
+
+@app.route("/api/self_improvement/propose", methods=["POST"])
+def api_self_improvement_propose():
+    from agents.self_improvement_engine import get_engine
+
+    try:
+        rec = get_engine().analyze_performance_and_propose_change()
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/self_improvement/approve", methods=["POST"])
+def api_self_improvement_approve():
+    from agents.self_improvement_engine import get_engine
+
+    body = request.get_json(silent=True) or {}
+    pid = body.get("proposal_id")
+    try:
+        rec = get_engine().approve_pending(proposal_id=pid)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/self_improvement/reject", methods=["POST"])
+def api_self_improvement_reject():
+    from agents.self_improvement_engine import get_engine
+
+    body = request.get_json(silent=True) or {}
+    reason = str(body.get("reason") or "")
+    try:
+        rec = get_engine().reject_pending(reason=reason)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/self_improvement/revert", methods=["POST"])
+def api_self_improvement_revert():
+    from agents.self_improvement_engine import get_engine
+
+    body = request.get_json(silent=True) or {}
+    reason = str(body.get("reason") or "dashboard_revert")
+    try:
+        rec = get_engine().revert_last_overrides(reason=reason)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/self_improvement/monitor", methods=["POST"])
+def api_self_improvement_monitor():
+    from agents.self_improvement_engine import get_engine
+
+    r = get_engine().monitor_and_revert_if_needed()
+    return jsonify({"ok": True, "action": r})
+
+
+@app.route("/api/prompt_evolution/status")
+def api_prompt_evolution_status():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    return jsonify(get_prompt_evolution().status_dict())
+
+
+@app.route("/api/prompt_evolution/log")
+def api_prompt_evolution_log():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    return jsonify({"entries": get_prompt_evolution().list_recent_log(100)})
+
+
+@app.route("/api/prompt_evolution/analyze", methods=["POST"])
+def api_prompt_evolution_analyze():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    try:
+        d = get_prompt_evolution().analyze_prompt_effectiveness()
+        return jsonify({"ok": True, "analysis": d})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/prompt_evolution/propose", methods=["POST"])
+def api_prompt_evolution_propose():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    try:
+        p = get_prompt_evolution().propose_prompt_improvement()
+        return jsonify({"ok": True, "pending": p})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/prompt_evolution/approve", methods=["POST"])
+def api_prompt_evolution_approve():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    body = request.get_json(silent=True) or {}
+    pid = body.get("proposal_id")
+    try:
+        rec = get_prompt_evolution().approve_pending(proposal_id=pid)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/prompt_evolution/reject", methods=["POST"])
+def api_prompt_evolution_reject():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    body = request.get_json(silent=True) or {}
+    reason = str(body.get("reason") or "")
+    try:
+        rec = get_prompt_evolution().reject_pending(reason=reason)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/prompt_evolution/revert", methods=["POST"])
+def api_prompt_evolution_revert():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    body = request.get_json(silent=True) or {}
+    reason = str(body.get("reason") or "dashboard_revert")
+    try:
+        rec = get_prompt_evolution().revert_overlay(reason=reason)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/prompt_evolution/ab/start", methods=["POST"])
+def api_prompt_evolution_ab_start():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    body = request.get_json(silent=True) or {}
+    try:
+        days = int(body.get("duration_days") or 7)
+    except (TypeError, ValueError):
+        days = 7
+    try:
+        rec = get_prompt_evolution().start_ab_test(duration_days=days)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/prompt_evolution/ab/end", methods=["POST"])
+def api_prompt_evolution_ab_end():
+    from agents.prompt_evolution import get_prompt_evolution
+
+    body = request.get_json(silent=True) or {}
+    winner = str(body.get("winner") or "").strip()
+    reason = str(body.get("reason") or "")
+    try:
+        rec = get_prompt_evolution().end_ab_test(winner=winner, reason=reason)
+        return jsonify({"ok": True, "record": rec})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
 
 
 if __name__ == "__main__":
