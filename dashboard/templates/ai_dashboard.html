@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=2" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=2" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=3" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=3" />
   <style>[x-cloak]{display:none!important}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=3"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
-  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=2" defer></script>
+  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=3" defer></script>
 </head>
 <body class="fai-dashboard">
   <div id="app" class="max-w-[1600px] mx-auto px-3 md:px-6 py-4 min-h-screen" x-data="fortressDashboard()" x-cloak>
@@ -40,6 +40,8 @@
 
     <footer class="mt-10 pt-6 border-t border-white/10 text-center text-xs text-slate-600">
       Fortress AI · Research dashboard · Not investment advice
+      <span class="mx-2">·</span>
+      <span class="text-cyan-600/90 fai-text-mono" title="If you do not see this label, your browser or CDN may be serving an old HTML bundle. Hard-refresh or pull latest on the server.">UI v2</span>
       <span class="mx-2">·</span>
       <span class="fai-text-mono">H</span> halt ·
       <span class="fai-text-mono">E</span> expert ·
