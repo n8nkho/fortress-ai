@@ -272,6 +272,9 @@ document.addEventListener("alpine:init", () => {
     },
 
     nextDecisionEta() {
+      if (this.state.agent_schedule?.manual_only) {
+        return "On demand only";
+      }
       const interval = Number(this.state.loop_interval_seconds || 300) * 1000;
       const base = this.state.last_decision_ts ? new Date(this.state.last_decision_ts).getTime() : this.lastTick;
       const next = base + interval;

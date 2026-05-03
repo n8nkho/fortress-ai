@@ -200,7 +200,20 @@ def _calls_today_from_ledger() -> int:
     return n
 
 
-def _infer_ui_status(last_metric: dict | None, last_decision_row: dict | None) -> str:
+def _infer_ui_status(
+    last_metric: dict | None,
+    last_decision_row: dict | None,
+    *,
+    manual_only: bool = False,
+) -> str:
+    # Manual-only: stale ai_latest_metric.json still has decision_latency_ms from the last run —
+    # avoid showing perpetual THINKING; keep EXECUTING if last run actually submitted.
+    if manual_only:
+        if last_metric and last_metric.get("executed"):
+            return "EXECUTING"
+        if last_decision_row and last_decision_row.get("decision"):
+            return "OBSERVING"
+        return "WAITING"
     if last_metric:
         if last_metric.get("executed"):
             return "EXECUTING"
@@ -547,7 +560,12 @@ def build_current_state() -> dict[str, Any]:
     else:
         loop_sec = effective_loop_interval_seconds()
 
-    status = _infer_ui_status(latest_metric, last_row)
+    _manual_only_ui = str(os.environ.get("FORTRESS_AI_MANUAL_ONLY", "0")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    status = _infer_ui_status(latest_metric, last_row, manual_only=_manual_only_ui)
 
     last_ts = None
     if latest_metric and latest_metric.get("ts"):

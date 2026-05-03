@@ -32,7 +32,12 @@
     </div>
     <p class="text-xs text-slate-500 mt-2">
       Zone: <span class="text-slate-300" x-text="confidenceZoneLabel()"></span>
-      · Next cycle ETA · <span class="text-slate-300" x-text="nextDecisionEta()"></span>
+      <template x-if="state.agent_schedule?.manual_only">
+        <span> · <span class="text-amber-200/90">No auto cadence</span> · <span class="text-slate-400" x-text="nextDecisionEta()"></span></span>
+      </template>
+      <template x-if="!state.agent_schedule?.manual_only">
+        <span> · Next cycle ETA · <span class="text-slate-300" x-text="nextDecisionEta()"></span></span>
+      </template>
     </p>
   </div>
 
