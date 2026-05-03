@@ -58,7 +58,10 @@ python3 dashboard/ai_command_center.py
 # http://127.0.0.1:8050/          dashboard (set FORTRESS_AI_DASHBOARD_PORT)
 # http://127.0.0.1:8050/mockup    static layout preview (dummy data)
 
-# Key API routes: GET /api/ai/current_state, GET /api/comparison, GET /api/stream/decisions (SSE), GET /api/export/bundle
+# Key API routes: GET /api/ai/current_state, GET /api/comparison, GET /api/stream/decisions (SSE), GET /api/export/bundle, GET /api/charts/dashboard, GET /api/expert/bundle
+
+# After deploy, smoke-test the live dashboard (same checks as pytest test_dashboard_api):
+#   ./scripts/smoke_dashboard.sh http://127.0.0.1:8050
 
 # Comparison metrics (optional Classic path)
 export CLASSIC_DATA_DIR=/path/to/trading-bot/data

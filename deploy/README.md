@@ -28,6 +28,9 @@ Smoke tests:
 export PYTHONPATH=.
 python3 agents/unified_ai_agent.py --dry-run --once
 curl -s http://127.0.0.1:${FORTRESS_AI_DASHBOARD_PORT:-8050}/api/health
+
+# Charts + expert APIs (optional — requires dashboard running):
+#   cd /home/ubuntu/fortress-ai && ./scripts/smoke_dashboard.sh
 ```
 
 ## systemd (recommended)
