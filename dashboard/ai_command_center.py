@@ -18,7 +18,12 @@ os.chdir(_ROOT)
 try:
     from dotenv import load_dotenv
 
-    load_dotenv(_ROOT / ".env", override=False)
+    _dotenv_override = str(os.environ.get("FORTRESS_DOTENV_OVERRIDE", "")).lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    load_dotenv(_ROOT / ".env", override=_dotenv_override)
 except Exception:
     pass
 
@@ -180,9 +185,14 @@ def _alpaca_snapshot() -> dict[str, Any]:
                     "current_price": float(getattr(p, "current_price", 0) or 0),
                 }
             )
+        acct_num = getattr(acct, "account_number", None)
+        acct_id = getattr(acct, "id", None)
         return {
             "connected": True,
             "paper": is_alpaca_paper(),
+            "account_number": acct_num,
+            "alpaca_account_id": str(acct_id) if acct_id is not None else None,
+            "api_key_tail": key[-4:] if len(key) >= 4 else None,
             "equity": float(acct.equity),
             "buying_power": float(acct.buying_power),
             "positions": positions,
@@ -232,7 +242,11 @@ def _comparison_payload() -> dict[str, Any]:
             "opportunity_cycles": ai_non_wait,
             "dry_run": str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes"),
         },
-        "note": "Shared Alpaca keys yield shared portfolio; attribution is logical only.",
+        "note": (
+            "Portfolio + Alpaca snapshot use ALPACA_* from this instance's environment. "
+            "Classic columns read decisions_log.jsonl under CLASSIC_DATA_DIR only — "
+            "they do not update when you rotate Alpaca keys unless that file changes."
+        ),
     }
 
 
