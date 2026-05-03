@@ -31,6 +31,8 @@ class TestDashboardApi(unittest.TestCase):
         self.assertIn("sdk_installed", d)
         self.assertIn("keys_configured", d)
         self.assertIn("paper_mode", d)
+        if d.get("connected"):
+            self.assertIn(d.get("positions_fetch"), ("ok", "error"))
 
     def test_build_endpoint_shape(self):
         r = self.client.get("/api/build")

@@ -241,26 +241,31 @@ def _alpaca_snapshot() -> dict[str, Any]:
 
         tc = TradingClient(key, sec, **alpaca_trading_client_kwargs())
         acct = tc.get_account()
-        pos = tc.get_all_positions()
-        positions = []
-        unreal = 0.0
-        for p in pos[:40]:
-            q = float(getattr(p, "qty", 0) or 0)
-            mv = float(getattr(p, "market_value", 0) or 0)
-            unreal += float(getattr(p, "unrealized_pl", 0) or 0)
-            positions.append(
-                {
-                    "symbol": getattr(p, "symbol", ""),
-                    "qty": q,
-                    "avg_entry": float(getattr(p, "avg_entry_price", 0) or 0),
-                    "market_value": mv,
-                    "unrealized_pl": float(getattr(p, "unrealized_pl", 0) or 0),
-                    "current_price": float(getattr(p, "current_price", 0) or 0),
-                }
-            )
         acct_num = getattr(acct, "account_number", None)
         acct_id = getattr(acct, "id", None)
-        return {
+        positions: list[dict[str, Any]] = []
+        unreal = 0.0
+        positions_error: str | None = None
+        try:
+            pos = tc.get_all_positions()
+            for p in pos[:40]:
+                q = float(getattr(p, "qty", 0) or 0)
+                mv = float(getattr(p, "market_value", 0) or 0)
+                unreal += float(getattr(p, "unrealized_pl", 0) or 0)
+                positions.append(
+                    {
+                        "symbol": getattr(p, "symbol", ""),
+                        "qty": q,
+                        "avg_entry": float(getattr(p, "avg_entry_price", 0) or 0),
+                        "market_value": mv,
+                        "unrealized_pl": float(getattr(p, "unrealized_pl", 0) or 0),
+                        "current_price": float(getattr(p, "current_price", 0) or 0),
+                    }
+                )
+        except Exception as pe:
+            positions_error = f"{type(pe).__name__}:{pe}"[:240]
+
+        out: dict[str, Any] = {
             "connected": True,
             "paper": is_alpaca_paper(),
             "account_number": acct_num,
@@ -272,6 +277,9 @@ def _alpaca_snapshot() -> dict[str, Any]:
             "unrealized_pl": round(unreal, 2),
             "position_count": len(positions),
         }
+        if positions_error:
+            out["positions_error"] = positions_error
+        return out
     except Exception as e:
         return {"connected": False, "reason": f"{type(e).__name__}:{e}"}
 
@@ -679,6 +687,12 @@ def api_alpaca_diagnose():
         out["account_status"] = str(getattr(acct, "status", "") or "")
         eq = getattr(acct, "equity", None)
         out["equity"] = float(eq) if eq is not None else None
+        try:
+            _ = tc.get_all_positions()
+            out["positions_fetch"] = "ok"
+        except Exception as pe:
+            out["positions_fetch"] = "error"
+            out["positions_fetch_reason"] = f"{type(pe).__name__}:{pe}"[:240]
     except Exception as e:
         out["reason"] = f"{type(e).__name__}:{e}"[:300]
 

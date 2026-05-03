@@ -56,6 +56,10 @@
           <span class="text-[10px] text-amber-300/90 fai-text-mono break-words pl-5 max-w-full leading-snug"
             x-text="String(state.portfolio.reason).slice(0, 200)"></span>
         </template>
+        <template x-if="state.portfolio?.connected && state.portfolio?.positions_error">
+          <span class="text-[10px] text-amber-200/80 fai-text-mono break-words pl-5 max-w-full leading-snug"
+            x-text="'Positions: ' + String(state.portfolio.positions_error).slice(0, 200)"></span>
+        </template>
       </li>
       <li class="flex gap-2">
         <span class="text-emerald-400">✓</span>
