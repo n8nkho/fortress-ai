@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fortress AI — Command Center</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; background: #0f1419; color: #e6edf3; }
+    h1 { font-size: 1.25rem; }
+    pre { background: #161b22; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+    button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+    .halt { background: #da3633; color: #fff; }
+    .resume { background: #238636; color: #fff; }
+    .muted { color: #8b949e; font-size: 0.9rem; }
+    a { color: #58a6ff; }
+  </style>
+</head>
+<body>
+  <h1>Fortress AI — Instance Dashboard</h1>
+  <p class="muted">Isolated from Classic Fortress. Kill switch uses the same API shape; optionally set <code>FORTRESS_SHARED_HALT_PATH</code> to mirror Classic halt file.</p>
+
+  <div class="row">
+    <button class="halt" type="button" onclick="postHalt(true)">Halt trading</button>
+    <button class="resume" type="button" onclick="postHalt(false)">Resume trading</button>
+    <button type="button" onclick="refresh()">Refresh status</button>
+  </div>
+
+  <h2>Kill switch state</h2>
+  <pre id="halt">Loading…</pre>
+
+  <h2>AI status</h2>
+  <pre id="ai">Loading…</pre>
+
+  <script>
+    async function refresh() {
+      const [h, a] = await Promise.all([
+        fetch('/api/operator/halt').then(r => r.json()),
+        fetch('/api/fortress_ai/status').then(r => r.json()),
+      ]);
+      document.getElementById('halt').textContent = JSON.stringify(h, null, 2);
+      document.getElementById('ai').textContent = JSON.stringify(a, null, 2);
+    }
+    async function postHalt(active) {
+      const reason = active ? 'operator_halt_fortress_ai' : 'operator_resume_fortress_ai';
+      await fetch('/api/operator/halt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active, reason, actor: 'fortress_ai_ui' }),
+      });
+      refresh();
+    }
+    refresh();
+    setInterval(refresh, 15000);
+  </script>
+</body>
+</html>

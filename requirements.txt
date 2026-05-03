@@ -1,0 +1,7 @@
+# Fortress AI — pin versions to match your Classic Fortress environment as needed
+flask>=3.0
+flask-cors>=4.0
+python-dotenv>=1.0
+openai>=1.40
+alpaca-py>=0.30
+yfinance>=0.2
