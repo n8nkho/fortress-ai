@@ -43,7 +43,7 @@ Deploy path on server: `/home/ubuntu/fortress-ai` (copy this tree).
 ## Commands
 
 ```bash
-cd /path/to/fortress-ai
+cd /home/ubuntu/fortress-ai    # server deploy path — use your local clone path instead when developing
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # edit keys
@@ -60,8 +60,11 @@ python3 dashboard/ai_command_center.py
 
 # Key API routes: GET /api/ai/current_state, GET /api/comparison, GET /api/stream/decisions (SSE), GET /api/export/bundle, GET /api/charts/dashboard, GET /api/expert/bundle
 
-# After deploy, smoke-test the live dashboard (same checks as pytest test_dashboard_api):
-#   ./scripts/smoke_dashboard.sh http://127.0.0.1:8050
+# After deploy — smoke-test against a *running* dashboard (HTTP curls):
+./scripts/smoke_dashboard.sh http://127.0.0.1:8050
+
+# Same dashboard API checks without a running server (stdlib unittest; no pytest required):
+PYTHONPATH=. python3 -m unittest discover -s tests -p 'test_dashboard_api.py' -q
 
 # Comparison metrics (optional Classic path)
 export CLASSIC_DATA_DIR=/path/to/trading-bot/data
