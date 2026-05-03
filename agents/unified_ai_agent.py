@@ -487,6 +487,25 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             "min_confidence": _min_confidence_execute(),
         }
         append_decision(log_rec)
+        if str(os.environ.get("FORTRESS_AI_EXPERIENCE_LOG", "1")).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
+            try:
+                from knowledge.experience_tracker import append_experience
+
+                append_experience(
+                    {
+                        "action": decision.get("action"),
+                        "confidence": decision.get("confidence"),
+                        "executed": bool(act_result.get("executed")),
+                        "detail": str(act_result.get("detail"))[:800],
+                    }
+                )
+            except Exception:
+                pass
         sleep_sec = effective_loop_interval_seconds(interval_sec)
         from utils.tunable_overrides import get_decision_interval_seconds as _gi
 

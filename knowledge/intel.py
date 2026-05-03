@@ -108,6 +108,7 @@ def domain_intel_snapshot(
     obs = {"vix_last": vix, "spy_last": spy}
     state = {"beliefs": beliefs or {}}
     out: dict[str, Any] = {
+        "schema_version": 2,
         "enabled": _domain_enabled(),
         "regime_hint": infer_regime(obs),
         "strategy_hint": infer_strategy(obs, state),
@@ -115,7 +116,10 @@ def domain_intel_snapshot(
         "concept_counts": {},
         "total_concepts": 0,
         "recent_learnings": [],
+        "recent_experience": [],
         "llm_learn_enabled": str(os.environ.get("FORTRESS_AI_DOMAIN_LLM_LEARN", "0")).strip().lower()
+        in ("1", "true", "yes", "on"),
+        "web_ingest_default": str(os.environ.get("FORTRESS_AI_DOMAIN_WEB_INGEST", "1")).strip().lower()
         in ("1", "true", "yes", "on"),
     }
     if not out["enabled"]:
@@ -135,6 +139,12 @@ def domain_intel_snapshot(
                     out["recent_learnings"].append(json.loads(line))
                 except Exception:
                     continue
+        try:
+            from knowledge.experience_tracker import tail_experience
+
+            out["recent_experience"] = tail_experience(root=root, max_lines=10)
+        except Exception:
+            pass
     except Exception as e:
         out["error"] = str(e)[:200]
     return out

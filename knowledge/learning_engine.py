@@ -82,7 +82,59 @@ class LearningEngine:
             "sector_pattern": "sector_dynamics",
             "strategy_effectiveness": "trading_strategies",
             "risk_event": "risk_frameworks",
+            "macro_commentary": "economic_indicators",
+            "web_snippet": "economic_indicators",
         }
         domain = domain_map.get(category, "behavioral_patterns")
         concept = f"learned_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         self.domain_knowledge.add_learned_knowledge(domain=domain, concept=concept, knowledge=lesson)
+
+    def learn_from_market_commentary(
+        self,
+        commentary: str,
+        *,
+        source_url: str = "",
+        source_title: str = "",
+        use_llm: bool = False,
+    ) -> None:
+        """Persist commentary; optional DeepSeek structuring (costs tokens)."""
+        text = (commentary or "").strip()
+        if not text:
+            return
+        if not use_llm:
+            self.record_lesson(
+                {
+                    "category": "macro_commentary",
+                    "source_url": source_url,
+                    "source_title": source_title or source_url,
+                    "insight": text[:2000],
+                    "confidence": 0.45,
+                }
+            )
+            return
+        prompt = (
+            "You extract trading-domain insights from public macro/policy text. "
+            "Return JSON only (no markdown): "
+            '{"lessons":[{"category":"regime_behavior|sector_pattern|strategy_effectiveness|'
+            'risk_event|macro_commentary","insight":"...","confidence":0.0,"applicable_to":[]}]}'
+            f"\n\nSOURCE_TITLE:{source_title}\nSOURCE_URL:{source_url}\nTEXT:\n{text[:10000]}"
+        )
+        try:
+            from agents.unified_ai_agent import call_deepseek, _parse_llm_json
+
+            raw, _ = call_deepseek(prompt, max_out_tokens=900)
+            parsed = _parse_llm_json(raw)
+        except Exception as e:
+            self.record_lesson(
+                {
+                    "category": "macro_commentary",
+                    "source_url": source_url,
+                    "insight": f"web_llm_error:{e}"[:400],
+                    "confidence": 0.0,
+                }
+            )
+            return
+        for lesson in parsed.get("lessons") or []:
+            if isinstance(lesson, dict):
+                lesson.setdefault("source_url", source_url)
+                self.store_lesson(lesson)

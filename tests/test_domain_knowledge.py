@@ -44,6 +44,18 @@ class TestDomainKnowledge(unittest.TestCase):
         snap = domain_intel_snapshot(macro, beliefs={}, root=td)
         self.assertIn("regime_hint", snap)
         self.assertEqual(snap.get("rsi_hint"), 55.0)
+        self.assertEqual(snap.get("schema_version"), 2)
+
+    def test_parse_rss_items(self):
+        from knowledge.web_ingest import parse_rss_items
+
+        xml = """<?xml version="1.0"?><rss><channel>
+        <item><title>Test headline</title><link>https://example.com/a</link>
+        <description><![CDATA[<p>Body <b>bold</b></p>]]></description></item>
+        </channel></rss>"""
+        items = parse_rss_items(xml, limit=3)
+        self.assertEqual(len(items), 1)
+        self.assertIn("Test headline", items[0]["title"])
 
 
 if __name__ == "__main__":
