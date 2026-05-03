@@ -28,29 +28,65 @@ from utils.alpaca_env import is_alpaca_paper
 from utils.api_costs import week_cost_usd
 from utils.operator_halt import get_halt_state, set_trading_halt
 
-_MACRO_CACHE: dict[str, Any] = {"t": 0.0, "spy": None, "vix": None}
+_MACRO_CACHE: dict[str, Any] = {"t": 0.0, "spy": None, "vix": None, "rsi": None}
+
+
+def _rsi_from_close(close: Any, period: int = 14) -> float | None:
+    """Classic RSI from closing prices (simple rolling mean of gains/losses)."""
+    try:
+        import pandas as pd
+
+        if close is None or len(close) < period + 1:
+            return None
+        c = close.astype(float)
+        delta = c.diff()
+        gain = delta.where(delta > 0, 0.0)
+        loss = (-delta).where(delta < 0, 0.0)
+        avg_g = gain.rolling(period).mean()
+        avg_l = loss.rolling(period).mean()
+        rs = avg_g / avg_l.replace(0, 1e-12)
+        rsi = 100.0 - (100.0 / (1.0 + rs))
+        v = rsi.iloc[-1]
+        if pd.isna(v):
+            return None
+        return float(round(v, 2))
+    except Exception:
+        return None
 
 
 def _macro_snapshot() -> dict[str, Any]:
-    """Lightweight SPY/VIX for dashboard (45s cache)."""
+    """Lightweight SPY/VIX + SPY RSI(14) for dashboard (45s cache)."""
     now = time.time()
     if now - float(_MACRO_CACHE["t"]) < 45 and _MACRO_CACHE.get("spy") is not None:
-        return {"spy": _MACRO_CACHE["spy"], "vix": _MACRO_CACHE["vix"], "cached": True}
+        return {
+            "spy": _MACRO_CACHE["spy"],
+            "vix": _MACRO_CACHE["vix"],
+            "rsi": _MACRO_CACHE.get("rsi"),
+            "cached": True,
+        }
     try:
         import yfinance as yf
 
         spy = yf.Ticker("SPY")
         vix = yf.Ticker("^VIX")
+        hist = spy.history(period="3mo", interval="1d")
+        closes = hist["Close"] if hist is not None and len(hist.index) else None
+        rsi_val = _rsi_from_close(closes, period=14)
+
         sp = spy.fast_info.get("last_price")
         if sp is None:
-            sp = float(spy.history(period="5d", interval="1d")["Close"].iloc[-1])
+            sp = float(closes.iloc[-1]) if closes is not None and len(closes) else float(
+                spy.history(period="5d", interval="1d")["Close"].iloc[-1]
+            )
         vx = vix.fast_info.get("last_price")
         if vx is None:
             vx = float(vix.history(period="5d", interval="1d")["Close"].iloc[-1])
-        _MACRO_CACHE.update({"t": now, "spy": float(sp), "vix": float(vx)})
-        return {"spy": float(sp), "vix": float(vx), "cached": False}
+        _MACRO_CACHE.update(
+            {"t": now, "spy": float(sp), "vix": float(vx), "rsi": rsi_val}
+        )
+        return {"spy": float(sp), "vix": float(vx), "rsi": rsi_val, "cached": False}
     except Exception as e:
-        return {"spy": None, "vix": None, "error": str(e)[:80], "cached": False}
+        return {"spy": None, "vix": None, "rsi": None, "error": str(e)[:80], "cached": False}
 
 
 app = Flask(

@@ -1,7 +1,7 @@
 <section class="space-y-4">
   <div class="fai-glass p-4">
     <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider mb-3">🎯 Market pulse</h2>
-    <div class="grid grid-cols-2 gap-3 fai-text-mono text-sm">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 fai-text-mono text-sm">
       <div class="rounded-lg bg-black/30 p-3 border border-cyan-500/15">
         <span class="text-xs text-slate-500 block">SPY</span>
         <span class="text-lg text-cyan-200" x-text="state.macro?.spy != null ? state.macro.spy.toFixed(2) : '—'"></span>
@@ -10,9 +10,13 @@
         <span class="text-xs text-slate-500 block">VIX</span>
         <span class="text-lg text-purple-200" x-text="state.macro?.vix != null ? state.macro.vix.toFixed(2) : '—'"></span>
       </div>
+      <div class="rounded-lg bg-black/30 p-3 border border-amber-500/15">
+        <span class="text-xs text-slate-500 block">SPY RSI(14)</span>
+        <span class="text-lg text-amber-200" x-text="state.macro?.rsi != null ? Number(state.macro.rsi).toFixed(1) : '—'"></span>
+      </div>
     </div>
     <p class="text-xs text-slate-500 mt-2">
-      Structured opportunity cards (RSI, volume, AI score per symbol) ship in v2 — macro + portfolio below stay live.
+      Daily closes · RSI is indicative only. Per-symbol cards (volume, AI score) remain v2 — portfolio below stays live.
     </p>
   </div>
 
