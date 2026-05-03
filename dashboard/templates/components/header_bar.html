@@ -6,6 +6,7 @@
         <div class="flex items-center gap-2 flex-wrap">
           <h1 class="text-lg font-semibold tracking-tight fai-text-mono fai-glow-cyan" x-text="state.instance || 'Fortress-AI'"></h1>
           <span class="text-xs px-2 py-0.5 rounded-full border border-cyan-500/40 text-cyan-300 fai-text-mono" x-text="state.dry_run ? 'DRY-RUN' : 'AUTONOMOUS'"></span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full border border-cyan-400/45 bg-cyan-950/55 text-cyan-200 fai-text-mono font-semibold shrink-0" title="Dashboard bundle (charts, expert APIs, V2 layout)">UI v2</span>
           <span class="relative inline-flex items-center text-xs font-semibold uppercase tracking-wider fai-text-mono px-3 py-1 rounded-full border border-white/10 overflow-visible"
             :class="statusBadgeClass()">
             <span class="fai-status-pulse-ring" aria-hidden="true"></span>
