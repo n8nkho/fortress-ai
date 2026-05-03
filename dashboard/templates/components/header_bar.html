@@ -53,15 +53,15 @@
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 border-t border-white/10 pt-3 mt-2 w-full">
       <label class="flex items-center gap-2 cursor-pointer select-none hover:text-slate-300">
         <input type="checkbox" class="rounded border-slate-600 bg-black/40 accent-cyan-500"
-          :checked="state.agent_runtime?.run_off_hours_auto !== false"
+          :checked="state.agent_runtime?.run_off_hours_auto === true"
           @change="setRunOffHoursAuto($event.target.checked)" />
-        <span title="When off, outside Mon–Fri 9:30–16:00 ET the agent idles (no LLM) until RTH or Run now">Auto cycles outside market hours</span>
+        <span title="US equity hours = Mon–Fri 9:30–4:00 PM America/New_York. When checked, also run full cycles on nights/weekends at FORTRESS_AI_LOOP_SECONDS_OFF_HOURS. When unchecked, idle (no LLM) until RTH or Run now.">Auto cycles outside US market hours</span>
       </label>
       <button type="button" @click="requestCycleNow()"
         class="px-2.5 py-1 rounded-lg bg-slate-700/90 hover:bg-slate-600 text-slate-100 text-xs transition-colors">
         ▶ Run AI cycle now
       </button>
-      <span class="text-slate-600 hidden sm:inline" x-text="state.us_equity_rth ? 'US equity session — full cadence' : 'Outside RTH — interval follows .env or idle if auto is off'"></span>
+      <span class="text-slate-600 hidden sm:inline" x-text="state.us_equity_rth ? 'US cash session (ET) — 5m-style cadence from .env' : (state.agent_runtime?.run_off_hours_auto === true ? 'Off-hours auto ON — using FORTRESS_AI_LOOP_SECONDS_OFF_HOURS' : 'Off-hours auto OFF — idling until RTH or Run now')"></span>
     </div>
   </div>
 </header>

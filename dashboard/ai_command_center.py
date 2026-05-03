@@ -378,7 +378,7 @@ def build_current_state() -> dict[str, Any]:
         "halt": get_halt_state(),
         "macro": _macro_snapshot(),
         "agent_runtime": {
-            "run_off_hours_auto": bool(ar.get("run_off_hours_auto", True)),
+            "run_off_hours_auto": bool(ar.get("run_off_hours_auto", False)),
             "updated_at_utc": ar.get("updated_at_utc"),
         },
     }

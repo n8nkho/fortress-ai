@@ -33,7 +33,7 @@ document.addEventListener("alpine:init", () => {
       halt: { effective_halted: false },
       loop_interval_seconds: 300,
       last_decision_ts: null,
-      agent_runtime: { run_off_hours_auto: true },
+      agent_runtime: { run_off_hours_auto: false },
     },
 
     comparison: null,

@@ -24,7 +24,9 @@ def on_demand_flag_path() -> Path:
     return _data_root() / "agent_on_demand_cycle.flag"
 
 
-DEFAULT_RUN_OFF_HOURS_AUTO = True
+# Default False: outside Mon–Fri 9:30–16:00 America/New_York, agent idles until you enable
+# the dashboard toggle or use "Run AI cycle now".
+DEFAULT_RUN_OFF_HOURS_AUTO = False
 
 
 def read_runtime_prefs() -> dict[str, bool | str | None]:
