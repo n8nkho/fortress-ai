@@ -1,0 +1,62 @@
+<section class="fai-glass p-4 space-y-4">
+  <div>
+    <h2 class="text-sm font-semibold text-amber-300 uppercase tracking-wider mb-3">📈 Performance</h2>
+    <p class="text-xs text-slate-500 mb-2" x-text="dryRunLabel()"></p>
+    <div class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <span class="text-slate-400">Win rate</span>
+        <span class="fai-text-mono text-slate-300">N/A <span class="text-xs text-slate-600">(need trades)</span></span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">Cycles logged</span>
+        <span class="fai-text-mono" x-text="(state.recent_decisions || []).length"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-white/10 bg-black/25 p-3">
+    <h3 class="text-xs font-semibold text-slate-400 uppercase mb-2">💸 API usage</h3>
+    <div class="space-y-2 text-sm fai-text-mono">
+      <div class="flex justify-between">
+        <span class="text-slate-500">Today</span>
+        <span class="text-amber-300" x-text="'$' + (state.today_llm_spend_usd ?? 0).toFixed(4)"></span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-500">This week</span>
+        <span class="text-cyan-300" x-text="'$' + (state.weekly_llm_spend_usd ?? 0).toFixed(4)"></span>
+      </div>
+      <div class="fai-confidence-track mt-2">
+        <div class="fai-confidence-fill !bg-gradient-to-r !from-purple-600 !to-cyan-400" :style="'width:' + weekCostPct() + '%'"></div>
+      </div>
+      <p class="text-xs text-slate-500">
+        Cap: $<span x-text="state.weekly_cost_cap_usd"></span>/wk · calls today:
+        <span x-text="state.llm_calls_today ?? 0"></span>
+      </p>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-white/10 bg-black/25 p-3">
+    <h3 class="text-xs font-semibold text-slate-400 uppercase mb-2">⚡ System</h3>
+    <ul class="text-xs space-y-1.5 text-slate-300">
+      <li class="flex gap-2"><span class="text-emerald-400">✓</span> Pre-trade gate active</li>
+      <li class="flex gap-2"><span :class="state.halt?.effective_halted ? 'text-red-400' : 'text-emerald-400'" x-text="state.halt?.effective_halted ? '✗' : '✓'"></span>
+        Kill switch: <span x-text="state.halt?.effective_halted ? 'HALTED' : 'clear'"></span>
+      </li>
+      <li class="flex gap-2"><span class="text-emerald-400">✓</span> Dashboard SSE / poll</li>
+      <li class="flex gap-2">
+        <span :class="state.portfolio?.connected ? 'text-emerald-400' : 'text-amber-400'" x-text="state.portfolio?.connected ? '✓' : '!'"></span>
+        Alpaca: <span x-text="state.portfolio?.connected ? 'connected' : 'offline'"></span>
+      </li>
+      <li class="flex gap-2">
+        <span class="text-emerald-400">✓</span>
+        Weekly cap:
+        <span x-text="(state.weekly_llm_spend_usd ?? 0) >= (state.weekly_cost_cap_usd ?? 1) ? 'REACHED' : 'under budget'"></span>
+      </li>
+    </ul>
+  </div>
+
+  <div x-show="expertMode" x-transition class="rounded-lg bg-black/50 p-3 border border-cyan-500/20">
+    <p class="text-xs text-cyan-300 mb-2">Raw current_state (subset)</p>
+    <pre class="text-[10px] overflow-auto max-h-64 text-slate-300 fai-scroll" x-text="JSON.stringify(state, null, 2)"></pre>
+  </div>
+</section>

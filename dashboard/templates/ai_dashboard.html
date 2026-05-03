@@ -3,55 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fortress AI — Command Center</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; background: #0f1419; color: #e6edf3; }
-    h1 { font-size: 1.25rem; }
-    pre { background: #161b22; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; }
-    .row { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
-    button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
-    .halt { background: #da3633; color: #fff; }
-    .resume { background: #238636; color: #fff; }
-    .muted { color: #8b949e; font-size: 0.9rem; }
-    a { color: #58a6ff; }
-  </style>
+  <title>Fortress AI — Neural Ops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}" />
+  <style>[x-cloak]{display:none!important}</style>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
 </head>
-<body>
-  <h1>Fortress AI — Instance Dashboard</h1>
-  <p class="muted">Isolated from Classic Fortress. Kill switch uses the same API shape; optionally set <code>FORTRESS_SHARED_HALT_PATH</code> to mirror Classic halt file.</p>
+<body class="fai-dashboard">
+  <div id="app" class="max-w-[1600px] mx-auto px-3 md:px-6 py-4 min-h-screen" x-data="fortressDashboard()" x-cloak>
+    <div x-show="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 text-cyan-300 fai-text-mono">
+      Initializing neural link…
+    </div>
+    <div x-show="error && !loading" class="mb-4 rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-2 text-sm text-red-200" x-text="error"></div>
 
-  <div class="row">
-    <button class="halt" type="button" onclick="postHalt(true)">Halt trading</button>
-    <button class="resume" type="button" onclick="postHalt(false)">Resume trading</button>
-    <button type="button" onclick="refresh()">Refresh status</button>
+    {% include 'components/header_bar.html' %}
+
+    <main class="fai-grid">
+      <div class="space-y-4">
+        {% include 'components/ai_mind.html' %}
+      </div>
+      <div class="space-y-4">
+        {% include 'components/market_view.html' %}
+      </div>
+      <div class="space-y-4">
+        {% include 'components/intelligence.html' %}
+      </div>
+    </main>
+
+    <footer class="mt-10 pt-6 border-t border-white/10 text-center text-xs text-slate-600">
+      Fortress AI · Research dashboard · Not investment advice
+      <span class="mx-2">·</span>
+      <span class="fai-text-mono">H</span> halt ·
+      <span class="fai-text-mono">E</span> expert ·
+      <span class="fai-text-mono">C</span> compare
+    </footer>
+
+    {% include 'components/comparison_drawer.html' %}
+
+    <!-- Decision detail modal -->
+    <div x-show="detailModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+      x-transition.opacity @click="closeDetail()" @keydown.escape.window="closeDetail()">
+      <div class="max-w-3xl w-full fai-glass-strong p-6 max-h-[85vh] overflow-hidden flex flex-col border border-cyan-500/20 shadow-2xl shadow-cyan-900/20"
+        @click.stop role="dialog" aria-modal="true">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-cyan-300">Decision detail</h3>
+          <button type="button" class="text-slate-400 hover:text-white text-2xl leading-none" @click="closeDetail()" aria-label="Close">×</button>
+        </div>
+        <pre class="text-[11px] leading-relaxed overflow-auto fai-scroll flex-1 text-emerald-100/90 fai-text-mono"
+          x-text="detailModal ? JSON.stringify(detailModal, null, 2) : ''"></pre>
+      </div>
+    </div>
   </div>
-
-  <h2>Kill switch state</h2>
-  <pre id="halt">Loading…</pre>
-
-  <h2>AI status</h2>
-  <pre id="ai">Loading…</pre>
-
-  <script>
-    async function refresh() {
-      const [h, a] = await Promise.all([
-        fetch('/api/operator/halt').then(r => r.json()),
-        fetch('/api/fortress_ai/status').then(r => r.json()),
-      ]);
-      document.getElementById('halt').textContent = JSON.stringify(h, null, 2);
-      document.getElementById('ai').textContent = JSON.stringify(a, null, 2);
-    }
-    async function postHalt(active) {
-      const reason = active ? 'operator_halt_fortress_ai' : 'operator_resume_fortress_ai';
-      await fetch('/api/operator/halt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active, reason, actor: 'fortress_ai_ui' }),
-      });
-      refresh();
-    }
-    refresh();
-    setInterval(refresh, 15000);
-  </script>
 </body>
 </html>

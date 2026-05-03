@@ -1,0 +1,57 @@
+<section class="space-y-4">
+  <div class="fai-glass p-4">
+    <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider mb-3">🎯 Market pulse</h2>
+    <div class="grid grid-cols-2 gap-3 fai-text-mono text-sm">
+      <div class="rounded-lg bg-black/30 p-3 border border-cyan-500/15">
+        <span class="text-xs text-slate-500 block">SPY</span>
+        <span class="text-lg text-cyan-200" x-text="state.macro?.spy != null ? state.macro.spy.toFixed(2) : '—'"></span>
+      </div>
+      <div class="rounded-lg bg-black/30 p-3 border border-purple-500/15">
+        <span class="text-xs text-slate-500 block">VIX</span>
+        <span class="text-lg text-purple-200" x-text="state.macro?.vix != null ? state.macro.vix.toFixed(2) : '—'"></span>
+      </div>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">
+      Structured opportunity cards (RSI, volume, AI score per symbol) ship in v2 — macro + portfolio below stay live.
+    </p>
+  </div>
+
+  <div class="fai-glass p-4 overflow-hidden">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-sm font-semibold text-emerald-300 uppercase tracking-wider">📊 Positions</h2>
+      <span class="text-xs text-slate-500" x-text="(state.portfolio?.position_count ?? 0) + ' open'"></span>
+    </div>
+    <template x-if="!state.portfolio?.connected">
+      <p class="text-sm text-amber-200/90">Alpaca not configured or unreachable — add keys in <code class="fai-text-mono text-xs">.env</code>.</p>
+    </template>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left fai-text-mono">
+        <thead>
+          <tr class="text-xs text-slate-500 border-b border-white/10">
+            <th class="pb-2 pr-2">Sym</th>
+            <th class="pb-2 pr-2">Qty</th>
+            <th class="pb-2 pr-2">Entry</th>
+            <th class="pb-2 pr-2">Last</th>
+            <th class="pb-2">P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="p in (state.portfolio?.positions || [])" :key="p.symbol">
+            <tr class="border-b border-white/5 hover:bg-white/5">
+              <td class="py-2 text-cyan-200" x-text="p.symbol"></td>
+              <td class="py-2" x-text="p.qty"></td>
+              <td class="py-2 text-slate-400" x-text="p.avg_entry?.toFixed?.(2) ?? p.avg_entry"></td>
+              <td class="py-2" x-text="p.current_price?.toFixed?.(2) ?? p.current_price"></td>
+              <td class="py-2" :class="(p.unrealized_pl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'"
+                x-text="(p.unrealized_pl ?? 0).toFixed(2)"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-slate-500 mt-3">
+      Unrealized total:
+      <span class="text-slate-300" x-text="state.portfolio?.unrealized_pl != null ? ('$' + state.portfolio.unrealized_pl) : '—'"></span>
+    </p>
+  </div>
+</section>

@@ -1,0 +1,59 @@
+<div x-show="comparisonOpen" x-transition.opacity class="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm"
+  @click.self="comparisonOpen = false">
+  <aside @click.stop class="fai-panel-enter w-full max-w-md h-full fai-glass-strong border-l border-white/10 p-6 overflow-y-auto fai-scroll shadow-2xl">
+    <div class="flex justify-between items-start mb-6">
+      <div>
+        <h2 class="text-lg font-semibold text-indigo-300">Classic vs Fortress AI</h2>
+        <p class="text-xs text-slate-500 mt-1">Logical comparison — shared Alpaca keys share one book.</p>
+      </div>
+      <button type="button" class="text-slate-400 hover:text-white text-xl leading-none" @click="comparisonOpen = false" aria-label="Close">×</button>
+    </div>
+
+    <template x-if="!comparison">
+      <p class="text-sm text-slate-400">Loading…</p>
+    </template>
+
+    <template x-if="comparison">
+      <div class="space-y-4 text-sm">
+        <table class="w-full fai-text-mono text-xs">
+          <thead>
+            <tr class="text-left text-slate-500 border-b border-white/10">
+              <th class="pb-2">Metric</th>
+              <th class="pb-2">Classic</th>
+              <th class="pb-2">AI</th>
+            </tr>
+          </thead>
+          <tbody class="text-slate-300">
+            <tr class="border-b border-white/5">
+              <td class="py-2">Win rate</td>
+              <td x-text="comparison.classic?.win_rate != null ? (comparison.classic.win_rate * 100).toFixed(1) + '%' : '—'"></td>
+              <td>N/A</td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">Closed trades (sample)</td>
+              <td x-text="comparison.classic?.closed_sample_trades ?? '—'"></td>
+              <td>—</td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">Avg P&amp;L / trade</td>
+              <td x-text="comparison.classic?.avg_pnl_per_trade ?? '—'"></td>
+              <td>—</td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">AI cycles</td>
+              <td>—</td>
+              <td x-text="comparison.fortress_ai?.metrics_cycles ?? 0"></td>
+            </tr>
+            <tr>
+              <td class="py-2">Opportunity flags</td>
+              <td>—</td>
+              <td x-text="comparison.fortress_ai?.opportunity_cycles ?? 0"></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="text-xs text-slate-500 leading-relaxed" x-text="comparison.note"></p>
+        <p class="text-xs text-slate-600">Set <code class="fai-text-mono">CLASSIC_DATA_DIR</code> on the server for Classic ledger paths.</p>
+      </div>
+    </template>
+  </aside>
+</div>

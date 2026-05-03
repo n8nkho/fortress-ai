@@ -48,10 +48,13 @@ cp .env.example .env   # edit keys
 export PYTHONPATH=.
 python3 agents/unified_ai_agent.py --dry-run --once
 
-# Dashboard
+# Dashboard (futuristic UI — SSE + expert mode + Classic comparison drawer)
 export PYTHONPATH=.
 python3 dashboard/ai_command_center.py
-# http://127.0.0.1:8084/
+# http://127.0.0.1:8084/          live dashboard
+# http://127.0.0.1:8084/mockup static layout preview (dummy data)
+
+# Key API routes: GET /api/ai/current_state, GET /api/comparison, GET /api/stream/decisions (SSE), GET /api/export/bundle
 
 # Comparison metrics (optional Classic path)
 export CLASSIC_DATA_DIR=/path/to/trading-bot/data

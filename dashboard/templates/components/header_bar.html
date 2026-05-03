@@ -1,0 +1,53 @@
+<header class="fai-glass-strong px-4 py-3 mb-4 sticky top-0 z-40">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl" aria-hidden="true">🤖</span>
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-lg font-semibold tracking-tight fai-text-mono fai-glow-cyan" x-text="state.instance || 'Fortress-AI'"></h1>
+          <span class="text-xs px-2 py-0.5 rounded-full border border-cyan-500/40 text-cyan-300 fai-text-mono" x-text="state.dry_run ? 'DRY-RUN' : 'AUTONOMOUS'"></span>
+        </div>
+        <p class="text-xs text-slate-400 mt-0.5">
+          <span x-text="fmtTime(state.timestamp_utc || new Date().toISOString())"></span> ·
+          <span class="fai-tip" title="Inferred from last cycle">Status:</span>
+          <span class="font-semibold text-purple-300" x-text="state.ui_status || 'WAITING'"></span>
+        </p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-4 fai-text-mono text-sm">
+      <div>
+        <span class="text-slate-500 text-xs block">Portfolio</span>
+        <span class="text-emerald-400 font-semibold" x-text="equityDisplay()"></span>
+      </div>
+      <div>
+        <span class="text-slate-500 text-xs block">API today</span>
+        <span class="text-amber-300" x-text="'$' + (state.today_llm_spend_usd ?? 0).toFixed(3)"></span>
+      </div>
+      <div class="flex items-center gap-2" :class="statusClass()">
+        <span class="fai-status-dot" aria-hidden="true"></span>
+        <span class="text-xs uppercase tracking-wider text-slate-300" x-text="state.ui_status"></span>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+      <button type="button" @click="postHalt(true)"
+        class="px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-500 text-white text-sm font-medium transition-colors">
+        🛑 Halt
+      </button>
+      <button type="button" @click="comparisonOpen = true; fetchComparison()"
+        class="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-sm transition-colors">
+        📊 Classic
+      </button>
+      <button type="button" @click="toggleExpert()"
+        class="px-3 py-1.5 rounded-lg border border-slate-600 hover:border-cyan-500/60 text-sm transition-colors"
+        :class="expertMode ? 'bg-cyan-900/40 border-cyan-500/50' : ''">
+        🔧 Expert
+      </button>
+      <button type="button" @click="exportBundle()"
+        class="px-3 py-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-sm transition-colors">
+        📥 Export
+      </button>
+    </div>
+  </div>
+</header>
