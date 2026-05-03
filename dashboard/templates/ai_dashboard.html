@@ -3,21 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fortress AI — Neural Ops</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <title>Fortress AI v2 — Ops · {{ ui_build }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=3" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=3" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=4" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=4" />
   <style>[x-cloak]{display:none!important}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}?v=3"></script>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=4"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
-  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=3" defer></script>
+  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=4" defer></script>
 </head>
 <body class="fai-dashboard">
+  <div class="w-full text-center text-xs sm:text-sm py-2 px-3 font-medium text-cyan-100 bg-gradient-to-r from-indigo-950/95 via-slate-950 to-indigo-950/95 border-b border-cyan-500/25 fai-text-mono shadow-[0_1px_12px_rgba(0,229,255,0.08)]" role="status">
+    <span class="text-amber-200/95">{{ ui_build }}</span>
+    <span class="text-slate-500 mx-2">·</span>
+    <span class="text-slate-400">Live bundle stamp — tab title also shows this build.</span>
+  </div>
   <div id="app" class="max-w-[1600px] mx-auto px-3 md:px-6 py-4 min-h-screen" x-data="fortressDashboard()" x-cloak>
     <div x-show="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 text-cyan-300 fai-text-mono">
       Initializing neural link…

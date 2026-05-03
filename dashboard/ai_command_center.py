@@ -103,6 +103,21 @@ app = Flask(
     static_url_path="/static",
 )
 
+# Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
+_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-04").strip()
+
+
+@app.after_request
+def _no_store_html_dashboard(response: Response):
+    """Prevent proxies/browsers from caching HTML shell (stale dashboard after git pull)."""
+    if request.method != "GET":
+        return response
+    path = request.path or ""
+    if path in ("/", "/mockup"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
 
 def _data_dir() -> Path:
     raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
@@ -582,7 +597,7 @@ def build_current_state() -> dict[str, Any]:
 
 @app.route("/")
 def index():
-    return render_template("ai_dashboard.html")
+    return render_template("ai_dashboard.html", ui_build=_DASHBOARD_UI_BUILD)
 
 
 @app.route("/mockup")

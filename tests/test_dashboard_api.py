@@ -23,6 +23,14 @@ class TestDashboardApi(unittest.TestCase):
         d = r.get_json()
         self.assertTrue(d.get("ok"))
 
+    def test_index_no_cache_and_build(self):
+        import dashboard.ai_command_center as acc
+
+        r = self.client.get("/")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("no-store", r.headers.get("Cache-Control", ""))
+        self.assertIn(acc._DASHBOARD_UI_BUILD.encode("utf-8"), r.data)
+
     def test_charts_dashboard_shape(self):
         r = self.client.get("/api/charts/dashboard")
         self.assertEqual(r.status_code, 200, r.data)
