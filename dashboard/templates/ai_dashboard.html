@@ -10,14 +10,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=5" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=5" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=6" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=6" />
   <style>[x-cloak]{display:none!important}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}?v=5"></script>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=5"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v=6"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=6"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
-  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=5" defer></script>
+  <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=6" defer></script>
 </head>
 <body class="fai-dashboard">
   <div class="w-full text-center text-xs sm:text-sm py-2 px-3 font-medium text-cyan-100 bg-gradient-to-r from-indigo-950/95 via-slate-950 to-indigo-950/95 border-b border-cyan-500/25 fai-text-mono shadow-[0_1px_12px_rgba(0,229,255,0.08)]" role="status">
@@ -32,6 +32,18 @@
     <div x-show="error && !loading" class="mb-4 rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-2 text-sm text-red-200" x-text="error"></div>
 
     {% include 'components/header_bar.html' %}
+
+    <div class="rounded-lg border border-fuchsia-500/25 bg-fuchsia-950/20 px-3 py-2 mb-4 text-center text-[11px] text-slate-400 leading-relaxed"
+      id="fai-ops-panels-hint">
+      <span class="text-fuchsia-200/90 font-medium">Self-improvement</span> ·
+      <span class="text-violet-200/90 font-medium">Prompt evolution</span> ·
+      <span class="text-slate-200/90 font-medium">Governance</span>
+      <span class="text-slate-600 mx-1">—</span>
+      <a href="#fai-self-improve" class="text-cyan-400 hover:underline">Jump</a>
+      <span class="text-slate-600 mx-2">·</span>
+      <span class="text-slate-500">Panels sit <strong class="text-slate-400">below</strong> the three columns. Don’t see this strip after refresh?
+        Server needs latest <code class="fai-text-mono text-[10px] text-slate-400">fortress-ai</code>: <code class="fai-text-mono text-[10px]">git pull</code> + restart the dashboard process.</span>
+    </div>
 
     <main class="fai-grid">
       <div class="space-y-4">
