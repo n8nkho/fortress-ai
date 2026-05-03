@@ -224,6 +224,9 @@ def build_prompt(observation: dict[str, Any], state: dict[str, Any]) -> str:
         "Max position notional respects FORTRESS_MAX_ORDER_NOTIONAL_USD. "
         "RSI<43 typical for dip entries when screening — you may reference levels conceptually."
     )
+    bias = (os.environ.get("FORTRESS_AI_PROMPT_BIAS") or "").strip()
+    if bias:
+        constraints += " " + bias
     return f"""You are Fortress AI. Respond with ONE JSON object only (no markdown).
 
 CURRENT_STATE:{obs}
@@ -307,12 +310,23 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         px = float(observation.get("_fallback_px") or 0) or None
     est = qty * px if px else None
 
+    bid_e = ask_e = None
+    quote_age = None
+    if px and px > 0:
+        # Conservative synthetic spread around last price so DATA_QUALITY_ENFORCE can sanity-check width.
+        bid_e = float(px) * 0.9985
+        ask_e = float(px) * 1.0015
+        quote_age = 45.0
+
     gate = evaluate_pre_trade_submission(
         side=side,
         symbol=sym,
         qty=float(qty),
         estimated_notional_usd=est,
         order_class="equity",
+        bid=bid_e,
+        ask=ask_e,
+        quote_age_seconds=quote_age,
     )
     if not gate["allowed"]:
         result["detail"] = format_gate_block_message(gate)

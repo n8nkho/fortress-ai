@@ -9,7 +9,8 @@ Parallel **single-agent (DeepSeek)** stack for research and A/B comparison again
 | `agents/unified_ai_agent.py` | Main observe → reason → act loop |
 | `utils/pre_trade_gate.py` | Same submission gate logic as Classic (mandatory before orders) |
 | `utils/operator_halt.py` | Kill switch file + env halt |
-| `dashboard/ai_command_center.py` | Dashboard default **8084** |
+| `dashboard/ai_command_center.py` | Dashboard (port from `FORTRESS_AI_DASHBOARD_PORT`, e.g. **8050**) |
+| `deploy/` | systemd unit examples + [deploy/README.md](deploy/README.md) |
 | `data/` | `ai_state.json`, `ai_decisions.jsonl`, `ai_metrics.jsonl`, cost ledger |
 
 Deploy path on server: `/home/ubuntu/fortress-ai` (copy this tree).
@@ -19,8 +20,11 @@ Deploy path on server: `/home/ubuntu/fortress-ai` (copy this tree).
 | Phase | Trading | Confidence gate |
 |-------|---------|-----------------|
 | Week 1 | **Dry-run only** (`FORTRESS_AI_DRY_RUN=1`) | N/A (no submits) |
-| Week 2 | Paper executes | `FORTRESS_AI_MIN_CONFIDENCE=0.8` |
-| Week 3–4 | Paper executes | Lower to **0.7** for comparison |
+| Paper (conservative) | Alpaca **paper** executes (`FORTRESS_AI_DRY_RUN=0`) | **0.85–0.92** — fewer trades, smaller sizes (`FORTRESS_MAX_ORDER_NOTIONAL_USD`) |
+| Later experiments | Paper | Lower toward **0.75–0.8** only if you want more activity |
+
+**Paper trading on a server:** see **[deploy/README.md](deploy/README.md)** (systemd). No strategy guarantees “high win ratio” or “near zero losses”; use caps + halt + monitoring to limit damage.
+
 
 ## Cost controls
 
@@ -51,8 +55,8 @@ python3 agents/unified_ai_agent.py --dry-run --once
 # Dashboard (futuristic UI — SSE + expert mode + Classic comparison drawer)
 export PYTHONPATH=.
 python3 dashboard/ai_command_center.py
-# http://127.0.0.1:8084/          live dashboard
-# http://127.0.0.1:8084/mockup static layout preview (dummy data)
+# http://127.0.0.1:8050/          dashboard (set FORTRESS_AI_DASHBOARD_PORT)
+# http://127.0.0.1:8050/mockup    static layout preview (dummy data)
 
 # Key API routes: GET /api/ai/current_state, GET /api/comparison, GET /api/stream/decisions (SSE), GET /api/export/bundle
 
@@ -68,4 +72,4 @@ After ~4 weeks paper comparison: keep Classic only if AI underperforms; consider
 
 ## Classic Fortress unchanged
 
-Do **not** modify the Classic repo; run both side-by-side with different `.env` and ports (**8083** Classic vs **8084** AI).
+Do **not** modify the Classic repo; run both side-by-side with different `.env` and ports (**8083** Classic vs **8050** AI by default).

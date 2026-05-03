@@ -1,0 +1,28 @@
+# Fortress AI — unified agent loop (paper or dry-run per .env).
+# Install: sudo cp deploy/fortress-ai-agent.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-agent
+# Logs:    journalctl -u fortress-ai-agent -f
+#
+# Edit User= and paths if your home is not /home/ubuntu.
+
+[Unit]
+Description=Fortress AI unified agent (DeepSeek + Alpaca)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+# .env is read by Python (load_fortress_dotenv); do not commit secrets.
+ExecStart=/home/ubuntu/fortress-ai/.venv/bin/python3 /home/ubuntu/fortress-ai/agents/unified_ai_agent.py
+Restart=on-failure
+RestartSec=20
+# Stop loop quickly on shutdown
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+# Fortress AI — JARVIS dashboard (Flask).
+# Install: sudo cp deploy/fortress-ai-dashboard.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-dashboard
+# Set FORTRESS_AI_DASHBOARD_PORT in /home/ubuntu/fortress-ai/.env (e.g. 8050).
+
+[Unit]
+Description=Fortress AI dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+ExecStart=/home/ubuntu/fortress-ai/.venv/bin/python3 /home/ubuntu/fortress-ai/dashboard/ai_command_center.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
