@@ -16,14 +16,7 @@ from typing import Any
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
-os.chdir(_ROOT)
-
-try:
-    from utils.env_load import load_fortress_dotenv
-
-    load_fortress_dotenv(_ROOT)
-except Exception:
-    pass
+# Do not chdir or reload .env here — see agents/self_improvement_engine.py (Flask tests strip Basic auth).
 
 from utils.prompt_evolution_store import (  # noqa: E402
     MAX_APPENDIX_CHARS,

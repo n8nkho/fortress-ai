@@ -17,14 +17,8 @@ from typing import Any
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
-os.chdir(_ROOT)
-
-try:
-    from utils.env_load import load_fortress_dotenv
-
-    load_fortress_dotenv(_ROOT)
-except Exception:
-    pass
+# Do not chdir or reload .env here — dashboard / unified_ai_agent load dotenv once; reloading
+# would re-apply Basic-auth vars after tests strip them and breaks Flask test clients.
 
 from utils.improvement_governance import AUTO_APPROVE_CRITERIA  # noqa: E402
 from utils.tunable_overrides import (  # noqa: E402

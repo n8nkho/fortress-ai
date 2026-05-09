@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import logging
 import math
 import numbers
 import os
@@ -27,6 +28,8 @@ except Exception:
     pass
 
 from flask import Flask, Response, jsonify, render_template, request
+
+logger = logging.getLogger("dashboard.ai_command_center")
 
 from utils.alpaca_env import (
     alpaca_credentials,
@@ -580,6 +583,49 @@ def _expert_bundle() -> dict[str, Any]:
     }
 
 
+def _domain_intel_defaults() -> dict[str, Any]:
+    """Safe shape for dashboard Alpine templates — never rely on null domain_intel."""
+    return {
+        "schema_version": "v2",
+        "enabled": False,
+        "error": None,
+        "rsi_hint": None,
+        "regime_hint": None,
+        "strategy_hint": None,
+        "concept_counts": {},
+        "total_concepts": 0,
+        "recent_learnings": [],
+        "recent_experience": [],
+        "llm_learn_enabled": False,
+        "web_ingest_default": False,
+        "web_ingest_status": "off",
+        "last_ingest": None,
+        "ingest_summary": None,
+    }
+
+
+def _merge_domain_intel(raw: Any) -> dict[str, Any]:
+    base = _domain_intel_defaults()
+    if isinstance(raw, dict):
+        base.update(raw)
+    return base
+
+
+def _enrich_domain_intel_from_ingest(di: dict[str, Any], ingest_health: dict[str, Any]) -> None:
+    """Add ingest pipeline summary onto domain_intel for the Domain intelligence panel."""
+    if ingest_health.get("_missing") or not ingest_health.get("last_run"):
+        return
+    di["last_ingest"] = ingest_health.get("last_run")
+    s = ingest_health.get("sources") or {}
+    di["ingest_summary"] = (
+        f"SEC: {s.get('sec_edgar', {}).get('record_count', 0)} | "
+        f"FRED: {s.get('fred', {}).get('record_count', 0)} | "
+        f"News: {s.get('news_sentiment', {}).get('record_count', 0)} | "
+        f"COT: {s.get('cot_report', {}).get('record_count', 0)}"
+    )
+    di["web_ingest_status"] = "active_readonly"
+
+
 def _screener_hint(decisions: list[dict]) -> dict[str, Any]:
     """Best-effort last screen_market watchlist from decision logs."""
     for r in reversed(decisions):
@@ -667,14 +713,38 @@ def build_current_state() -> dict[str, Any]:
     portfolio = _alpaca_snapshot()
     ar = read_runtime_prefs()
     macro = _macro_snapshot()
+
+    ingest_health: dict[str, Any] = {"_missing": True}
+    try:
+        hp = dd / "domain_intelligence" / "ingest_health.json"
+        if hp.exists():
+            ingest_health = json.loads(hp.read_text(encoding="utf-8"))
+    except Exception:
+        logger.exception("ingest_health read failed")
+        ingest_health = {"_missing": True}
+
+    domain_intel_raw: dict[str, Any] | None = None
     try:
         from knowledge.intel import domain_intel_snapshot
 
-        domain_intel = domain_intel_snapshot(macro, beliefs=ai_state.get("beliefs") or {})
+        domain_intel_raw = domain_intel_snapshot(macro, beliefs=ai_state.get("beliefs") or {})
     except Exception as e:
-        domain_intel = {"enabled": False, "error": str(e)[:120]}
+        logger.exception("domain_intel_snapshot failed")
+        domain_intel_raw = {"enabled": False, "error": str(e)[:120]}
 
-    return {
+    domain_intel = _merge_domain_intel(domain_intel_raw)
+    _enrich_domain_intel_from_ingest(domain_intel, ingest_health)
+
+    belief_memory: dict[str, Any] = {}
+    try:
+        from utils.belief_manager import belief_dashboard_snapshot
+
+        belief_memory = belief_dashboard_snapshot()
+    except Exception:
+        logger.exception("belief_dashboard_snapshot failed")
+        belief_memory = {"error": "belief_snapshot_unavailable"}
+
+    payload: dict[str, Any] = {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "instance": os.environ.get("FORTRESS_INSTANCE_NAME", "Fortress-AI"),
         "ui_status": status,
@@ -692,6 +762,7 @@ def build_current_state() -> dict[str, Any]:
         "market_assessment": market_assessment,
         "action": action,
         "confidence": confidence,
+        # Legacy LLM "beliefs" dict from ai_state.json (not the P7 belief_memory list).
         "beliefs": ai_state.get("beliefs") or {},
         "last_actions": (ai_state.get("last_actions") or [])[-12:],
         "latest_metric": latest_metric,
@@ -714,7 +785,11 @@ def build_current_state() -> dict[str, Any]:
             "decisions_logged": len(decisions),
             "beliefs_keys": len((ai_state.get("beliefs") or {}).keys()),
         },
+        "belief_memory": belief_memory,
+        "ingest_health": ingest_health,
     }
+    logger.debug("build_current_state keys: %s", sorted(payload.keys()))
+    return payload
 
 
 @app.route("/")
@@ -836,7 +911,48 @@ def ai_status():
 
 @app.route("/api/ai/current_state")
 def api_current_state():
+    # Includes both legacy "beliefs" (ai_state patterns) and P7 "belief_memory" (trade-derived JSON list).
     return jsonify(_json_sanitize_for_api(build_current_state()))
+
+
+def _belief_memory_json_response():
+    """Shared handler body for belief snapshot routes."""
+    try:
+        from utils.belief_manager import belief_dashboard_snapshot
+
+        return jsonify(belief_dashboard_snapshot())
+    except Exception as e:
+        logger.exception("belief_memory snapshot failed")
+        return jsonify(
+            {"error": str(e)[:200], "total_beliefs": 0, "top_beliefs": [], "recent_beliefs": []}
+        )
+
+
+def _ingest_health_json_response():
+    """Shared handler body for ingest health routes."""
+    dd = _data_dir()
+    hp = dd / "domain_intelligence" / "ingest_health.json"
+    if not hp.exists():
+        return jsonify({"_missing": True})
+    try:
+        return jsonify(json.loads(hp.read_text(encoding="utf-8")))
+    except Exception:
+        logger.exception("ingest_health read failed")
+        return jsonify({"_missing": True, "_error": "parse_failed"})
+
+
+@app.route("/api/dashboard/belief_memory")
+@app.route("/api/ai/belief_memory")
+def api_dashboard_belief_memory():
+    """Lightweight belief snapshot (also at /api/ai/belief_memory for reverse proxies that only expose /api/ai/*)."""
+    return _belief_memory_json_response()
+
+
+@app.route("/api/dashboard/ingest_health")
+@app.route("/api/ai/ingest_health")
+def api_dashboard_ingest_health():
+    """Ingest pipeline health JSON (also at /api/ai/ingest_health)."""
+    return _ingest_health_json_response()
 
 
 @app.route("/api/comparison")

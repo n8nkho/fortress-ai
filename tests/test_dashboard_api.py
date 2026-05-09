@@ -12,19 +12,52 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
 
+_BASIC_KEYS = (
+    "FORTRESS_AI_DASHBOARD_BASIC_USER",
+    "FORTRESS_AI_DASHBOARD_BASIC_PASSWORD",
+    "FORTRESS_AI_DASHBOARD_BASIC_PASS",
+)
+
+
 class TestDashboardApi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Dashboard import runs load_fortress_dotenv() and may re-fill Basic auth from .env.
+        cls._basic_backup = {k: os.environ[k] for k in _BASIC_KEYS if k in os.environ}
         import dashboard.ai_command_center as acc
+
+        for k in _BASIC_KEYS:
+            os.environ.pop(k, None)
 
         cls.app = acc.app
         cls.client = cls.app.test_client()
+
+    @classmethod
+    def tearDownClass(cls):
+        for k in _BASIC_KEYS:
+            os.environ.pop(k, None)
+        for k, v in cls._basic_backup.items():
+            os.environ[k] = v
 
     def test_health(self):
         r = self.client.get("/api/health")
         self.assertEqual(r.status_code, 200)
         d = r.get_json()
         self.assertTrue(d.get("ok"))
+
+    def test_dashboard_belief_memory_endpoint(self):
+        for path in ("/api/dashboard/belief_memory", "/api/ai/belief_memory"):
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200, (path, r.data))
+            d = r.get_json()
+            self.assertIn("total_beliefs", d)
+
+    def test_dashboard_ingest_health_endpoint(self):
+        for path in ("/api/dashboard/ingest_health", "/api/ai/ingest_health"):
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200, (path, r.data))
+            d = r.get_json()
+            self.assertTrue("_missing" in d or "sources" in d or "last_run" in d)
 
     def test_alpaca_diagnose_shape(self):
         r = self.client.get("/api/alpaca/diagnose")
@@ -43,6 +76,11 @@ class TestDashboardApi(unittest.TestCase):
         d = r.get_json()
         self.assertIn("domain_intel", d)
         self.assertIsInstance(d["domain_intel"], dict)
+        self.assertIn("schema_version", d["domain_intel"])
+        self.assertIn("belief_memory", d)
+        self.assertIsInstance(d["belief_memory"], dict)
+        self.assertIn("ingest_health", d)
+        self.assertIsInstance(d["ingest_health"], dict)
 
     def test_build_endpoint_shape(self):
         r = self.client.get("/api/build")

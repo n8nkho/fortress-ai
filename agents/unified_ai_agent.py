@@ -52,7 +52,9 @@ from utils.us_equity_hours import (
     manual_only_schedule,
 )
 
-from knowledge.intel import build_domain_prompt_appendix
+from knowledge.domain_ingest_context import format_domain_ingest_prompt_section
+from knowledge.intel import build_domain_prompt_appendix, infer_regime, infer_strategy
+from utils.belief_manager import format_beliefs_prompt_section
 
 
 def _data_dir() -> Path:
@@ -249,11 +251,18 @@ def build_prompt(
     domain_blob = build_domain_prompt_appendix(observation, state)
     if domain_blob:
         constraints += " DOMAIN_INTEL_JSON:" + domain_blob
+    regime_l = infer_regime(observation)
+    strat_l = infer_strategy(observation, state)
+    learned = format_beliefs_prompt_section(regime_l, strat_l)
+    dom_ingest = format_domain_ingest_prompt_section(observation)
+    aux_blocks = "\n\n" + learned
+    if dom_ingest.strip():
+        aux_blocks += "\n\n" + dom_ingest
     return f"""You are Fortress AI. Respond with ONE JSON object only (no markdown).
 
 CURRENT_STATE:{obs}
 MEMORY:{mem}
-CONSTRAINTS:{constraints}
+CONSTRAINTS:{constraints}{aux_blocks}
 
 AVAILABLE_ACTIONS (pick exactly one "action"):
 - wait: no trade
@@ -441,6 +450,15 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
         t_cycle = time.perf_counter()
         obs = observe()
         try:
+            from agents.belief_trade_hook import process_external_ledger
+
+            hook_out = process_external_ledger(obs)
+            obs["_belief_ledger_hook"] = hook_out
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("belief ledger hook failed")
+        try:
             decision, usage = reason(obs, state)
         except Exception as e:
             err = {
@@ -477,9 +495,22 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             state["beliefs"].update(decision["parameters"].get("beliefs") or {})
         save_state(state)
 
+        belief_inject_len = 0
+        try:
+            from knowledge.intel import infer_regime, infer_strategy
+            from utils.belief_manager import format_beliefs_prompt_section
+
+            _rg = infer_regime(obs)
+            _st = infer_strategy(obs, state)
+            _lb = format_beliefs_prompt_section(_rg, _st)
+            belief_inject_len = len(_lb or "")
+        except Exception:
+            belief_inject_len = 0
+
         log_rec = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "observation_keys": list(obs.keys()),
+            "learned_beliefs_prompt_chars": belief_inject_len,
             "decision": {k: v for k, v in decision.items() if not str(k).startswith("_")},
             "usage": {k: v for k, v in usage.items() if k != "record"},
             "act": act_result,

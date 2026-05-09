@@ -1,6 +1,9 @@
 <section class="fai-v2-card p-4 space-y-4">
   <div>
-    <h2 class="text-sm font-semibold text-amber-300 uppercase tracking-wider mb-1">📈 Performance</h2>
+    <h2 class="text-sm font-semibold text-amber-300 uppercase tracking-wider mb-1 flex flex-wrap items-baseline gap-2">
+      📈 Performance
+      <span class="text-[9px] font-normal text-slate-600 normal-case">· medium refresh 60s</span>
+    </h2>
     <p class="text-xs text-slate-500 mb-2" x-text="dryRunLabel()"></p>
     <div class="space-y-2 text-sm mb-3">
       <div class="flex justify-between">
@@ -70,21 +73,32 @@
   </div>
 
   <div class="rounded-xl border border-violet-500/25 bg-violet-950/15 p-3 mt-3 space-y-2">
-    <h3 class="text-xs font-semibold text-violet-300 uppercase tracking-wide">Domain intelligence</h3>
-    <p class="text-[10px] text-slate-600 fai-text-mono" x-show="state.domain_intel?.schema_version">schema v<span x-text="state.domain_intel.schema_version"></span>
-      <span class="text-slate-500">· web ingest default: <span x-text="state.domain_intel?.web_ingest_default ? 'on' : 'off'"></span></span>
+    <h3 class="text-xs font-semibold text-violet-300 uppercase tracking-wide flex flex-wrap items-baseline gap-2">
+      Domain intelligence
+      <span class="text-[9px] font-normal text-slate-600 normal-case">· ~60s</span>
+    </h3>
+    <p class="text-[10px] text-slate-500 leading-relaxed">
+      <span class="fai-text-mono text-slate-600" x-show="state.domain_intel?.schema_version != null && state.domain_intel?.schema_version !== ''">
+        schema v<span x-text="state.domain_intel?.schema_version"></span> ·
+      </span>
+      <span x-text="domainIngestStatusLine()"></span>
     </p>
-    <p class="text-[10px] text-amber-200/90" x-show="state.domain_intel == null">
-      No <code class="fai-text-mono">domain_intel</code> in API — restart the dashboard after <code class="fai-text-mono">git pull</code>.
+    <p class="text-[10px] text-slate-500 fai-text-mono" x-show="state.domain_intel?.last_ingest || state.ingest_health?.last_run">
+      Last ingest: <span x-text="state.domain_intel?.last_ingest || state.ingest_health?.last_run || '—'"></span>
     </p>
-    <p class="text-[10px] text-amber-200/90 fai-text-mono break-words" x-show="state.domain_intel?.error" x-text="state.domain_intel.error"></p>
-    <p class="text-[10px] text-slate-500" x-show="state.domain_intel && state.domain_intel.enabled === false">
+    <p class="text-[10px] text-slate-400 leading-snug" x-show="state.domain_intel?.ingest_summary" x-text="state.domain_intel?.ingest_summary"></p>
+    <p class="text-[10px] text-slate-400 leading-snug" x-show="!state.domain_intel?.ingest_summary && (state.ingest_health?.sources || state.ingest_health?.last_run)" x-text="ingestRecordSummaryLine()"></p>
+    <p class="text-[10px] text-amber-200/90 fai-text-mono break-words" x-show="state.domain_intel?.error" x-text="state.domain_intel?.error"></p>
+    <p class="text-[10px] text-slate-500" x-show="state.domain_intel?.enabled === false">
       Layer off — set <code class="fai-text-mono text-slate-400">FORTRESS_AI_DOMAIN_INTEL=1</code> and restart agent/dashboard.
     </p>
     <div class="text-[11px] text-slate-300 space-y-1" x-show="state.domain_intel?.enabled">
       <p><span class="text-slate-500">Regime hint:</span> <span class="text-violet-200 font-medium" x-text="state.domain_intel?.regime_hint || '—'"></span></p>
       <p><span class="text-slate-500">Strategy hint:</span> <span class="fai-text-mono text-slate-200" x-text="state.domain_intel?.strategy_hint || '—'"></span></p>
-      <p x-show="state.domain_intel?.rsi_hint != null"><span class="text-slate-500">SPY RSI(14):</span> <span x-text="Number(state.domain_intel.rsi_hint).toFixed(1)"></span></p>
+      <p x-show="state.domain_intel?.rsi_hint != null">
+        <span class="text-slate-500">SPY RSI(14):</span>
+        <span x-text="Number(state.domain_intel?.rsi_hint).toFixed(1)"></span>
+      </p>
       <p><span class="text-slate-500">Knowledge entries:</span> <span x-text="state.domain_intel?.total_concepts ?? 0"></span></p>
       <p class="text-[10px] text-slate-500">LLM learn: <span x-text="state.domain_intel?.llm_learn_enabled ? 'on' : 'off'"></span> (<code class="fai-text-mono">FORTRESS_AI_DOMAIN_LLM_LEARN</code>)</p>
     </div>
@@ -110,6 +124,55 @@
           </li>
         </template>
       </ul>
+    </div>
+  </div>
+
+  <!-- Ingest health: slow-tier refresh (~5 min); mounted below Domain intelligence -->
+  <div class="rounded-xl border border-emerald-500/25 bg-emerald-950/15 p-3 mt-3 space-y-2 overflow-hidden">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <h3 class="text-xs font-semibold text-emerald-300 uppercase tracking-wide">📡 INGEST HEALTH</h3>
+      <span class="text-[10px] text-slate-500 fai-text-mono" x-text="ingestPanelAgeLabel()" title="Ingest panel refresh tier: 5 min"></span>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 text-[10px]">
+      <span class="text-slate-500">Last run:</span>
+      <span class="fai-text-mono text-slate-300" x-text="state.ingest_health?.last_run || '—'"></span>
+      <span x-show="state.ingest_health?.read_only_mode === true"
+        class="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/35 text-[9px] font-semibold uppercase tracking-wide">Read-only</span>
+    </div>
+    <p class="text-[10px] text-amber-200/85 leading-relaxed" x-show="state.ingest_health?.read_only_mode === true">
+      Pipeline saves signals to disk; not injected into AI Mind while read-only.
+    </p>
+    <template x-if="ingestHealthMissing()">
+      <p class="text-xs text-slate-500 leading-relaxed">
+        Ingest pipeline not yet run — execute:
+        <code class="fai-text-mono text-[10px] text-slate-400 block mt-1 break-all">python3 -m agents.domain_ingest.ingest_runner</code>
+      </p>
+    </template>
+    <div x-show="!ingestHealthMissing() && (ingestHealthRows() || []).length" class="overflow-x-auto">
+      <table class="w-full text-[10px] fai-text-mono text-left border-collapse min-w-[300px]">
+        <thead>
+          <tr class="text-slate-500 border-b border-white/10">
+            <th class="py-1 pr-2">Source</th>
+            <th class="py-1 pr-2">Status</th>
+            <th class="py-1 pr-2">Last success</th>
+            <th class="py-1 text-right">Records</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="row in ingestHealthRows()" :key="row.src">
+            <tr class="border-b border-white/5 text-slate-300">
+              <td class="py-1.5 pr-2 align-top" x-text="row.label"></td>
+              <td class="py-1.5 pr-2 align-top">
+                <span class="inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase"
+                  :class="row.status === 'ok' ? 'bg-emerald-500/25 text-emerald-300' : 'bg-red-500/25 text-red-300'"
+                  x-text="row.status"></span>
+              </td>
+              <td class="py-1.5 pr-2 text-[9px] text-slate-400" x-text="fmtIsoShort(row.last_success)"></td>
+              <td class="py-1.5 text-right" x-text="row.record_count ?? '—'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
     </div>
   </div>
 

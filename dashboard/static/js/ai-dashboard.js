@@ -15,6 +15,13 @@ document.addEventListener("alpine:init", () => {
     es: null,
     pollTimer: null,
     chartPollTimer: null,
+    mediumPollTimer: null,
+    slowPollTimer: null,
+    ageTickTimer: null,
+    ageTick: 0,
+    beliefPanelLastRefresh: null,
+    ingestPanelLastRefresh: null,
+    mediumTierLastRefresh: null,
     lastTick: Date.now(),
     loopSeconds: 300,
 
@@ -58,7 +65,9 @@ document.addEventListener("alpine:init", () => {
       agent_schedule: { manual_only: false, rth: false },
       screener: { symbols: [], ts: null },
       learning: { decisions_logged: 0, beliefs_keys: 0 },
-      domain_intel: null,
+      domain_intel: {},
+      belief_memory: { total_beliefs: 0, top_beliefs: [], recent_beliefs: [] },
+      ingest_health: {},
     },
 
     comparison: null,
@@ -70,8 +79,20 @@ document.addEventListener("alpine:init", () => {
       this.fetchComparison();
       if (this.expertMode) this.fetchExpertBundle();
       this.connectSSE();
+      // FAST (~12s): AI Mind, positions context, recent decisions, cycle-to-cycle fields
       this.pollTimer = setInterval(() => this.refresh(), 12000);
+      // Charts / spend curves — aligned with medium tier cadence
       this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
+      // MEDIUM (~60s): belief memory, domain intel, performance/API usage aggregates
+      this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
+      // SLOW (~5 min): ingest health file, self-improvement, prompt evolution, governance
+      this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
+      // Recompute "Xs ago" labels without hammering the API
+      this.ageTickTimer = setInterval(() => {
+        this.ageTick++;
+      }, 5000);
+      setTimeout(() => this.refreshMediumTier(), 800);
+      setTimeout(() => this.refreshSlowTier(), 1200);
       this.loopSeconds = Number(this.state.loop_interval_seconds || 300);
       window.addEventListener("keydown", (e) => this.onKey(e));
       this.fetchSelfImprovement();
@@ -127,8 +148,22 @@ document.addEventListener("alpine:init", () => {
         const r = await fetch("/api/ai/current_state");
         if (!r.ok) throw new Error(await r.text());
         const j = await r.json();
-        this.state = { ...this.state, ...j };
-        this.loopSeconds = Number(j.loop_interval_seconds || 300);
+        const patch = { ...j };
+        if (patch.domain_intel == null || typeof patch.domain_intel !== "object") {
+          patch.domain_intel = {};
+        }
+        if (patch.belief_memory == null || typeof patch.belief_memory !== "object") {
+          patch.belief_memory = {
+            total_beliefs: 0,
+            top_beliefs: [],
+            recent_beliefs: [],
+          };
+        }
+        if (patch.ingest_health == null || typeof patch.ingest_health !== "object") {
+          patch.ingest_health = { _missing: true };
+        }
+        this.state = { ...this.state, ...patch };
+        this.loopSeconds = Number(patch.loop_interval_seconds || 300);
         this.loading = false;
         this.error = null;
         this.lastTick = Date.now();
@@ -184,6 +219,19 @@ document.addEventListener("alpine:init", () => {
             const inner = outer.state || outer;
             if (inner && typeof inner === "object") {
               this.state = { ...this.state, ...inner };
+              if (this.state.domain_intel == null || typeof this.state.domain_intel !== "object") {
+                this.state.domain_intel = {};
+              }
+              if (this.state.belief_memory == null || typeof this.state.belief_memory !== "object") {
+                this.state.belief_memory = {
+                  total_beliefs: 0,
+                  top_beliefs: [],
+                  recent_beliefs: [],
+                };
+              }
+              if (this.state.ingest_health == null || typeof this.state.ingest_health !== "object") {
+                this.state.ingest_health = { _missing: true };
+              }
               this.lastTick = Date.now();
               this.$nextTick(() => this.renderDashboardCharts());
             }
@@ -220,6 +268,166 @@ document.addEventListener("alpine:init", () => {
       } catch {
         return iso;
       }
+    },
+
+    ingestHealthRows() {
+      const labels = {
+        sec_edgar: "SEC EDGAR",
+        fred: "FRED Macro",
+        news_sentiment: "News Sentiment",
+        cot_report: "COT Report",
+        historical_seed: "Historical belief seed",
+      };
+      const s = this.state.ingest_health?.sources || {};
+      return Object.keys(s)
+        .sort()
+        .map((k) => {
+          const m = s[k] || {};
+          return { src: k, label: labels[k] || k, ...m };
+        });
+    },
+
+    ingestHealthMissing() {
+      const h = this.state.ingest_health;
+      if (!h) return true;
+      if (h._missing) return true;
+      if (!h.last_run && !h.sources) return true;
+      return false;
+    },
+
+    ingestRecordSummaryLine() {
+      const s = this.state.ingest_health?.sources || {};
+      const sec = s.sec_edgar?.record_count ?? 0;
+      const fred = s.fred?.record_count ?? 0;
+      const news = s.news_sentiment?.record_count ?? 0;
+      const cot = s.cot_report?.record_count ?? 0;
+      const hist = s.historical_seed?.record_count ?? 0;
+      return `SEC: ${sec} records | FRED: ${fred} records | News: ${news} records | COT: ${cot} records | Hist seed: ${hist}`;
+    },
+
+    domainIngestStatusLine() {
+      const di = this.state.domain_intel || {};
+      if (di.web_ingest_status === "active_readonly") {
+        return "🟢 INGEST ACTIVE (read-only)";
+      }
+      const ih = this.state.ingest_health;
+      const wd = di.web_ingest_default;
+      const fallback = `web ingest default: ${wd ? "on" : "off"}`;
+      if (!ih || ih._missing || !ih.last_run) return fallback;
+      try {
+        const t = new Date(ih.last_run).getTime();
+        if (!Number.isNaN(t) && Date.now() - t < 6 * 3600 * 1000) {
+          return "🟢 INGEST ACTIVE (read-only)";
+        }
+      } catch (_) {}
+      return fallback;
+    },
+
+    beliefsPluralWord() {
+      const n = Number(this.state.belief_memory?.total_beliefs ?? 0);
+      return n === 1 ? "belief" : "beliefs";
+    },
+
+    beliefConfidenceBarClass(score) {
+      const v = Number(score) || 0;
+      if (v > 0.7) return "bg-emerald-500";
+      if (v >= 0.4) return "bg-amber-400";
+      return "bg-red-500";
+    },
+
+    beliefOutcomeClass(outcome) {
+      const o = String(outcome || "").toLowerCase();
+      if (o === "win") return "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      if (o === "loss") return "bg-red-500/20 text-red-300 border border-red-500/30";
+      return "bg-slate-600/30 text-slate-300 border border-white/10";
+    },
+
+    fmtIsoShort(iso) {
+      if (!iso) return "—";
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch (_) {
+        return String(iso).slice(0, 16);
+      }
+    },
+
+    panelAgeLabel(ts) {
+      void this.ageTick;
+      if (!ts) return "—";
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 0) return "—";
+      if (s < 60) return `${s}s ago`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      return `${h}h ago`;
+    },
+
+    beliefPanelAgeLabel() {
+      void this.ageTick;
+      return this.beliefPanelLastRefresh
+        ? `last refreshed: ${this.panelAgeLabel(this.beliefPanelLastRefresh)}`
+        : "last refreshed: —";
+    },
+
+    ingestPanelAgeLabel() {
+      void this.ageTick;
+      return this.ingestPanelLastRefresh
+        ? `last refreshed: ${this.panelAgeLabel(this.ingestPanelLastRefresh)}`
+        : "last refreshed: —";
+    },
+
+    async refreshMediumTier() {
+      try {
+        const r = await fetch("/api/ai/current_state");
+        if (!r.ok) return;
+        const j = await r.json();
+        let di = j.domain_intel;
+        if (di == null || typeof di !== "object") di = {};
+        let bm = j.belief_memory;
+        if (bm == null || typeof bm !== "object") {
+          bm = { total_beliefs: 0, top_beliefs: [], recent_beliefs: [] };
+        }
+        this.state = {
+          ...this.state,
+          belief_memory: bm,
+          domain_intel: di,
+          learning: j.learning || this.state.learning,
+          weekly_llm_spend_usd: j.weekly_llm_spend_usd,
+          today_llm_spend_usd: j.today_llm_spend_usd,
+          llm_calls_today: j.llm_calls_today,
+          weekly_cost_cap_usd: j.weekly_cost_cap_usd,
+        };
+        this.mediumTierLastRefresh = Date.now();
+        this.beliefPanelLastRefresh = Date.now();
+        this.$nextTick(() => this.renderDashboardCharts());
+      } catch (_) {}
+    },
+
+    async refreshSlowTier() {
+      try {
+        const r = await fetch("/api/ai/ingest_health");
+        if (r.ok) {
+          const j = await r.json();
+          if (j._missing) {
+            this.state = { ...this.state, ingest_health: { _missing: true } };
+          } else {
+            this.state = { ...this.state, ingest_health: j };
+          }
+          this.ingestPanelLastRefresh = Date.now();
+        }
+      } catch (_) {}
+      try {
+        await this.fetchSelfImprovement();
+        await this.fetchPromptEvolution();
+        await Promise.all([this.fetchGovernance(), this.fetchGovernanceTiers()]);
+      } catch (_) {}
     },
 
     statusClass() {

@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "description": "Fortress-ai domain ingest cron jobs (OCI) — heartbeats in data/cron_heartbeats.json",
+  "jobs": [
+    {
+      "job_name": "sec_ingest",
+      "schedule": "*/30 9-16 * * 1-5 America/New_York",
+      "script_path": "scripts/cron_run.sh sec_ingest python3 -m agents.domain_ingest.ingest_runner --source sec_edgar",
+      "expected_interval_minutes": 35
+    },
+    {
+      "job_name": "ingest_all",
+      "schedule": "0 */1 * * *",
+      "script_path": "scripts/cron_run.sh ingest_all python3 -m agents.domain_ingest.ingest_runner",
+      "expected_interval_minutes": 70
+    },
+    {
+      "job_name": "cot_ingest",
+      "schedule": "0 17 * * 5 America/New_York",
+      "script_path": "scripts/cron_run.sh cot_ingest python3 -m agents.domain_ingest.ingest_runner --source cot_report",
+      "expected_interval_minutes": 10080
+    }
+  ]
+}

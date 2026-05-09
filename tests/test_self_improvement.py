@@ -7,6 +7,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -70,8 +71,10 @@ class TestSelfImprovementSafety(unittest.TestCase):
         td = Path(self._td)
         eng, sie = _fresh_engine(td)
         log = td / "self_improvement_log.jsonl"
-        now = "2026-05-02T12:00:00+00:00"
-        lines = [json.dumps({"timestamp": now, "decision": "approved_human"}) for _ in range(sie.MAX_CHANGES_PER_WEEK)]
+        # Rolling window uses real "now"; keep timestamps inside the last 7 days.
+        now = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        n = max(int(sie.MAX_CHANGES_PER_WEEK), 1)
+        lines = [json.dumps({"timestamp": now, "decision": "approved_human"}) for _ in range(n)]
         log.write_text("\n".join(lines) + "\n", encoding="utf-8")
         ok, reason = eng._velocity_ok()
         self.assertFalse(ok)
