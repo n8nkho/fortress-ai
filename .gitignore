@@ -1,5 +1,8 @@
 .env
+.env.backup*
+.env.fortress-clean
 .venv/
+logs/
 __pycache__/
 *.pyc
 data/*.jsonl
