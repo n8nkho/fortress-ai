@@ -15,6 +15,16 @@ def manual_only_schedule() -> bool:
     )
 
 
+def is_us_equity_weekend_et() -> bool:
+    """Saturday/Sunday in America/New_York (agent stays manual / on-demand only)."""
+    try:
+        from zoneinfo import ZoneInfo
+
+        return datetime.now(ZoneInfo("America/New_York")).weekday() >= 5
+    except Exception:
+        return False
+
+
 def is_us_equity_rth_et() -> bool:
     """NYSE regular session Mon–Fri 09:30–16:00 America/New_York. No holiday calendar."""
     try:

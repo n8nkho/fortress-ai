@@ -4,7 +4,7 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h2 class="text-lg font-semibold text-indigo-300">Classic vs Fortress AI</h2>
-        <p class="text-xs text-slate-500 mt-1">Classic stats are from Classic's ledger file on disk. Header portfolio uses this app's Alpaca keys.</p>
+        <p class="text-xs text-slate-500 mt-1">Side-by-side paper Alpaca accounts. Ledger win rate uses Classic <code class="fai-text-mono">decisions_log.jsonl</code>.</p>
       </div>
       <button type="button" class="text-slate-400 hover:text-white text-xl leading-none" @click="comparisonOpen = false" aria-label="Close">×</button>
     </div>
@@ -24,6 +24,21 @@
             </tr>
           </thead>
           <tbody class="text-slate-300">
+            <tr class="border-b border-white/5">
+              <td class="py-2">Equity (paper)</td>
+              <td x-text="comparisonEquity('classic')"></td>
+              <td x-text="comparisonEquity('fortress_ai')"></td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">Open positions</td>
+              <td x-text="comparisonPositions('classic')"></td>
+              <td x-text="comparisonPositions('fortress_ai')"></td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">Unrealized P&amp;L</td>
+              <td x-text="comparisonUnrealized('classic')"></td>
+              <td x-text="comparisonUnrealized('fortress_ai')"></td>
+            </tr>
             <tr class="border-b border-white/5">
               <td class="py-2">Win rate</td>
               <td x-text="comparison.classic?.win_rate != null ? (comparison.classic.win_rate * 100).toFixed(1) + '%' : '—'"></td>
@@ -74,7 +89,7 @@
           </tbody>
         </table>
         <p class="text-xs text-slate-500 leading-relaxed" x-text="comparison.note"></p>
-        <p class="text-xs text-slate-600">Set <code class="fai-text-mono">CLASSIC_DATA_DIR</code> on the server for Classic ledger paths.</p>
+        <p class="text-xs text-slate-600">Classic equity reads <code class="fai-text-mono">trading-bot/.env</code> Alpaca keys unless <code class="fai-text-mono">CLASSIC_ALPACA_*</code> is set.</p>
       </div>
     </template>
   </aside>

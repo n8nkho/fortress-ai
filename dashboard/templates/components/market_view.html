@@ -44,15 +44,15 @@
   <div class="fai-v2-card p-4">
     <div class="flex justify-between items-center mb-2">
       <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider">🔍 Active scan</h2>
-      <span class="text-xs text-slate-500 fai-text-mono" x-text="screenerSymbols().length + ' / ' + screenerTotal() + ' symbols'"></span>
+      <span class="text-xs text-slate-500 fai-text-mono" x-text="screenerCountLabel()"></span>
     </div>
-    <p class="text-[10px] text-slate-500 mb-3" x-show="state.screener?.ts" x-text="'Last screen_market: ' + (state.screener?.ts || '')"></p>
+    <p class="text-[10px] text-slate-500 mb-3" x-show="screenerSourceLabel()" x-text="screenerSourceLabel()"></p>
     <div class="flex flex-wrap gap-2">
       <template x-for="sym in screenerSymbols()" :key="sym">
         <span class="px-2.5 py-1 rounded-md bg-cyan-950/40 border border-cyan-500/25 text-cyan-200 text-xs fai-text-mono" x-text="sym"></span>
       </template>
       <template x-if="screenerSymbols().length === 0">
-        <p class="text-xs text-slate-500">No watchlist in recent <code class="fai-text-mono">screen_market</code> decisions. When the agent screens, tickers appear here.</p>
+        <p class="text-xs text-slate-500">No candidates yet. Sources: AI <code class="fai-text-mono">screen_market</code>, Classic <code class="fai-text-mono">daily_signals</code>, or shared watchlists.</p>
       </template>
     </div>
   </div>

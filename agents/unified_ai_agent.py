@@ -123,6 +123,16 @@ def observe() -> dict[str, Any]:
         "ts_utc": datetime.now(timezone.utc).isoformat(),
         "instance": os.environ.get("FORTRESS_INSTANCE_NAME", "Fortress-AI"),
     }
+    try:
+        from utils.classic_bridge import classic_screener_candidates
+
+        scan = classic_screener_candidates(max_symbols=8)
+        syms = scan.get("symbols") or []
+        if syms:
+            out["watchlist_hint"] = syms
+            out["watchlist_source"] = scan.get("source")
+    except Exception:
+        pass
     # Macro (yfinance)
     try:
         spy = yf.Ticker("SPY")

@@ -81,6 +81,18 @@ class TestDashboardApi(unittest.TestCase):
         self.assertIsInstance(d["belief_memory"], dict)
         self.assertIn("ingest_health", d)
         self.assertIsInstance(d["ingest_health"], dict)
+        self.assertIn("screener", d)
+        self.assertIsInstance(d["screener"], dict)
+
+    def test_comparison_includes_equity_fields(self):
+        r = self.client.get("/api/comparison")
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.get_json()
+        self.assertIn("classic", d)
+        self.assertIn("fortress_ai", d)
+        self.assertIn("portfolio", d["classic"])
+        self.assertIn("portfolio", d["fortress_ai"])
+        self.assertIn("equity", d["fortress_ai"])
 
     def test_build_endpoint_shape(self):
         r = self.client.get("/api/build")

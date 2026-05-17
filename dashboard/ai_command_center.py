@@ -43,7 +43,11 @@ from utils.agent_runtime import (
     write_runtime_prefs,
 )
 from utils.operator_halt import get_halt_state, set_trading_halt
-from utils.us_equity_hours import effective_loop_interval_seconds, is_us_equity_rth_et
+from utils.us_equity_hours import (
+    effective_loop_interval_seconds,
+    is_us_equity_rth_et,
+    is_us_equity_weekend_et,
+)
 
 
 def _json_sanitize_for_api(value: Any) -> Any:
@@ -67,6 +71,8 @@ def _json_sanitize_for_api(value: Any) -> Any:
 
 
 _MACRO_CACHE: dict[str, Any] = {"t": 0.0, "spy": None, "vix": None, "rsi": None}
+_STATE_CACHE: dict[str, Any] = {"t": 0.0, "payload": None}
+_CLASSIC_PORTFOLIO_CACHE: dict[str, Any] = {"t": 0.0, "payload": None}
 
 
 def _rsi_from_close(close: Any, period: int = 14) -> float | None:
@@ -211,9 +217,23 @@ def _data_dir() -> Path:
     return Path(raw) if raw else (_ROOT / "data")
 
 
-def _classic_data_dir() -> Path | None:
-    raw = (os.environ.get("CLASSIC_DATA_DIR") or "").strip()
-    return Path(raw).expanduser() if raw else None
+def _state_cache_ttl_sec() -> float:
+    try:
+        return max(5.0, float(os.environ.get("FORTRESS_AI_DASHBOARD_STATE_CACHE_SEC", "25") or 25))
+    except ValueError:
+        return 25.0
+
+
+def _classic_portfolio_cache_ttl_sec() -> float:
+    try:
+        return max(15.0, float(os.environ.get("FORTRESS_AI_CLASSIC_PORTFOLIO_CACHE_SEC", "60") or 60))
+    except ValueError:
+        return 60.0
+
+
+def _invalidate_state_cache() -> None:
+    _STATE_CACHE["t"] = 0.0
+    _STATE_CACHE["payload"] = None
 
 
 def _tail_jsonl(path: Path, max_lines: int = 80) -> list[dict]:
@@ -287,24 +307,43 @@ def _calls_today_from_ledger() -> int:
     return n
 
 
+def _parse_iso_age_seconds(iso_ts: str | None) -> float | None:
+    if not iso_ts:
+        return None
+    try:
+        s = str(iso_ts).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - dt).total_seconds())
+    except Exception:
+        return None
+
+
 def _infer_ui_status(
     last_metric: dict | None,
     last_decision_row: dict | None,
     *,
     manual_only: bool = False,
+    last_decision_ts: str | None = None,
+    loop_interval_seconds: float = 300.0,
 ) -> str:
     # Manual-only: stale ai_latest_metric.json still has decision_latency_ms from the last run —
     # avoid showing perpetual THINKING; keep EXECUTING if last run actually submitted.
+    stale_after = max(600.0, float(loop_interval_seconds) * 2.5)
+    age = _parse_iso_age_seconds(last_decision_ts)
+    metric_stale = age is not None and age > stale_after
+
     if manual_only:
-        if last_metric and last_metric.get("executed"):
+        if last_metric and last_metric.get("executed") and not metric_stale:
             return "EXECUTING"
         if last_decision_row and last_decision_row.get("decision"):
-            return "OBSERVING"
+            return "OBSERVING" if metric_stale else "OBSERVING"
         return "WAITING"
     if last_metric:
-        if last_metric.get("executed"):
+        if last_metric.get("executed") and not metric_stale:
             return "EXECUTING"
-        if last_metric.get("decision_latency_ms"):
+        if last_metric.get("decision_latency_ms") and not metric_stale:
             return "THINKING"
     if last_decision_row and last_decision_row.get("decision"):
         return "OBSERVING"
@@ -364,17 +403,9 @@ def _alpaca_snapshot() -> dict[str, Any]:
 
 
 def _symbols_from_ai_rows(rows: list[dict]) -> set[str]:
-    syms: set[str] = set()
-    for r in rows:
-        d = r.get("decision")
-        if not isinstance(d, dict):
-            continue
-        p = d.get("parameters")
-        if isinstance(p, dict):
-            s = p.get("symbol") or p.get("sym")
-            if s:
-                syms.add(str(s).strip().upper()[:12])
-    return syms
+    from utils.classic_bridge import symbols_from_ai_decision_rows
+
+    return symbols_from_ai_decision_rows(rows)
 
 
 def _walk_symbols(o: Any, syms: set[str], depth: int = 0) -> None:
@@ -413,10 +444,12 @@ def _symbols_from_classic_jsonl(path: Path, max_lines: int = 400) -> set[str]:
 
 
 def _comparison_payload() -> dict[str, Any]:
+    from utils.classic_bridge import classic_alpaca_snapshot, resolve_classic_data_dir
+
     dd = _data_dir()
     ai_rows = _tail_jsonl(dd / "ai_metrics.jsonl", 500)
     decisions_recent = _tail_jsonl(dd / "ai_decisions.jsonl", 220)
-    classic_dir = _classic_data_dir()
+    classic_dir = resolve_classic_data_dir()
     classic_win_rate = None
     classic_pnls: list[float] = []
     today_u = datetime.now(timezone.utc).date().isoformat()
@@ -431,17 +464,18 @@ def _comparison_payload() -> dict[str, Any]:
         log_path = classic_dir / "decisions_log.jsonl"
         if log_path.exists():
             try:
-                for line in log_path.open(encoding="utf-8"):
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        o = json.loads(line)
-                        p = o.get("pnl")
-                        if p is not None:
-                            classic_pnls.append(float(p))
-                    except Exception:
-                        continue
+                with log_path.open(encoding="utf-8") as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            o = json.loads(line)
+                            p = o.get("pnl")
+                            if p is not None:
+                                classic_pnls.append(float(p))
+                        except Exception:
+                            continue
             except Exception:
                 pass
     wins = sum(1 for p in classic_pnls if p > 0)
@@ -455,12 +489,28 @@ def _comparison_payload() -> dict[str, Any]:
         classic_syms = _symbols_from_classic_jsonl(classic_dir / "decisions_log.jsonl")
     overlap_syms = sorted(ai_syms & classic_syms)[:16]
 
+    ai_portfolio = _alpaca_snapshot()
+    now = time.time()
+    classic_portfolio: dict[str, Any]
+    if now - float(_CLASSIC_PORTFOLIO_CACHE["t"]) < _classic_portfolio_cache_ttl_sec() and _CLASSIC_PORTFOLIO_CACHE.get(
+        "payload"
+    ):
+        classic_portfolio = _CLASSIC_PORTFOLIO_CACHE["payload"]
+    else:
+        classic_portfolio = classic_alpaca_snapshot()
+        _CLASSIC_PORTFOLIO_CACHE["t"] = now
+        _CLASSIC_PORTFOLIO_CACHE["payload"] = classic_portfolio
+
     return {
         "classic": {
             "data_dir": str(classic_dir) if classic_dir else None,
             "closed_sample_trades": len(classic_pnls),
             "win_rate": classic_win_rate,
             "avg_pnl_per_trade": round(sum(classic_pnls) / len(classic_pnls), 4) if classic_pnls else None,
+            "portfolio": classic_portfolio,
+            "equity": classic_portfolio.get("equity") if classic_portfolio.get("connected") else None,
+            "position_count": classic_portfolio.get("position_count"),
+            "unrealized_pl": classic_portfolio.get("unrealized_pl"),
         },
         "fortress_ai": {
             "metrics_cycles": len(ai_rows),
@@ -468,6 +518,10 @@ def _comparison_payload() -> dict[str, Any]:
             "cycles_today": cycles_today,
             "executed_today": executed_today,
             "dry_run": str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes"),
+            "portfolio": ai_portfolio,
+            "equity": ai_portfolio.get("equity") if ai_portfolio.get("connected") else None,
+            "position_count": ai_portfolio.get("position_count"),
+            "unrealized_pl": ai_portfolio.get("unrealized_pl"),
         },
         "overlap": {
             "symbols": overlap_syms,
@@ -475,9 +529,9 @@ def _comparison_payload() -> dict[str, Any]:
             "classic_unique_symbols": len(classic_syms),
         },
         "note": (
-            "Portfolio + Alpaca snapshot use ALPACA_* from this instance's environment. "
-            "Classic columns read decisions_log.jsonl under CLASSIC_DATA_DIR only — "
-            "they do not update when you rotate Alpaca keys unless that file changes."
+            "Equity rows use each stack's Alpaca paper account (Classic keys from CLASSIC_ENV_FILE or "
+            "trading-bot/.env when CLASSIC_ALPACA_* are unset). Ledger win rate uses decisions_log.jsonl "
+            "under CLASSIC_DATA_DIR (defaults to sibling trading-bot/data)."
         ),
     }
 
@@ -627,7 +681,7 @@ def _enrich_domain_intel_from_ingest(di: dict[str, Any], ingest_health: dict[str
 
 
 def _screener_hint(decisions: list[dict]) -> dict[str, Any]:
-    """Best-effort last screen_market watchlist from decision logs."""
+    """AI screen_market watchlist, else Classic daily_signals / shared watchlists."""
     for r in reversed(decisions):
         d = r.get("decision")
         if not isinstance(d, dict):
@@ -637,13 +691,28 @@ def _screener_hint(decisions: list[dict]) -> dict[str, Any]:
         p = d.get("parameters") if isinstance(d.get("parameters"), dict) else {}
         wl = p.get("watchlist") or p.get("symbols") or p.get("tickers")
         if isinstance(wl, list) and wl:
-            return {"symbols": [str(x).upper()[:12] for x in wl[:12]], "ts": r.get("ts")}
+            return {
+                "symbols": [str(x).upper()[:12] for x in wl[:12]],
+                "ts": r.get("ts"),
+                "source": "ai_screen_market",
+            }
         if isinstance(wl, str) and wl.strip():
-            return {"symbols": [s.strip().upper() for s in wl.split(",") if s.strip()][:12], "ts": r.get("ts")}
-    return {"symbols": [], "ts": None}
+            return {
+                "symbols": [s.strip().upper() for s in wl.split(",") if s.strip()][:12],
+                "ts": r.get("ts"),
+                "source": "ai_screen_market",
+            }
+    from utils.classic_bridge import classic_screener_candidates
+
+    return classic_screener_candidates(max_symbols=12)
 
 
-def build_current_state() -> dict[str, Any]:
+def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
+    now = time.time()
+    ttl = _state_cache_ttl_sec()
+    if use_cache and _STATE_CACHE.get("payload") is not None and now - float(_STATE_CACHE["t"]) < ttl:
+        return _STATE_CACHE["payload"]
+
     dd = _data_dir()
     latest_metric_path = dd / "ai_latest_metric.json"
     latest_metric = None
@@ -697,18 +766,30 @@ def build_current_state() -> dict[str, Any]:
     else:
         loop_sec = effective_loop_interval_seconds()
 
+    try:
+        status_loop_sec = float(os.environ.get("FORTRESS_AI_LOOP_SECONDS", "300") or 300)
+    except ValueError:
+        status_loop_sec = 300.0
+
     _manual_only_ui = str(os.environ.get("FORTRESS_AI_MANUAL_ONLY", "0")).strip().lower() in (
         "1",
         "true",
         "yes",
     )
-    status = _infer_ui_status(latest_metric, last_row, manual_only=_manual_only_ui)
 
     last_ts = None
     if latest_metric and latest_metric.get("ts"):
         last_ts = latest_metric["ts"]
     elif last_row and last_row.get("ts"):
         last_ts = last_row["ts"]
+
+    status = _infer_ui_status(
+        latest_metric,
+        last_row,
+        manual_only=_manual_only_ui,
+        last_decision_ts=last_ts,
+        loop_interval_seconds=status_loop_sec,
+    )
 
     portfolio = _alpaca_snapshot()
     ar = read_runtime_prefs()
@@ -779,15 +860,22 @@ def build_current_state() -> dict[str, Any]:
             "manual_only": str(os.environ.get("FORTRESS_AI_MANUAL_ONLY", "0")).strip().lower()
             in ("1", "true", "yes"),
             "rth": is_us_equity_rth_et(),
+            "weekend": is_us_equity_weekend_et(),
+            "auto_cycles": is_us_equity_rth_et()
+            and not str(os.environ.get("FORTRESS_AI_MANUAL_ONLY", "0")).strip().lower()
+            in ("1", "true", "yes"),
         },
         "screener": _screener_hint(decisions),
         "learning": {
             "decisions_logged": len(decisions),
             "beliefs_keys": len((ai_state.get("beliefs") or {}).keys()),
+            "belief_memory_count": int(belief_memory.get("total_beliefs") or 0),
         },
         "belief_memory": belief_memory,
         "ingest_health": ingest_health,
     }
+    _STATE_CACHE["t"] = time.time()
+    _STATE_CACHE["payload"] = payload
     logger.debug("build_current_state keys: %s", sorted(payload.keys()))
     return payload
 
@@ -998,7 +1086,11 @@ def stream_decisions():
                     yield f": heartbeat {time.time()}\n\n"
             except Exception as e:
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
-            time.sleep(3)
+            try:
+                sse_sec = max(3.0, float(os.environ.get("FORTRESS_AI_DASHBOARD_SSE_SEC", "5") or 5))
+            except ValueError:
+                sse_sec = 5.0
+            time.sleep(sse_sec)
 
     return Response(
         generate(),
@@ -1025,6 +1117,7 @@ def api_halt_post():
     reason = (body.get("reason") if request.is_json else request.form.get("reason")) or ""
     actor = (body.get("actor") if request.is_json else request.form.get("actor")) or "dashboard"
     st = set_trading_halt(active, reason=str(reason), actor=str(actor))
+    _invalidate_state_cache()
     return jsonify({"ok": True, "state": get_halt_state(), "file": st})
 
 
@@ -1047,6 +1140,7 @@ def api_agent_runtime_post():
 @app.route("/api/agent/run-cycle", methods=["POST"])
 def api_agent_run_cycle():
     request_on_demand_cycle()
+    _invalidate_state_cache()
     return jsonify({"ok": True})
 
 

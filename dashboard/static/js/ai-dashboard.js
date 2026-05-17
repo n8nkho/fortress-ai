@@ -24,6 +24,7 @@ document.addEventListener("alpine:init", () => {
     mediumTierLastRefresh: null,
     lastTick: Date.now(),
     loopSeconds: 300,
+    tabVisible: typeof document !== "undefined" ? !document.hidden : true,
 
     siStatus: null,
     siProposals: [],
@@ -62,7 +63,7 @@ document.addEventListener("alpine:init", () => {
       loop_interval_seconds: 300,
       last_decision_ts: null,
       agent_runtime: { run_off_hours_auto: false },
-      agent_schedule: { manual_only: false, rth: false },
+      agent_schedule: { manual_only: false, rth: false, weekend: false, auto_cycles: false },
       screener: { symbols: [], ts: null },
       learning: { decisions_logged: 0, beliefs_keys: 0 },
       domain_intel: {},
@@ -78,16 +79,8 @@ document.addEventListener("alpine:init", () => {
       this.loadCharts();
       this.fetchComparison();
       if (this.expertMode) this.fetchExpertBundle();
-      this.connectSSE();
-      // FAST (~12s): AI Mind, positions context, recent decisions, cycle-to-cycle fields
-      this.pollTimer = setInterval(() => this.refresh(), 12000);
-      // Charts / spend curves — aligned with medium tier cadence
-      this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
-      // MEDIUM (~60s): belief memory, domain intel, performance/API usage aggregates
-      this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
-      // SLOW (~5 min): ingest health file, self-improvement, prompt evolution, governance
-      this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
-      // Recompute "Xs ago" labels without hammering the API
+      this.startPolling();
+      if (this.tabVisible) this.connectSSE();
       this.ageTickTimer = setInterval(() => {
         this.ageTick++;
       }, 5000);
@@ -95,6 +88,7 @@ document.addEventListener("alpine:init", () => {
       setTimeout(() => this.refreshSlowTier(), 1200);
       this.loopSeconds = Number(this.state.loop_interval_seconds || 300);
       window.addEventListener("keydown", (e) => this.onKey(e));
+      document.addEventListener("visibilitychange", () => this.onVisibilityChange());
       this.fetchSelfImprovement();
       this.fetchPromptEvolution();
       this.fetchGovernance();
@@ -103,6 +97,49 @@ document.addEventListener("alpine:init", () => {
       window.__faiRedrawCharts = function () {
         self.$nextTick(() => self.renderDashboardCharts());
       };
+    },
+
+    onVisibilityChange() {
+      this.tabVisible = !document.hidden;
+      if (this.tabVisible) {
+        this.startPolling();
+        this.connectSSE();
+        this.refresh();
+        this.fetchComparison();
+      } else {
+        this.stopPolling();
+        this.disconnectSSE();
+      }
+    },
+
+    startPolling() {
+      this.stopPolling();
+      if (!this.tabVisible) return;
+      // Backup poll while SSE is active (server caches state ~25s).
+      this.pollTimer = setInterval(() => this.refresh(), 60000);
+      this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
+      this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
+      this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
+    },
+
+    stopPolling() {
+      if (this.pollTimer) clearInterval(this.pollTimer);
+      if (this.chartPollTimer) clearInterval(this.chartPollTimer);
+      if (this.mediumPollTimer) clearInterval(this.mediumPollTimer);
+      if (this.slowPollTimer) clearInterval(this.slowPollTimer);
+      this.pollTimer = null;
+      this.chartPollTimer = null;
+      this.mediumPollTimer = null;
+      this.slowPollTimer = null;
+    },
+
+    disconnectSSE() {
+      if (this.es) {
+        try {
+          this.es.close();
+        } catch (_) {}
+        this.es = null;
+      }
     },
 
     onKey(e) {
@@ -211,6 +248,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     connectSSE() {
+      if (!this.tabVisible) return;
+      if (this.es) return;
       try {
         this.es = new EventSource("/api/stream/decisions");
         this.es.onmessage = (ev) => {
@@ -238,8 +277,8 @@ document.addEventListener("alpine:init", () => {
           } catch (_) {}
         };
         this.es.onerror = () => {
-          this.es.close();
-          setTimeout(() => this.connectSSE(), 5000);
+          this.disconnectSSE();
+          if (this.tabVisible) setTimeout(() => this.connectSSE(), 5000);
         };
       } catch (_) {
         /* SSE unsupported — polling only */
@@ -398,7 +437,9 @@ document.addEventListener("alpine:init", () => {
           ...this.state,
           belief_memory: bm,
           domain_intel: di,
+          beliefs: j.beliefs || this.state.beliefs,
           learning: j.learning || this.state.learning,
+          screener: j.screener || this.state.screener,
           weekly_llm_spend_usd: j.weekly_llm_spend_usd,
           today_llm_spend_usd: j.today_llm_spend_usd,
           llm_calls_today: j.llm_calls_today,
@@ -499,8 +540,16 @@ document.addEventListener("alpine:init", () => {
       return `M 12 50 A ${r} ${r} 0 ${large} 1 ${x.toFixed(2)} ${y.toFixed(2)}`;
     },
 
+    scheduleStatusLabel() {
+      const s = this.state.agent_schedule || {};
+      if (s.manual_only) return "Manual-only: no auto cadence";
+      if (s.weekend) return "Weekend: manual / on-demand only";
+      if (this.state.us_equity_rth) return "RTH: cadence from FORTRESS_AI_LOOP_SECONDS (.env)";
+      return "Off-hours: on-demand only";
+    },
+
     nextDecisionEta() {
-      if (this.state.agent_schedule?.manual_only) {
+      if (this.state.agent_schedule?.manual_only || this.state.agent_schedule?.weekend) {
         return "On demand only";
       }
       const interval = Number(this.state.loop_interval_seconds || 300) * 1000;
@@ -584,9 +633,50 @@ document.addEventListener("alpine:init", () => {
       return this.state.screener?.symbols || [];
     },
 
-    screenerTotal() {
+    screenerCountLabel() {
       const n = this.screenerSymbols().length;
-      return Math.max(n, 1);
+      return n === 1 ? "1 symbol" : `${n} symbols`;
+    },
+
+    screenerSourceLabel() {
+      const sc = this.state.screener || {};
+      if (!(sc.symbols || []).length) return "";
+      const labels = {
+        ai_screen_market: "AI screen_market",
+        classic_daily_signals: "Classic daily_signals",
+        fortress_watchlist: "Fortress watchlist",
+        classic_config_watchlist: "Classic config watchlist",
+      };
+      const src = labels[sc.source] || sc.source || "watchlist";
+      let line = `Source: ${src}`;
+      if (sc.ts) line += ` · ${sc.ts}`;
+      return line;
+    },
+
+    comparisonSide(side) {
+      return (this.comparison && this.comparison[side]) || {};
+    },
+
+    comparisonEquity(side) {
+      const block = this.comparisonSide(side);
+      const eq = block.equity ?? block.portfolio?.equity;
+      if (eq == null && block.portfolio && !block.portfolio.connected) {
+        return block.portfolio.reason ? "offline" : "—";
+      }
+      return this.fmtMoney(eq);
+    },
+
+    comparisonPositions(side) {
+      const block = this.comparisonSide(side);
+      const n = block.position_count ?? block.portfolio?.position_count;
+      return n != null ? String(n) : "—";
+    },
+
+    comparisonUnrealized(side) {
+      const block = this.comparisonSide(side);
+      const u = block.unrealized_pl ?? block.portfolio?.unrealized_pl;
+      if (u == null) return "—";
+      return this.fmtMoney(u);
     },
 
     weekCostPct() {
