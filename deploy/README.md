@@ -33,6 +33,10 @@ curl -s http://127.0.0.1:${FORTRESS_AI_DASHBOARD_PORT:-8050}/api/health
 #   cd /home/ubuntu/fortress-ai && ./scripts/smoke_dashboard.sh
 ```
 
+## GitHub push (agents / CI on this host)
+
+See **[GITHUB_PUSH.md](./GITHUB_PUSH.md)** — run `./scripts/setup_github_push.sh` once and register the SSH public key on GitHub.
+
 ## systemd (recommended)
 
 Adjust **User** and **paths** in the unit files if your Linux user or install dir differs.
