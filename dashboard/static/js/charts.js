@@ -7,6 +7,7 @@
   var F = {
     macro: null,
     perf: null,
+    comparison: null,
 
     destroyMacro: function () {
       if (this.macro) {
@@ -23,6 +24,15 @@
           this.perf.destroy();
         } catch (_) {}
         this.perf = null;
+      }
+    },
+
+    destroyComparison: function () {
+      if (this.comparison) {
+        try {
+          this.comparison.destroy();
+        } catch (_) {}
+        this.comparison = null;
       }
     },
 
@@ -97,6 +107,67 @@
             },
             y: {
               ticks: { color: "#64748b" },
+              grid: { color: "rgba(255,255,255,0.06)" },
+            },
+          },
+        },
+      });
+    },
+
+    renderComparison: function (canvas, chart) {
+      if (!window.Chart || !canvas || !chart || !chart.labels || !chart.labels.length) {
+        return;
+      }
+      this.destroyComparison();
+      var ctx = canvas.getContext("2d");
+      this.comparison = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: chart.labels,
+          datasets: [
+            {
+              label: "Realized P&L",
+              data: chart.realized_usd || [],
+              backgroundColor: "rgba(52, 211, 153, 0.75)",
+              borderColor: "#34d399",
+              borderWidth: 1,
+            },
+            {
+              label: "Unrealized P&L",
+              data: chart.unrealized_usd || [],
+              backgroundColor: "rgba(99, 102, 241, 0.65)",
+              borderColor: "#818cf8",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#94a3b8", font: { size: 10 } } },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var v = ctx.parsed.y;
+                  var sign = v >= 0 ? "+" : "";
+                  return ctx.dataset.label + ": " + sign + v.toFixed(2);
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: "#94a3b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.06)" },
+            },
+            y: {
+              ticks: {
+                color: "#64748b",
+                callback: function (v) {
+                  return (v >= 0 ? "+" : "") + v;
+                },
+              },
               grid: { color: "rgba(255,255,255,0.06)" },
             },
           },

@@ -145,7 +145,7 @@ from dashboard.governance_panel import register_governance_routes  # noqa: E402
 register_governance_routes(app)
 
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
-_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-17-spy-si").strip()
+_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-17-cmp-pnl").strip()
 
 
 def _dashboard_basic_credentials() -> tuple[str, str]:
@@ -445,12 +445,18 @@ def _symbols_from_classic_jsonl(path: Path, max_lines: int = 400) -> set[str]:
 
 def _comparison_payload() -> dict[str, Any]:
     from utils.classic_bridge import classic_alpaca_snapshot, resolve_classic_data_dir
+    from utils.comparison_metrics import (
+        ai_realized_summary,
+        classic_realized_summary,
+        comparison_chart_series,
+    )
 
     dd = _data_dir()
     ai_rows = _tail_jsonl(dd / "ai_metrics.jsonl", 500)
     decisions_recent = _tail_jsonl(dd / "ai_decisions.jsonl", 220)
     classic_dir = resolve_classic_data_dir()
-    classic_win_rate = None
+    classic_ledger = classic_realized_summary()
+    classic_win_rate = classic_ledger.get("win_rate")
     classic_pnls: list[float] = []
     today_u = datetime.now(timezone.utc).date().isoformat()
     cycles_today = sum(1 for r in decisions_recent if str(r.get("ts") or "").startswith(today_u))
@@ -460,7 +466,7 @@ def _comparison_payload() -> dict[str, Any]:
         if str(r.get("ts") or "").startswith(today_u) and (r.get("act") or {}).get("executed")
     )
 
-    if classic_dir and classic_dir.is_dir():
+    if classic_ledger.get("count", 0) == 0 and classic_dir and classic_dir.is_dir():
         log_path = classic_dir / "decisions_log.jsonl"
         if log_path.exists():
             try:
@@ -478,9 +484,9 @@ def _comparison_payload() -> dict[str, Any]:
                             continue
             except Exception:
                 pass
-    wins = sum(1 for p in classic_pnls if p > 0)
-    if classic_pnls:
-        classic_win_rate = round(wins / len(classic_pnls), 4)
+        wins = sum(1 for p in classic_pnls if p > 0)
+        if classic_pnls:
+            classic_win_rate = round(wins / len(classic_pnls), 4)
 
     ai_non_wait = sum(1 for r in ai_rows if r.get("opportunity_detection"))
     ai_syms = _symbols_from_ai_rows(decisions_recent)
@@ -501,16 +507,32 @@ def _comparison_payload() -> dict[str, Any]:
         _CLASSIC_PORTFOLIO_CACHE["t"] = now
         _CLASSIC_PORTFOLIO_CACHE["payload"] = classic_portfolio
 
+    ai_ledger = ai_realized_summary(dd, ai_portfolio)
+    classic_realized = classic_ledger.get("realized_pnl")
+    ai_realized = ai_ledger.get("realized_pnl")
+    classic_unreal = classic_portfolio.get("unrealized_pl") if classic_portfolio.get("connected") else None
+    ai_unreal = ai_portfolio.get("unrealized_pl") if ai_portfolio.get("connected") else None
+
+    closed_trades = classic_ledger.get("count") or len(classic_pnls)
+    avg_pnl = None
+    if classic_ledger.get("count"):
+        avg_pnl = round(float(classic_realized or 0) / int(classic_ledger["count"]), 4)
+    elif classic_pnls:
+        avg_pnl = round(sum(classic_pnls) / len(classic_pnls), 4)
+
     return {
         "classic": {
             "data_dir": str(classic_dir) if classic_dir else None,
-            "closed_sample_trades": len(classic_pnls),
+            "closed_sample_trades": closed_trades,
             "win_rate": classic_win_rate,
-            "avg_pnl_per_trade": round(sum(classic_pnls) / len(classic_pnls), 4) if classic_pnls else None,
+            "avg_pnl_per_trade": avg_pnl,
+            "realized_pnl": classic_realized,
+            "realized_trade_count": classic_ledger.get("count", 0),
+            "realized_source": classic_ledger.get("source"),
             "portfolio": classic_portfolio,
             "equity": classic_portfolio.get("equity") if classic_portfolio.get("connected") else None,
             "position_count": classic_portfolio.get("position_count"),
-            "unrealized_pl": classic_portfolio.get("unrealized_pl"),
+            "unrealized_pl": classic_unreal,
         },
         "fortress_ai": {
             "metrics_cycles": len(ai_rows),
@@ -518,20 +540,29 @@ def _comparison_payload() -> dict[str, Any]:
             "cycles_today": cycles_today,
             "executed_today": executed_today,
             "dry_run": str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes"),
+            "realized_pnl": ai_realized,
+            "realized_trade_count": ai_ledger.get("count", 0),
+            "realized_source": ai_ledger.get("source"),
             "portfolio": ai_portfolio,
             "equity": ai_portfolio.get("equity") if ai_portfolio.get("connected") else None,
             "position_count": ai_portfolio.get("position_count"),
-            "unrealized_pl": ai_portfolio.get("unrealized_pl"),
+            "unrealized_pl": ai_unreal,
         },
+        "chart": comparison_chart_series(
+            classic_realized=classic_realized if classic_realized is not None else 0.0,
+            classic_unrealized=classic_unreal if classic_unreal is not None else 0.0,
+            ai_realized=ai_realized if ai_realized is not None else 0.0,
+            ai_unrealized=ai_unreal if ai_unreal is not None else 0.0,
+        ),
         "overlap": {
             "symbols": overlap_syms,
             "ai_unique_symbols": len(ai_syms),
             "classic_unique_symbols": len(classic_syms),
         },
         "note": (
-            "Equity rows use each stack's Alpaca paper account (Classic keys from CLASSIC_ENV_FILE or "
-            "trading-bot/.env when CLASSIC_ALPACA_* are unset). Ledger win rate uses decisions_log.jsonl "
-            "under CLASSIC_DATA_DIR (defaults to sibling trading-bot/data)."
+            "Equity and unrealized P&L are live Alpaca paper accounts. Realized P&L uses "
+            "pnl_ledger.jsonl when present (Classic: trading-bot/data; AI: optional FORTRESS_AI_PNL_LEDGER_PATH "
+            "or decision-log PnL rows, else equity minus starting balance minus unrealized)."
         ),
     }
 

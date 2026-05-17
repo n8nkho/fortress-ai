@@ -93,6 +93,10 @@ class TestDashboardApi(unittest.TestCase):
         self.assertIn("portfolio", d["classic"])
         self.assertIn("portfolio", d["fortress_ai"])
         self.assertIn("equity", d["fortress_ai"])
+        self.assertIn("realized_pnl", d["classic"])
+        self.assertIn("realized_pnl", d["fortress_ai"])
+        self.assertIn("chart", d)
+        self.assertIn("realized_usd", d["chart"])
 
     def test_build_endpoint_shape(self):
         r = self.client.get("/api/build")

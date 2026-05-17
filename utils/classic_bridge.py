@@ -15,6 +15,59 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def resolve_classic_pnl_ledger_path() -> Path | None:
+    raw = (os.environ.get("CLASSIC_PNL_LEDGER_PATH") or "").strip()
+    if raw:
+        p = Path(raw).expanduser()
+        return p if p.is_file() else None
+    data_dir = resolve_classic_data_dir()
+    if not data_dir:
+        return None
+    p = data_dir / "pnl_ledger.jsonl"
+    return p if p.is_file() else None
+
+
+def read_pnl_ledger_summary(path: Path | None) -> dict[str, Any]:
+    """Realized P&L from authoritative sell ledger (same schema as Classic command center)."""
+    summary: dict[str, Any] = {
+        "count": 0,
+        "wins": 0,
+        "losses": 0,
+        "realized_pnl": 0.0,
+        "win_rate": None,
+        "source": None,
+    }
+    if path is None or not path.is_file():
+        return summary
+    summary["source"] = str(path)
+    try:
+        with path.open(encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                try:
+                    pnl = float(rec.get("pnl"))
+                except (TypeError, ValueError):
+                    continue
+                summary["count"] += 1
+                summary["realized_pnl"] += pnl
+                if pnl > 0:
+                    summary["wins"] += 1
+                elif pnl < 0:
+                    summary["losses"] += 1
+    except OSError:
+        pass
+    summary["realized_pnl"] = round(float(summary["realized_pnl"]), 2)
+    if summary["count"]:
+        summary["win_rate"] = round(summary["wins"] / summary["count"], 4)
+    return summary
+
+
 def resolve_classic_data_dir() -> Path | None:
     raw = (os.environ.get("CLASSIC_DATA_DIR") or "").strip()
     if raw:

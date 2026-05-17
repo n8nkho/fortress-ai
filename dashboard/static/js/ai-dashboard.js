@@ -249,7 +249,15 @@ document.addEventListener("alpine:init", () => {
         const r = await fetch("/api/comparison");
         if (!r.ok) return;
         this.comparison = await r.json();
+        this.$nextTick(() => this.renderComparisonChart());
       } catch (_) {}
+    },
+
+    renderComparisonChart() {
+      const canvas = document.getElementById("fai-chart-comparison");
+      if (window.FortressCharts && canvas && this.comparison?.chart) {
+        window.FortressCharts.renderComparison(canvas, this.comparison.chart);
+      }
     },
 
     async fetchSpyStatus() {
@@ -800,6 +808,18 @@ document.addEventListener("alpine:init", () => {
       const u = block.unrealized_pl ?? block.portfolio?.unrealized_pl;
       if (u == null) return "—";
       return this.fmtMoney(u);
+    },
+
+    comparisonRealized(side) {
+      const block = this.comparisonSide(side);
+      const r = block.realized_pnl;
+      if (r == null) return "—";
+      const n = block.realized_trade_count;
+      const src = block.realized_source;
+      const money = this.fmtMoney(r);
+      if (n > 0) return `${money} (${n} closes)`;
+      if (src === "equity_proxy") return `${money} (est.)`;
+      return money;
     },
 
     weekCostPct() {

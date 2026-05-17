@@ -4,7 +4,7 @@
     <div class="flex justify-between items-start mb-6">
       <div>
         <h2 class="text-lg font-semibold text-indigo-300">Classic vs Fortress AI</h2>
-        <p class="text-xs text-slate-500 mt-1">Side-by-side paper Alpaca accounts. Ledger win rate uses Classic <code class="fai-text-mono">decisions_log.jsonl</code>.</p>
+        <p class="text-xs text-slate-500 mt-1">Paper Alpaca accounts · realized P&amp;L from <code class="fai-text-mono">pnl_ledger.jsonl</code> when available.</p>
       </div>
       <button type="button" class="text-slate-400 hover:text-white text-xl leading-none" @click="comparisonOpen = false" aria-label="Close">×</button>
     </div>
@@ -15,6 +15,9 @@
 
     <template x-if="comparison">
       <div class="space-y-4 text-sm">
+        <div class="fai-chart-box h-44">
+          <canvas id="fai-chart-comparison" aria-label="Classic vs AI realized and unrealized profit"></canvas>
+        </div>
         <table class="w-full fai-text-mono text-xs">
           <thead>
             <tr class="text-left text-slate-500 border-b border-white/10">
@@ -33,6 +36,11 @@
               <td class="py-2">Open positions</td>
               <td x-text="comparisonPositions('classic')"></td>
               <td x-text="comparisonPositions('fortress_ai')"></td>
+            </tr>
+            <tr class="border-b border-white/5">
+              <td class="py-2">Realized P&amp;L</td>
+              <td x-text="comparisonRealized('classic')"></td>
+              <td x-text="comparisonRealized('fortress_ai')"></td>
             </tr>
             <tr class="border-b border-white/5">
               <td class="py-2">Unrealized P&amp;L</td>
