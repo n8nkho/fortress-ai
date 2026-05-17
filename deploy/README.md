@@ -37,6 +37,19 @@ curl -s http://127.0.0.1:${FORTRESS_AI_DASHBOARD_PORT:-8050}/api/health
 
 See **[GITHUB_PUSH.md](./GITHUB_PUSH.md)** — run `./scripts/setup_github_push.sh` once and register the SSH public key on GitHub.
 
+## SPY intraday agent (optional second unit)
+
+Dedicated **same-day** SPY/DIA ladder trader — max exposure `$10k` default, EOD flat, own schedule.
+
+```bash
+# .env: FORTRESS_SPY_DRY_RUN=1 first, then 0 for paper
+sudo cp deploy/fortress-ai-spy-agent.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-spy-agent
+journalctl -u fortress-ai-spy-agent -f
+```
+
+API: `GET /api/spy/status`, `POST /api/spy/run-cycle` (on-demand when idle).
+
 ## systemd (recommended)
 
 Adjust **User** and **paths** in the unit files if your Linux user or install dir differs.

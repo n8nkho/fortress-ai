@@ -1,0 +1,26 @@
+# Fortress AI — SPY/DIA intraday agent (RTH auto cycles, EOD flat, ladder scaling).
+# Install: sudo cp deploy/fortress-ai-spy-agent.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-spy-agent
+#
+# Uses same .env Alpaca/DeepSeek keys; isolated state under data/spy_intraday/.
+# Do not run alongside conflicting manual trades on the same symbol without coordination.
+
+[Unit]
+Description=Fortress AI SPY intraday agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/agents/spy_intraday_agent.py
+Restart=on-failure
+RestartSec=30
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -145,7 +145,7 @@ from dashboard.governance_panel import register_governance_routes  # noqa: E402
 register_governance_routes(app)
 
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
-_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-03-gov").strip()
+_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-17-spy-si").strip()
 
 
 def _dashboard_basic_credentials() -> tuple[str, str]:
@@ -1142,6 +1142,125 @@ def api_agent_run_cycle():
     request_on_demand_cycle()
     _invalidate_state_cache()
     return jsonify({"ok": True})
+
+
+def _tail_spy_decision(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        lines = path.read_text(encoding="utf-8").strip().split("\n")
+        for line in reversed(lines):
+            line = line.strip()
+            if not line:
+                continue
+            return json.loads(line)
+    except Exception:
+        return None
+    return None
+
+
+@app.route("/api/spy/status")
+def api_spy_status():
+    """SPY intraday agent snapshot (data/spy_intraday/latest_metric.json)."""
+    from utils.spy_agent_config import dry_run, index_symbol, max_exposure_usd, spy_data_dir
+
+    dd = spy_data_dir()
+    latest = None
+    p = dd / "latest_metric.json"
+    if p.exists():
+        try:
+            latest = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    ladder = None
+    ladder_p = dd / "ladder_state.json"
+    if ladder_p.exists():
+        try:
+            ladder = json.loads(ladder_p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    last_decision = _tail_spy_decision(dd / "decisions.jsonl")
+
+    global_on = str(os.environ.get("FORTRESS_SPY_GLOBAL_MARKETS", "1")).strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "off",
+    )
+    market_preview = None
+    if global_on:
+        try:
+            from agents.spy_intraday.context import build_market_context
+
+            ctx = build_market_context()
+            fut = ctx.get("futures") or {}
+            gl = ctx.get("global_sessions") or {}
+            market_preview = {
+                "futures_tone": fut.get("tone"),
+                "futures_leadership": fut.get("leadership"),
+                "overnight_summary": gl.get("overnight_summary"),
+                "asia_avg": (gl.get("asia") or {}).get("avg_day_chg_pct"),
+                "europe_avg": (gl.get("europe") or {}).get("avg_day_chg_pct"),
+                "session_phase": (gl.get("session_clock_et") or {}).get("phase"),
+            }
+        except Exception:
+            logger.exception("spy market_preview failed")
+
+    si_status = None
+    try:
+        from agents.spy_self_improvement_engine import get_spy_si_engine
+
+        si_status = get_spy_si_engine().status_dict()
+    except Exception:
+        logger.exception("spy si status failed")
+
+    return jsonify(
+        {
+            "symbol": index_symbol(),
+            "dry_run": dry_run(),
+            "max_exposure_usd": max_exposure_usd(),
+            "global_markets_enabled": global_on,
+            "latest_metric": latest,
+            "ladder": ladder,
+            "last_decision": last_decision,
+            "market_preview": market_preview,
+            "data_dir": str(dd),
+            "si": si_status,
+        }
+    )
+
+
+@app.route("/api/spy/run-cycle", methods=["POST"])
+def api_spy_run_cycle():
+    from utils.spy_agent_runtime import request_on_demand_cycle
+
+    request_on_demand_cycle()
+    return jsonify({"ok": True, "agent": "spy_intraday"})
+
+
+@app.route("/api/spy/self_improvement/status")
+def api_spy_self_improvement_status():
+    from agents.spy_self_improvement_engine import get_spy_si_engine
+
+    return jsonify(get_spy_si_engine().status_dict())
+
+
+@app.route("/api/spy/self_improvement/propose", methods=["POST"])
+def api_spy_self_improvement_propose():
+    from agents.spy_self_improvement_engine import get_spy_si_engine
+
+    try:
+        return jsonify(get_spy_si_engine().analyze_and_propose())
+    except Exception as e:
+        logger.exception("spy si propose failed")
+        return jsonify({"error": str(e)[:300]}), 400
+
+
+@app.route("/api/spy/self_improvement/monitor", methods=["POST"])
+def api_spy_self_improvement_monitor():
+    from agents.spy_self_improvement_engine import get_spy_si_engine
+
+    return jsonify(get_spy_si_engine().monitor_performance() or {"ok": True})
 
 
 @app.route("/api/charts/dashboard")

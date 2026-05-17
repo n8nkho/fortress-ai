@@ -73,11 +73,31 @@ document.addEventListener("alpine:init", () => {
 
     comparison: null,
 
+    spy: {
+      symbol: "SPY",
+      dry_run: true,
+      max_exposure_usd: 10000,
+      latest_metric: null,
+      ladder: null,
+      last_decision: null,
+      market_preview: null,
+      global_markets_enabled: true,
+      loading: false,
+      cyclePending: false,
+      error: null,
+      cycleMsg: null,
+      siMsg: null,
+      si: null,
+      lastRefresh: null,
+    },
+    spyPollTimer: null,
+
     init() {
       this.expertMode = localStorage.getItem("fai_expert") === "1";
       this.refresh();
       this.loadCharts();
       this.fetchComparison();
+      this.fetchSpyStatus();
       if (this.expertMode) this.fetchExpertBundle();
       this.startPolling();
       if (this.tabVisible) this.connectSSE();
@@ -106,6 +126,7 @@ document.addEventListener("alpine:init", () => {
         this.connectSSE();
         this.refresh();
         this.fetchComparison();
+        this.fetchSpyStatus();
       } else {
         this.stopPolling();
         this.disconnectSSE();
@@ -120,6 +141,7 @@ document.addEventListener("alpine:init", () => {
       this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
       this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
       this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
+      this.spyPollTimer = setInterval(() => this.fetchSpyStatus(), 45000);
     },
 
     stopPolling() {
@@ -127,10 +149,12 @@ document.addEventListener("alpine:init", () => {
       if (this.chartPollTimer) clearInterval(this.chartPollTimer);
       if (this.mediumPollTimer) clearInterval(this.mediumPollTimer);
       if (this.slowPollTimer) clearInterval(this.slowPollTimer);
+      if (this.spyPollTimer) clearInterval(this.spyPollTimer);
       this.pollTimer = null;
       this.chartPollTimer = null;
       this.mediumPollTimer = null;
       this.slowPollTimer = null;
+      this.spyPollTimer = null;
     },
 
     disconnectSSE() {
@@ -226,6 +250,105 @@ document.addEventListener("alpine:init", () => {
         if (!r.ok) return;
         this.comparison = await r.json();
       } catch (_) {}
+    },
+
+    async fetchSpyStatus() {
+      this.spy.loading = true;
+      this.spy.error = null;
+      try {
+        const r = await fetch("/api/spy/status");
+        if (!r.ok) throw new Error(await r.text());
+        const j = await r.json();
+        this.spy = {
+          ...this.spy,
+          ...j,
+          loading: false,
+          lastRefresh: Date.now(),
+        };
+      } catch (err) {
+        this.spy.loading = false;
+        this.spy.error = String(err).slice(0, 200);
+      }
+    },
+
+    async requestSpyCycle() {
+      this.spy.cyclePending = true;
+      this.spy.cycleMsg = null;
+      this.spy.error = null;
+      try {
+        const r = await fetch("/api/spy/run-cycle", { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+        this.spy.cycleMsg = "Cycle queued — refresh in ~60s";
+        setTimeout(() => this.fetchSpyStatus(), 65000);
+        setTimeout(() => this.fetchSpyStatus(), 5000);
+      } catch (err) {
+        this.spy.error = String(err).slice(0, 200);
+      } finally {
+        this.spy.cyclePending = false;
+      }
+    },
+
+    spyModeLabel() {
+      return this.spy.dry_run ? "DRY-RUN" : "PAPER LIVE";
+    },
+
+    spyLadderLabel() {
+      const l = this.spy.ladder;
+      if (!l) return "flat · 0/3";
+      return `${l.side || "flat"} · ${l.rungs_open ?? 0}/${l.max_rungs ?? 3}`;
+    },
+
+    spyLastSummaryLine() {
+      const m = this.spy.latest_metric;
+      const rth = m?.us_equity_rth ? "RTH" : "off-hours";
+      const eod = this.spy.last_decision?.observation_summary?.eod_phase || "";
+      return eod ? `${eod} · ${rth}` : rth;
+    },
+
+    spyReasoningLine() {
+      const d = this.spy.last_decision?.decision;
+      if (!d) return "No cycles yet — use Run SPY cycle or wait for Mon RTH auto.";
+      return d.reasoning || d.market_assessment || "—";
+    },
+
+    spyMetricAgeLabel() {
+      void this.ageTick;
+      const ts = this.spy.latest_metric?.ts;
+      if (!ts) return "";
+      const ms = Date.parse(ts);
+      if (Number.isNaN(ms)) return "";
+      return "Updated " + this.panelAgeLabel(ms);
+    },
+
+    spySiSkimRate() {
+      const r = this.spy.si?.performance?.skim_rate;
+      if (r == null) return "—";
+      return (r * 100).toFixed(1) + "%";
+    },
+
+    spySiPendingLine() {
+      const p = this.spy.si?.pending;
+      if (!p) return "No pending SI proposal.";
+      if (p.proposal?.parameter) {
+        return `Pending: ${p.proposal.parameter} → ${p.proposal.proposed_value}`;
+      }
+      return "Pending SI review.";
+    },
+
+    async spySiPropose() {
+      this.spy.siMsg = null;
+      this.spy.error = null;
+      try {
+        const r = await fetch("/api/spy/self_improvement/propose", { method: "POST" });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.statusText);
+        this.spy.siMsg = j.skipped
+          ? `Skipped: ${j.reason || "—"}`
+          : `SI: ${j.decision || j.outcome || "done"}`;
+        await this.fetchSpyStatus();
+      } catch (err) {
+        this.spy.error = String(err).slice(0, 200);
+      }
     },
 
     async fetchExpertBundle() {

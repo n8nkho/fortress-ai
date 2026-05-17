@@ -1,0 +1,68 @@
+<section class="fai-v2-card p-4 border border-amber-500/30 bg-gradient-to-br from-amber-950/25 to-slate-950/40" id="fai-spy-intraday">
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+    <div>
+      <h2 class="text-sm font-semibold text-amber-300 uppercase tracking-wider">SPY intraday agent
+        <span class="ml-2 text-[10px] font-normal normal-case px-2 py-0.5 rounded-full border border-amber-500/40 text-amber-200"
+          x-text="spyModeLabel()"></span>
+      </h2>
+      <p class="text-[10px] text-slate-500 mt-1">
+        Max exposure <span class="fai-text-mono" x-text="fmtMoney(spy.max_exposure_usd)"></span>
+        · Symbol <span class="fai-text-mono text-amber-200/90" x-text="spy.symbol"></span>
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" @click="fetchSpyStatus()" class="px-2.5 py-1 rounded-lg bg-slate-700/90 text-xs text-slate-200">Refresh</button>
+      <button type="button" @click="requestSpyCycle()" class="px-2.5 py-1 rounded-lg bg-amber-700/90 text-xs text-white font-medium">Run SPY cycle</button>
+    </div>
+  </div>
+  <p class="text-xs text-red-300/90 mb-2" x-show="spy.error" x-text="spy.error"></p>
+  <p class="text-xs text-emerald-300/90 mb-2" x-show="spy.cycleMsg" x-text="spy.cycleMsg"></p>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
+    <div class="rounded-lg bg-black/30 p-2 border border-white/10">
+      <span class="text-slate-500 block">Last action</span>
+      <span class="text-amber-200 fai-text-mono" x-text="spy.latest_metric?.action || '—'"></span>
+    </div>
+    <div class="rounded-lg bg-black/30 p-2 border border-white/10">
+      <span class="text-slate-500 block">Executed</span>
+      <span class="fai-text-mono" x-text="spy.latest_metric?.executed ? 'yes' : 'no'"></span>
+    </div>
+    <div class="rounded-lg bg-black/30 p-2 border border-white/10">
+      <span class="text-slate-500 block">Ladder</span>
+      <span class="fai-text-mono text-slate-300" x-text="spyLadderLabel()"></span>
+    </div>
+    <div class="rounded-lg bg-black/30 p-2 border border-white/10">
+      <span class="text-slate-500 block">Session</span>
+      <span class="fai-text-mono text-[10px] text-slate-300" x-text="spyLastSummaryLine()"></span>
+    </div>
+  </div>
+  <p class="text-[10px] text-slate-600 mb-2" x-show="!spy.global_markets_enabled">
+    Futures/Asia/Europe context off (FORTRESS_SPY_GLOBAL_MARKETS=0).
+  </p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 text-[10px]" x-show="spy.global_markets_enabled">
+    <div class="rounded-lg bg-black/25 p-2 border border-cyan-500/15">
+      <span class="text-cyan-400/90">Futures</span>
+      <p class="text-slate-300 mt-1 fai-text-mono" x-text="spy.market_preview?.futures_tone || '—'"></p>
+    </div>
+    <div class="rounded-lg bg-black/25 p-2 border border-indigo-500/15">
+      <span class="text-indigo-300/90">Asia / Europe</span>
+      <p class="text-slate-300 mt-1 fai-text-mono" x-text="spy.market_preview?.overnight_summary || '—'"></p>
+    </div>
+  </div>
+  <div class="rounded-lg bg-black/20 p-2 border border-violet-500/20 mt-3">
+    <div class="flex flex-wrap justify-between gap-2 mb-2">
+      <p class="text-[10px] text-violet-300/90 font-medium uppercase tracking-wide">Recursive self-improvement (skim tuning)</p>
+      <button type="button" @click="spySiPropose()" class="text-[10px] text-violet-300 hover:text-violet-200">Propose now</button>
+    </div>
+    <p class="text-[10px] text-slate-500 mb-1">
+      Skim rate: <span class="fai-text-mono text-slate-300" x-text="spySiSkimRate()"></span>
+      · Confidence: <span class="fai-text-mono" x-text="spy.si?.current?.spy_min_confidence ?? '—'"></span>
+    </p>
+    <p class="text-[10px] text-slate-400" x-text="spySiPendingLine()"></p>
+    <p class="text-[10px] text-amber-300/90" x-show="spy.siMsg" x-text="spy.siMsg"></p>
+  </div>
+  <div class="rounded-lg bg-black/20 p-2 border border-white/10 mt-3">
+    <p class="text-[10px] text-slate-500 uppercase mb-1">Last reasoning</p>
+    <p class="text-xs text-slate-300" x-text="spyReasoningLine()"></p>
+    <p class="text-[10px] text-slate-600 mt-1 fai-text-mono" x-text="spyMetricAgeLabel()"></p>
+  </div>
+</section>
