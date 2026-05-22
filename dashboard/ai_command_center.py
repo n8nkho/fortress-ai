@@ -145,7 +145,7 @@ from dashboard.governance_panel import register_governance_routes  # noqa: E402
 register_governance_routes(app)
 
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
-_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-22-skim-sort").strip()
+_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-22-skim-pnl").strip()
 
 
 def _dashboard_basic_credentials() -> tuple[str, str]:
@@ -1223,6 +1223,8 @@ def _tail_spy_decision(path: Path) -> dict | None:
 @app.route("/api/skim/status")
 def api_skim_status():
     """Skim swarm basket snapshot."""
+    from agents.skim_swarm.pnl import compute_pnl_summary, learned_symbol_snapshot
+    from agents.skim_swarm.symbol_learning import learned_path
     from utils.skim_swarm_config import dry_run, instance_name, swarm_data_dir, universe
 
     dd = swarm_data_dir()
@@ -1236,28 +1238,28 @@ def api_skim_status():
     last_wave = _tail_spy_decision(dd / "decisions.jsonl")
     symbols: list[dict] = []
     state_dir = dd / "state"
-    learned_dir = dd / "learned"
     ctx_dir = dd / "company_context"
     if state_dir.is_dir():
         for f in sorted(state_dir.glob("*.json")):
             try:
                 st = json.loads(f.read_text(encoding="utf-8"))
-                sym = st.get("symbol")
+                sym = st.get("symbol") or f.stem.replace("_", ".")
                 row = {
                     "symbol": sym,
                     "side": st.get("side"),
                     "last_action": st.get("last_action"),
                     "last_block_reason": st.get("last_block_reason"),
                 }
-                lp = learned_dir / f"{str(sym or '').replace('.', '_')}.json"
+                lp = learned_path(sym)
                 if lp.exists():
                     try:
                         L = json.loads(lp.read_text(encoding="utf-8"))
-                        row["learned"] = {
-                            "stats": L.get("stats"),
-                            "target_mult": L.get("target_mult"),
-                            "enter_long_delta": L.get("enter_long_delta"),
-                        }
+                        snap = learned_symbol_snapshot(L)
+                        row["learned"] = snap
+                        row["realized_usd"] = snap.get("realized_usd")
+                        row["wins"] = snap.get("wins")
+                        row["losses"] = snap.get("losses")
+                        row["exits"] = snap.get("exits")
                     except Exception:
                         pass
                 cp = ctx_dir / f"{str(sym or '').replace('.', '_')}.json"
@@ -1284,8 +1286,6 @@ def api_skim_status():
     pnl = {}
     symbol_quotes: dict = {}
     try:
-        from agents.skim_swarm.pnl import compute_pnl_summary
-
         pnl = compute_pnl_summary()
     except Exception:
         logger.exception("skim pnl summary failed")

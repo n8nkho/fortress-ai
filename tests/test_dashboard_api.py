@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -208,6 +210,47 @@ class TestDashboardApi(unittest.TestCase):
         ):
             r = self.client.get("/api/health")
             self.assertEqual(r.status_code, 200)
+
+    def test_skim_status_includes_learned_session_stats(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "state").mkdir()
+            (root / "learned").mkdir()
+            (root / "state" / "NVDA.json").write_text(
+                json.dumps({"symbol": "NVDA", "side": "flat", "last_action": "wait"}),
+                encoding="utf-8",
+            )
+            (root / "learned" / "NVDA.json").write_text(
+                json.dumps(
+                    {
+                        "symbol": "NVDA",
+                        "session_date_et": "2026-05-22",
+                        "session_stats": {"sum_pnl_usd": -0.19, "exits": 5, "wins": 3, "losses": 2},
+                        "params": {"target_mult": 0.95},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch("utils.skim_swarm_config.swarm_data_dir", return_value=root):
+                with patch("agents.skim_swarm.symbol_learning.swarm_data_dir", return_value=root):
+                    with patch("utils.skim_swarm_config.universe", return_value=["NVDA"]):
+                        with patch("utils.skim_swarm_config.dry_run", return_value=False):
+                            with patch("utils.skim_swarm_config.instance_name", return_value="test"):
+                                with patch(
+                                    "agents.skim_swarm.pnl.compute_pnl_summary",
+                                    return_value={"daily": {}, "per_symbol_realized": []},
+                                ):
+                                    with patch(
+                                        "agents.skim_swarm.quotes.build_symbol_quotes",
+                                        return_value={"NVDA": {"last": 100.0, "side": "flat"}},
+                                    ):
+                                        r = self.client.get("/api/skim/status")
+            self.assertEqual(r.status_code, 200, r.data)
+            d = r.get_json()
+            row = d["symbol_states"][0]
+            self.assertEqual(row["symbol"], "NVDA")
+            self.assertEqual(row["learned"]["stats"]["wins"], 3)
+            self.assertAlmostEqual(row["realized_usd"], -0.19)
 
 
 if __name__ == "__main__":

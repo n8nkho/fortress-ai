@@ -4,12 +4,12 @@ from __future__ import annotations
 from typing import Any
 
 # Minimum closed trades before a causal key can block entries for this symbol only.
-_MIN_SAMPLES_BLOCK = 4
+_MIN_SAMPLES_BLOCK = 3
 _MIN_SAMPLES_STRONG_BLOCK = 3
 
-# Loss thresholds (per-symbol cumulative on one causal key).
-_BLOCK_PNL_SOFT = -0.40
-_BLOCK_PNL_HARD = -1.00
+# Loss thresholds (per-symbol cumulative on one causal key) — tuned for ~$0.10 skim legs.
+_BLOCK_PNL_SOFT = -0.50
+_BLOCK_PNL_HARD = -0.75
 _BLOCK_WIN_RATE = 0.35
 
 

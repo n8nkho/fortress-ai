@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,9 @@ from agents.skim_swarm.symbol_causation import (
     ensure_causation,
     record_causation_exit,
 )
-from utils.skim_swarm_config import runtime_overrides, swarm_data_dir, thin_etf_symbols
+from utils.skim_swarm_config import improve_interval_exits, improve_min_exits, runtime_overrides, swarm_data_dir, thin_etf_symbols
+
+_learned_lock = threading.RLock()
 
 _BOUNDS = {
     "enter_long_delta": (-0.15, 0.15),
@@ -244,101 +247,106 @@ def _analyze_short_spy_experience(symbol: str) -> float | None:
 
 def improve_from_history(symbol: str) -> dict[str, Any] | None:
     """Tune this symbol's params from its own session exits and pattern stats."""
-    learned = load_learned(symbol)
-    stats = learned["session_stats"]
-    exits = int(stats.get("exits") or 0)
-    if exits < 3 or exits % 3 != 0:
-        return None
+    min_ex = improve_min_exits()
+    interval = improve_interval_exits()
+    with _learned_lock:
+        learned = load_learned(symbol)
+        stats = learned["session_stats"]
+        exits = int(stats.get("exits") or 0)
+        if exits < min_ex:
+            return None
+        if (exits - min_ex) % interval != 0:
+            return None
 
-    wins = int(stats.get("wins") or 0)
-    losses = int(stats.get("losses") or 0)
-    closed = max(wins + losses, 1)
-    win_rate = wins / closed
-    sum_pnl = float(stats.get("sum_pnl_usd") or 0)
+        wins = int(stats.get("wins") or 0)
+        losses = int(stats.get("losses") or 0)
+        closed = max(wins + losses, 1)
+        win_rate = wins / closed
+        sum_pnl = float(stats.get("sum_pnl_usd") or 0)
 
-    params = learned["params"]
-    notes: list[str] = []
-    el = float(params.get("enter_long_delta") or 0)
-    es = float(params.get("enter_short_delta") or 0)
-    tm = float(params.get("target_mult") or 1)
-    cm = float(params.get("cooldown_mult") or 1)
-    sb = float(params.get("score_bias") or 0)
-    ssf = float(params.get("short_spy_filter") or 0)
-    pd = dict(params.get("pattern_deltas") or {})
+        params = learned["params"]
+        notes: list[str] = []
+        el = float(params.get("enter_long_delta") or 0)
+        es = float(params.get("enter_short_delta") or 0)
+        tm = float(params.get("target_mult") or 1)
+        cm = float(params.get("cooldown_mult") or 1)
+        sb = float(params.get("score_bias") or 0)
+        ssf = float(params.get("short_spy_filter") or 0)
+        pd = dict(params.get("pattern_deltas") or {})
 
-    long_pnl = float(stats.get("long_pnl_usd") or 0)
-    short_pnl = float(stats.get("short_pnl_usd") or 0)
-    long_ex = int(stats.get("long_exits") or 0)
-    short_ex = int(stats.get("short_exits") or 0)
+        long_pnl = float(stats.get("long_pnl_usd") or 0)
+        short_pnl = float(stats.get("short_pnl_usd") or 0)
+        long_ex = int(stats.get("long_exits") or 0)
+        short_ex = int(stats.get("short_exits") or 0)
 
-    if long_ex >= 3 and long_pnl < -0.75:
-        el += 0.02
-        notes.append(f"tighten_long pnl={long_pnl:.2f}")
-    elif long_ex >= 5 and long_pnl > 0.5:
-        el -= 0.01
-        notes.append(f"loosen_long pnl={long_pnl:.2f}")
+        if long_ex >= 3 and long_pnl < -0.75:
+            el += 0.02
+            notes.append(f"tighten_long pnl={long_pnl:.2f}")
+        elif long_ex >= 5 and long_pnl > 0.5:
+            el -= 0.01
+            notes.append(f"loosen_long pnl={long_pnl:.2f}")
 
-    if short_ex >= 3 and short_pnl < -0.75:
-        es += 0.02
-        notes.append(f"tighten_short pnl={short_pnl:.2f}")
-    elif short_ex >= 5 and short_pnl > 0.5:
-        es -= 0.01
-        notes.append(f"loosen_short pnl={short_pnl:.2f}")
+        if short_ex >= 3 and short_pnl < -0.75:
+            es += 0.02
+            notes.append(f"tighten_short pnl={short_pnl:.2f}")
+        elif short_ex >= 5 and short_pnl > 0.5:
+            es -= 0.01
+            notes.append(f"loosen_short pnl={short_pnl:.2f}")
 
-    for pattern, ps in (learned.get("pattern_stats") or {}).items():
-        p_ex = int(ps.get("exits") or 0)
-        p_pnl = float(ps.get("sum_pnl_usd") or 0)
-        if p_ex < 3:
-            continue
-        p_wr = int(ps.get("wins") or 0) / max(p_ex, 1)
-        cur = float(pd.get(pattern) or 0)
-        if p_pnl < -0.5 or p_wr < 0.35:
-            pd[pattern] = round(_clamp_param("pattern_delta", cur + 0.025), 4)
-            notes.append(f"tighten_{pattern} pnl={p_pnl:.2f}")
-        elif p_pnl > 0.4 and p_wr > 0.55:
-            pd[pattern] = round(_clamp_param("pattern_delta", cur - 0.015), 4)
-            notes.append(f"loosen_{pattern} pnl={p_pnl:.2f}")
+        for pattern, ps in (learned.get("pattern_stats") or {}).items():
+            p_ex = int(ps.get("exits") or 0)
+            p_pnl = float(ps.get("sum_pnl_usd") or 0)
+            if p_ex < 3:
+                continue
+            p_wr = int(ps.get("wins") or 0) / max(p_ex, 1)
+            cur = float(pd.get(pattern) or 0)
+            if p_pnl < -0.5 or p_wr < 0.35:
+                pd[pattern] = round(_clamp_param("pattern_delta", cur + 0.025), 4)
+                notes.append(f"tighten_{pattern} pnl={p_pnl:.2f}")
+            elif p_pnl > 0.4 and p_wr > 0.55:
+                pd[pattern] = round(_clamp_param("pattern_delta", cur - 0.015), 4)
+                notes.append(f"loosen_{pattern} pnl={p_pnl:.2f}")
 
-    causation = ensure_causation(learned)
-    for key in causation.get("eliminated_keys") or []:
-        parts = str(key).split("|")
-        if not parts:
-            continue
-        pat = parts[0]
-        if pat in pd:
-            pd[pat] = round(_clamp_param("pattern_delta", float(pd.get(pat) or 0) + 0.03), 4)
-            notes.append(f"causation_eliminated:{key[:48]}")
+        causation = ensure_causation(learned)
+        for key in causation.get("eliminated_keys") or []:
+            parts = str(key).split("|")
+            if not parts:
+                continue
+            pat = parts[0]
+            if pat in pd:
+                pd[pat] = round(_clamp_param("pattern_delta", float(pd.get(pat) or 0) + 0.03), 4)
+                notes.append(f"causation_eliminated:{key[:48]}")
 
-    if win_rate < 0.38:
-        tm *= 0.94
-        cm *= 1.10
-        notes.append(f"shrink_targets win_rate={win_rate:.2f}")
-    elif win_rate > 0.62 and sum_pnl > 0.75 and exits >= 6:
-        tm *= 0.98
-        notes.append(f"loosen_targets win_rate={win_rate:.2f}")
+        if win_rate < 0.38:
+            tm *= 0.94
+            cm *= 1.10
+            notes.append(f"shrink_targets win_rate={win_rate:.2f}")
+        elif win_rate > 0.62 and sum_pnl > 0.75 and exits >= 6:
+            tm *= 0.98
+            notes.append(f"loosen_targets win_rate={win_rate:.2f}")
 
-    if losses >= 3 and sum_pnl < 0:
-        cm *= 1.12
-        sb *= 0.5
-        notes.append("loss_streak_cooldown")
+        if losses >= 3 and sum_pnl < 0:
+            cm *= 1.12
+            sb *= 0.5
+            notes.append("loss_streak_cooldown")
 
-    learned_spy = _analyze_short_spy_experience(symbol)
-    if learned_spy is not None:
-        ssf = learned_spy
-        notes.append(f"short_spy_filter={ssf:.5f}")
+        learned_spy = _analyze_short_spy_experience(symbol)
+        if learned_spy is not None:
+            ssf = learned_spy
+            notes.append(f"short_spy_filter={ssf:.5f}")
 
-    params["enter_long_delta"] = round(_clamp_param("enter_long_delta", el), 4)
-    params["enter_short_delta"] = round(_clamp_param("enter_short_delta", es), 4)
-    params["target_mult"] = round(_clamp_param("target_mult", tm), 4)
-    params["cooldown_mult"] = round(_clamp_param("cooldown_mult", cm), 4)
-    params["score_bias"] = round(_clamp_param("score_bias", sb), 4)
-    params["short_spy_filter"] = round(_clamp_param("short_spy_filter", ssf), 5)
-    params["pattern_deltas"] = pd
-    stats["improvement_cycles"] = int(stats.get("improvement_cycles") or 0) + 1
-    learned["last_improvement_utc"] = datetime.now(timezone.utc).isoformat()
-    learned["notes"] = (learned.get("notes") or [])[-8:] + notes
-    save_learned(symbol, learned)
-    return {"symbol": symbol, "win_rate": win_rate, "adjustments": notes, "params": params}
+        params["enter_long_delta"] = round(_clamp_param("enter_long_delta", el), 4)
+        params["enter_short_delta"] = round(_clamp_param("enter_short_delta", es), 4)
+        params["target_mult"] = round(_clamp_param("target_mult", tm), 4)
+        params["cooldown_mult"] = round(_clamp_param("cooldown_mult", cm), 4)
+        params["score_bias"] = round(_clamp_param("score_bias", sb), 4)
+        params["short_spy_filter"] = round(_clamp_param("short_spy_filter", ssf), 5)
+        params["pattern_deltas"] = pd
+        stats["improvement_cycles"] = int(stats.get("improvement_cycles") or 0) + 1
+        learned["last_improvement_utc"] = datetime.now(timezone.utc).isoformat()
+        learned["notes"] = (learned.get("notes") or [])[-8:] + notes
+        save_learned(symbol, learned)
+        return {"symbol": symbol, "win_rate": win_rate, "adjustments": notes, "params": params}
 
 
 def record_decision(
@@ -350,116 +358,117 @@ def record_decision(
     entry_price: float | None = None,
 ) -> dict[str, Any] | None:
     """Update this symbol's experience and session stats."""
-    learned = load_learned(symbol)
-    stats = learned["session_stats"]
-    stats["decisions"] = int(stats.get("decisions") or 0) + 1
-    action = decision.get("action")
-    executed = bool(act_result.get("executed"))
-    reasoning = decision.get("reasoning")
+    with _learned_lock:
+        learned = load_learned(symbol)
+        stats = learned["session_stats"]
+        stats["decisions"] = int(stats.get("decisions") or 0) + 1
+        action = decision.get("action")
+        executed = bool(act_result.get("executed"))
+        reasoning = decision.get("reasoning")
 
-    append_experience(
-        symbol,
-        {
-            "event": "decision",
-            "action": action,
-            "executed": executed,
-            "reasoning": reasoning,
-            "score": decision.get("score"),
-            "target_usd": decision.get("target_usd"),
-            "block_reason": act_result.get("block_reason"),
-            "r5m": features.get("r5m"),
-            "spy_r5m": features.get("spy_r5m"),
-            "side": features.get("side"),
-        },
-    )
-
-    improvement = None
-    if executed and action in ("enter_long", "enter_short"):
-        stats["entries"] = int(stats.get("entries") or 0) + 1
-        pattern = _entry_pattern_from_reasoning(str(reasoning or ""))
-        side = "long" if action == "enter_long" else "short"
-        learned["last_entry_pattern"] = pattern
-        learned["last_entry_side"] = side
-        learned["last_entry_spy_r5m"] = features.get("spy_r5m")
-        learned["last_entry_context"] = build_entry_context(
-            pattern=pattern,
-            side=side,
-            features=features,
-            score=decision.get("score"),
-            target_usd=decision.get("target_usd"),
-        )
         append_experience(
             symbol,
             {
-                "event": "entry",
-                "pattern": pattern,
-                "side": side,
-                "spy_r5m": features.get("spy_r5m"),
+                "event": "decision",
+                "action": action,
+                "executed": executed,
+                "reasoning": reasoning,
                 "score": decision.get("score"),
-                "causation_key": (learned.get("last_entry_context") or {}).get("causation_key"),
+                "target_usd": decision.get("target_usd"),
+                "block_reason": act_result.get("block_reason"),
+                "r5m": features.get("r5m"),
+                "spy_r5m": features.get("spy_r5m"),
+                "side": features.get("side"),
             },
         )
-    if executed and action in ("exit_position", "flatten"):
-        stats["exits"] = int(stats.get("exits") or 0) + 1
-        pnl = features.get("unrealized_usd")
-        side = str(learned.get("last_entry_side") or features.get("side") or "")
-        pattern = learned.get("last_entry_pattern")
-        causation_update = None
-        if pnl is not None:
-            try:
-                pv = float(pnl)
-                stats["sum_pnl_usd"] = round(float(stats.get("sum_pnl_usd") or 0) + pv, 4)
-                if pv >= 0:
-                    stats["wins"] = int(stats.get("wins") or 0) + 1
-                else:
-                    stats["losses"] = int(stats.get("losses") or 0) + 1
-                if side == "long":
-                    stats["long_pnl_usd"] = round(float(stats.get("long_pnl_usd") or 0) + pv, 4)
-                    stats["long_exits"] = int(stats.get("long_exits") or 0) + 1
-                elif side == "short":
-                    stats["short_pnl_usd"] = round(float(stats.get("short_pnl_usd") or 0) + pv, 4)
-                    stats["short_exits"] = int(stats.get("short_exits") or 0) + 1
-                if pattern and pattern in learned.get("pattern_stats", {}):
-                    ps = learned["pattern_stats"][pattern]
-                    ps["exits"] = int(ps.get("exits") or 0) + 1
-                    ps["sum_pnl_usd"] = round(float(ps.get("sum_pnl_usd") or 0) + pv, 4)
-                    if pv >= 0:
-                        ps["wins"] = int(ps.get("wins") or 0) + 1
-                    else:
-                        ps["losses"] = int(ps.get("losses") or 0) + 1
-                causation_update = record_causation_exit(
-                    learned,
-                    entry_context=learned.get("last_entry_context"),
-                    exit_reasoning=str(reasoning or ""),
-                    pnl_usd=pv,
-                )
-                append_experience(
-                    symbol,
-                    {
-                        "event": "exit",
-                        "pattern": pattern,
-                        "side": side,
-                        "pnl_usd": pv,
-                        "entry_spy_r5m": learned.get("last_entry_spy_r5m"),
-                        "causation_key": (learned.get("last_entry_context") or {}).get("causation_key"),
-                        "exit_class": (causation_update or {}).get("exit_class"),
-                        "eliminated_key": (causation_update or {}).get("eliminated_key"),
-                    },
-                )
-            except (TypeError, ValueError):
-                pass
-        learned["last_entry_pattern"] = None
-        learned["last_entry_side"] = None
-        learned["last_entry_spy_r5m"] = None
-        learned["last_entry_context"] = None
-        save_learned(symbol, learned)
-        improvement = improve_from_history(symbol)
-        if improvement and causation_update:
-            improvement["causation"] = causation_update
-    else:
-        save_learned(symbol, learned)
 
-    return improvement
+        improvement = None
+        if executed and action in ("enter_long", "enter_short"):
+            stats["entries"] = int(stats.get("entries") or 0) + 1
+            pattern = _entry_pattern_from_reasoning(str(reasoning or ""))
+            side = "long" if action == "enter_long" else "short"
+            learned["last_entry_pattern"] = pattern
+            learned["last_entry_side"] = side
+            learned["last_entry_spy_r5m"] = features.get("spy_r5m")
+            learned["last_entry_context"] = build_entry_context(
+                pattern=pattern,
+                side=side,
+                features=features,
+                score=decision.get("score"),
+                target_usd=decision.get("target_usd"),
+            )
+            append_experience(
+                symbol,
+                {
+                    "event": "entry",
+                    "pattern": pattern,
+                    "side": side,
+                    "spy_r5m": features.get("spy_r5m"),
+                    "score": decision.get("score"),
+                    "causation_key": (learned.get("last_entry_context") or {}).get("causation_key"),
+                },
+            )
+        if executed and action in ("exit_position", "flatten"):
+            stats["exits"] = int(stats.get("exits") or 0) + 1
+            pnl = features.get("unrealized_usd")
+            side = str(learned.get("last_entry_side") or features.get("side") or "")
+            pattern = learned.get("last_entry_pattern")
+            causation_update = None
+            if pnl is not None:
+                try:
+                    pv = float(pnl)
+                    stats["sum_pnl_usd"] = round(float(stats.get("sum_pnl_usd") or 0) + pv, 4)
+                    if pv >= 0:
+                        stats["wins"] = int(stats.get("wins") or 0) + 1
+                    else:
+                        stats["losses"] = int(stats.get("losses") or 0) + 1
+                    if side == "long":
+                        stats["long_pnl_usd"] = round(float(stats.get("long_pnl_usd") or 0) + pv, 4)
+                        stats["long_exits"] = int(stats.get("long_exits") or 0) + 1
+                    elif side == "short":
+                        stats["short_pnl_usd"] = round(float(stats.get("short_pnl_usd") or 0) + pv, 4)
+                        stats["short_exits"] = int(stats.get("short_exits") or 0) + 1
+                    if pattern and pattern in learned.get("pattern_stats", {}):
+                        ps = learned["pattern_stats"][pattern]
+                        ps["exits"] = int(ps.get("exits") or 0) + 1
+                        ps["sum_pnl_usd"] = round(float(ps.get("sum_pnl_usd") or 0) + pv, 4)
+                        if pv >= 0:
+                            ps["wins"] = int(ps.get("wins") or 0) + 1
+                        else:
+                            ps["losses"] = int(ps.get("losses") or 0) + 1
+                    causation_update = record_causation_exit(
+                        learned,
+                        entry_context=learned.get("last_entry_context"),
+                        exit_reasoning=str(reasoning or ""),
+                        pnl_usd=pv,
+                    )
+                    append_experience(
+                        symbol,
+                        {
+                            "event": "exit",
+                            "pattern": pattern,
+                            "side": side,
+                            "pnl_usd": pv,
+                            "entry_spy_r5m": learned.get("last_entry_spy_r5m"),
+                            "causation_key": (learned.get("last_entry_context") or {}).get("causation_key"),
+                            "exit_class": (causation_update or {}).get("exit_class"),
+                            "eliminated_key": (causation_update or {}).get("eliminated_key"),
+                        },
+                    )
+                except (TypeError, ValueError):
+                    pass
+            learned["last_entry_pattern"] = None
+            learned["last_entry_side"] = None
+            learned["last_entry_spy_r5m"] = None
+            learned["last_entry_context"] = None
+            save_learned(symbol, learned)
+            improvement = improve_from_history(symbol)
+            if improvement and causation_update:
+                improvement["causation"] = causation_update
+        else:
+            save_learned(symbol, learned)
+
+        return improvement
 
 
 def get_causation(symbol: str) -> dict[str, Any]:

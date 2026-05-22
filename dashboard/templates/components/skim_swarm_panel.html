@@ -105,7 +105,7 @@
             <td class="pr-2 fai-text-mono text-slate-200" x-text="skimPriceFmt(row.last_price)"></td>
             <td class="pr-2 fai-text-mono" :class="skimPctClass(row.change_pct)" x-text="skimPctFmt(row.change_pct)"></td>
             <td class="pr-2 fai-text-mono" :class="skimPnlClass(row.realized_usd)" x-text="row.realized_usd != null ? skimPnlFmt(row.realized_usd) : '—'"></td>
-            <td class="pr-2 fai-text-mono text-emerald-300/90" x-text="skimLearnedWins(row)"></td>
+            <td class="pr-2 fai-text-mono text-emerald-300/90" x-text="skimLearnedWins(row) != null ? skimLearnedWins(row) : '—'"></td>
             <td class="text-slate-500 truncate max-w-[120px]" :title="row.company?.summary" x-text="row.company?.name || '—'"></td>
           </tr>
         </template>
@@ -231,9 +231,9 @@
               <td class="py-2 pr-3" :class="skimPnlClass(row.unrealized_usd)" x-text="row.unrealized_usd != null ? skimPnlFmt(row.unrealized_usd) : '—'"></td>
               <td class="py-2 pr-3" :class="skimPnlClass(row.realized_usd)" x-text="row.realized_usd != null ? skimPnlFmt(row.realized_usd) : '—'"></td>
               <td class="py-2 pr-3 text-[11px] truncate max-w-[120px]" :title="row.last_block_reason" x-text="row.last_action"></td>
-              <td class="py-2 pr-3 text-[11px] text-emerald-300/90" x-text="skimLearnedWins(row)"></td>
-              <td class="py-2 pr-3 text-[11px] text-red-300/80" x-text="skimLearnedLosses(row)"></td>
-              <td class="py-2 pr-3 text-[11px] text-slate-400" x-text="skimLearnedExits(row)"></td>
+              <td class="py-2 pr-3 text-[11px] text-emerald-300/90" x-text="skimLearnedWins(row) != null ? skimLearnedWins(row) : '—'"></td>
+              <td class="py-2 pr-3 text-[11px] text-red-300/80" x-text="skimLearnedLosses(row) != null ? skimLearnedLosses(row) : '—'"></td>
+              <td class="py-2 pr-3 text-[11px] text-slate-400" x-text="skimLearnedExits(row) != null ? skimLearnedExits(row) : '—'"></td>
               <td class="py-2 text-[11px] text-slate-400 max-w-[160px] truncate" :title="row.company?.summary" x-text="row.company?.name || '—'"></td>
             </tr>
           </template>

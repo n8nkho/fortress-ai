@@ -30,6 +30,31 @@ def session_daily_realized_usd(session: str | None = None) -> float:
     return total
 
 
+def _learned_session_stats(data: dict[str, Any]) -> dict[str, Any]:
+    raw = data.get("session_stats") or data.get("stats") or {}
+    return dict(raw) if isinstance(raw, dict) else {}
+
+
+def learned_symbol_snapshot(data: dict[str, Any]) -> dict[str, Any]:
+    """Dashboard-friendly learned stats + params (v4 session_stats aware)."""
+    stats = _learned_session_stats(data)
+    params = data.get("params") if isinstance(data.get("params"), dict) else {}
+    exits = int(stats.get("exits") or 0)
+    pnl = float(stats.get("sum_pnl_usd") or 0)
+    realized = round(pnl, 4) if exits > 0 or pnl != 0 else None
+    return {
+        "stats": stats,
+        "params": params,
+        "target_mult": params.get("target_mult", data.get("target_mult")),
+        "enter_long_delta": params.get("enter_long_delta", data.get("enter_long_delta")),
+        "enter_short_delta": params.get("enter_short_delta", data.get("enter_short_delta")),
+        "realized_usd": realized,
+        "wins": int(stats.get("wins") or 0),
+        "losses": int(stats.get("losses") or 0),
+        "exits": exits,
+    }
+
+
 def _daily_realized_from_decisions(session: str) -> tuple[float, int]:
     path = swarm_data_dir() / "decisions.jsonl"
     if not path.exists():
@@ -74,7 +99,8 @@ def _session_realized_from_learned() -> tuple[float, list[dict[str, Any]]]:
             continue
         if data.get("session_date_et") not in (None, session):
             continue
-        stats = data.get("session_stats") or data.get("stats") or {}
+        sym = data.get("symbol") or f.stem.replace("_", ".")
+        stats = _learned_session_stats(data)
         pnl = float(stats.get("sum_pnl_usd") or 0)
         exits = int(stats.get("exits") or 0)
         if exits == 0 and pnl == 0:
@@ -82,7 +108,7 @@ def _session_realized_from_learned() -> tuple[float, list[dict[str, Any]]]:
         total += pnl
         rows.append(
             {
-                "symbol": data.get("symbol"),
+                "symbol": sym,
                 "realized_usd": round(pnl, 4),
                 "exits": exits,
                 "wins": int(stats.get("wins") or 0),

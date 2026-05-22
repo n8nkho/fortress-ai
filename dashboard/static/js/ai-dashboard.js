@@ -327,10 +327,10 @@ document.addEventListener("alpine:init", () => {
           last_action: row.last_action || "—",
           last_block_reason: row.last_block_reason || "—",
           unrealized_usd: quote.unrealized_usd ?? open?.unrealized_usd,
-          realized_usd: real?.realized_usd,
-          exits: real?.exits,
-          wins: real?.wins,
-          losses: real?.losses,
+          realized_usd: real?.realized_usd ?? row.realized_usd,
+          exits: real?.exits ?? row.exits ?? row.learned?.stats?.exits,
+          wins: real?.wins ?? row.wins ?? row.learned?.stats?.wins,
+          losses: real?.losses ?? row.losses ?? row.learned?.stats?.losses,
           learned: row.learned,
           company: row.company,
         };
@@ -424,23 +424,23 @@ document.addEventListener("alpine:init", () => {
 
     skimLearnedWins(row) {
       const stats = row?.learned?.stats;
-      if (stats?.wins != null) return Number(stats.wins) || 0;
+      if (stats && stats.wins != null) return Number(stats.wins) || 0;
       if (row?.wins != null) return Number(row.wins) || 0;
-      return 0;
+      return null;
     },
 
     skimLearnedLosses(row) {
       const stats = row?.learned?.stats;
-      if (stats?.losses != null) return Number(stats.losses) || 0;
+      if (stats && stats.losses != null) return Number(stats.losses) || 0;
       if (row?.losses != null) return Number(row.losses) || 0;
-      return 0;
+      return null;
     },
 
     skimLearnedExits(row) {
       const stats = row?.learned?.stats;
-      if (stats?.exits != null) return Number(stats.exits) || 0;
+      if (stats && stats.exits != null) return Number(stats.exits) || 0;
       if (row?.exits != null) return Number(row.exits) || 0;
-      return 0;
+      return null;
     },
 
     skimOpenCount() {

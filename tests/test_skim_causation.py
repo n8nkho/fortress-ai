@@ -31,7 +31,7 @@ class TestSkimCausation(unittest.TestCase):
             score=-0.4,
             target_usd=0.12,
         )
-        for pnl in (-0.3, -0.25, -0.4, -0.35):
+        for pnl in (-0.2, -0.2, -0.15):
             record_causation_exit(
                 learned,
                 entry_context=ctx,

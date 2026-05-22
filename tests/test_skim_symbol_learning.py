@@ -20,11 +20,11 @@ class TestSkimSymbolLearning(unittest.TestCase):
             with patch("agents.skim_swarm.symbol_learning.swarm_data_dir", return_value=Path(td)):
                 with patch("agents.skim_swarm.symbol_learning.session_date_et", return_value="2026-05-22"):
                     L = load_learned("AAPL")
-                    L["session_stats"]["exits"] = 3
-                    L["session_stats"]["wins"] = 1
-                    L["session_stats"]["losses"] = 2
+                    L["session_stats"]["exits"] = 15
+                    L["session_stats"]["wins"] = 4
+                    L["session_stats"]["losses"] = 11
                     L["session_stats"]["sum_pnl_usd"] = -1.0
-                    L["session_stats"]["short_exits"] = 3
+                    L["session_stats"]["short_exits"] = 15
                     L["session_stats"]["short_pnl_usd"] = -1.2
                     save_learned("AAPL", L)
                     out = improve_from_history("AAPL")

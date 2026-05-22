@@ -8,10 +8,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from agents.skim_swarm.pnl import compute_pnl_summary
+from agents.skim_swarm.pnl import compute_pnl_summary, learned_symbol_snapshot
 
 
 class TestSkimPnl(unittest.TestCase):
+    def test_learned_symbol_snapshot_uses_session_stats(self):
+        snap = learned_symbol_snapshot(
+            {
+                "params": {"target_mult": 0.9, "enter_long_delta": 0.02},
+                "session_stats": {"sum_pnl_usd": 0.43, "exits": 3, "wins": 3, "losses": 0},
+            }
+        )
+        self.assertEqual(snap["stats"]["wins"], 3)
+        self.assertAlmostEqual(snap["realized_usd"], 0.43)
+        self.assertEqual(snap["target_mult"], 0.9)
+
     def test_compute_pnl_summary_shape(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
