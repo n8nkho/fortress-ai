@@ -1,38 +1,70 @@
 <section id="fai-why-no-trade" class="fai-panel rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 mb-4">
   <h2 class="text-sm font-semibold text-amber-200/90 mb-2">Why no trade?</h2>
-  <p class="text-[11px] text-slate-500 mb-3">14-day block reasons (Fortress AI + legacy SPY logs). Fills in after market cycles run.</p>
+  <p class="text-[11px] text-slate-500 mb-3">
+    <span x-text="tradingDiagnostics?.lookback_days ?? 14"></span>-day block reasons ·
+    primary intraday path: <span class="text-emerald-300/90">skim swarm</span>
+  </p>
   <p x-show="!tradingDiagnostics || tradingDiagnostics.error" class="text-xs text-amber-200/80 mb-2">Loading diagnostics from <code class="fai-text-mono">/api/ai/current_state</code>…</p>
   <template x-if="tradingDiagnostics && !tradingDiagnostics.error">
     <div class="grid md:grid-cols-2 gap-4 text-xs">
-      <div>
-        <div class="text-cyan-300/90 font-medium mb-1">Fortress AI</div>
+      <div class="rounded-lg border border-emerald-500/25 bg-emerald-950/20 p-3">
+        <div class="text-emerald-300/90 font-medium mb-1">Skim swarm</div>
+        <div class="fai-text-mono text-slate-400 leading-relaxed">
+          dry_run: <span x-text="tradingDiagnostics.skim_swarm?.dry_run"></span> ·
+          max_open: <span x-text="tradingDiagnostics.skim_swarm?.max_open_positions"></span> ·
+          waves: <span x-text="tradingDiagnostics.skim_swarm?.waves ?? 0"></span> ·
+          fills: <span x-text="tradingDiagnostics.skim_swarm?.executed ?? 0"></span> /
+          <span x-text="tradingDiagnostics.skim_swarm?.symbol_decisions ?? 0"></span> decisions
+        </div>
+        <div class="fai-text-mono text-slate-500 mt-1">
+          entries: <span x-text="tradingDiagnostics.skim_swarm?.entry_executed ?? 0"></span> /
+          <span x-text="tradingDiagnostics.skim_swarm?.entry_proposed ?? 0"></span> proposed
+          <template x-if="tradingDiagnostics.skim_swarm?.entry_execution_rate != null">
+            · rate <span x-text="((tradingDiagnostics.skim_swarm.entry_execution_rate || 0) * 100).toFixed(0) + '%'"></span>
+          </template>
+        </div>
+        <template x-if="tradingDiagnostics.skim_swarm?.swarm_halted">
+          <p class="text-red-300/90 mt-1 fai-text-mono">
+            HALTED · <span x-text="tradingDiagnostics.skim_swarm?.halt_reason || '—'"></span>
+          </p>
+        </template>
+        <template x-if="tradingDiagnostics.skim_swarm?.day_realized_pnl != null">
+          <p class="text-slate-500 mt-1 fai-text-mono">
+            day P&amp;L: <span :class="skimPnlClass(tradingDiagnostics.skim_swarm.day_realized_pnl)" x-text="skimPnlFmt(tradingDiagnostics.skim_swarm.day_realized_pnl)"></span>
+          </p>
+        </template>
+        <ul class="mt-2 space-y-0.5 text-slate-300 max-h-48 overflow-y-auto fai-scroll">
+          <template x-for="pair in skimBlockReasonPairs()" :key="'skim-'+pair.reason">
+            <li>
+              <span class="text-amber-200/80" x-text="pair.reason"></span>:
+              <span x-text="pair.count"></span>
+            </li>
+          </template>
+        </ul>
+        <p class="text-[10px] text-slate-600 mt-2" x-show="!skimBlockReasonPairs().length">No block data yet — waits for RTH waves.</p>
+        <p class="text-[10px] text-slate-600 mt-1" x-show="tradingDiagnostics.skim_swarm?.last_wave?.ts">
+          last wave <span class="fai-text-mono" x-text="tradingDiagnostics.skim_swarm.last_wave.wave"></span>
+          · open <span x-text="tradingDiagnostics.skim_swarm.last_wave.open_positions"></span>
+        </p>
+      </div>
+      <div class="rounded-lg border border-cyan-500/20 bg-slate-950/30 p-3">
+        <div class="text-cyan-300/90 font-medium mb-1">Fortress AI (unified LLM)</div>
+        <p class="text-[10px] text-slate-500 mb-1">Skim-universe symbols are denylisted; this agent trades outside the swarm basket.</p>
         <div class="fai-text-mono text-slate-400">
           dry_run: <span x-text="tradingDiagnostics.fortress_ai?.dry_run"></span> ·
           min_conf: <span x-text="tradingDiagnostics.fortress_ai?.min_confidence"></span> ·
           executed: <span x-text="tradingDiagnostics.fortress_ai?.executed"></span> /
           <span x-text="tradingDiagnostics.fortress_ai?.cycles"></span> cycles
         </div>
-        <ul class="mt-2 space-y-0.5 text-slate-300">
-          <template x-for="(cnt, reason) in (tradingDiagnostics.fortress_ai?.block_reason_counts || {})" :key="'ai-'+reason">
-            <li><span class="text-amber-200/80" x-text="reason"></span>: <span x-text="cnt"></span></li>
+        <ul class="mt-2 space-y-0.5 text-slate-300 max-h-48 overflow-y-auto fai-scroll">
+          <template x-for="pair in aiBlockReasonPairs()" :key="'ai-'+pair.reason">
+            <li><span class="text-amber-200/80" x-text="pair.reason"></span>: <span x-text="pair.count"></span></li>
           </template>
         </ul>
-      </div>
-      <div>
-        <div class="text-fuchsia-300/90 font-medium mb-1">SPY intraday</div>
-        <div class="fai-text-mono text-slate-400">
-          dry_run: <span x-text="tradingDiagnostics.spy_intraday?.dry_run"></span> ·
-          min_conf: <span x-text="tradingDiagnostics.spy_intraday?.min_confidence"></span> ·
-          executed: <span x-text="tradingDiagnostics.spy_intraday?.executed"></span> /
-          <span x-text="tradingDiagnostics.spy_intraday?.cycles"></span> cycles
-        </div>
-        <ul class="mt-2 space-y-0.5 text-slate-300">
-          <template x-for="(cnt, reason) in (tradingDiagnostics.spy_intraday?.block_reason_counts || {})" :key="'spy-'+reason">
-            <li><span class="text-amber-200/80" x-text="reason"></span>: <span x-text="cnt"></span></li>
-          </template>
-        </ul>
+        <p class="text-[10px] text-slate-600 mt-2" x-show="!aiBlockReasonPairs().length">No unified AI blocks in lookback window.</p>
       </div>
     </div>
   </template>
+  <p x-show="tradingDiagnostics?.note" class="text-[10px] text-slate-600 mt-3" x-text="tradingDiagnostics?.note"></p>
   <p x-show="tradingDiagnostics?.error" class="text-red-300/80 text-xs" x-text="tradingDiagnostics?.error"></p>
 </section>

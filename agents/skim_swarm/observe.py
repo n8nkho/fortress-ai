@@ -43,8 +43,10 @@ def fetch_positions_map() -> tuple[float | None, dict[str, dict[str, Any]]]:
                 "qty": int(abs(qty)),
                 "side": side,
                 "avg_entry_price": float(getattr(p, "avg_entry_price", 0) or 0),
+                "current_price": float(getattr(p, "current_price", 0) or 0) or None,
                 "market_value_usd": abs(float(getattr(p, "market_value", 0) or 0)),
                 "unrealized_pl": float(getattr(p, "unrealized_pl", 0) or 0),
+                "unrealized_plpc": float(getattr(p, "unrealized_plpc", 0) or 0),
             }
     except Exception:
         pass

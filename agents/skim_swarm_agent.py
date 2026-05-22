@@ -28,7 +28,13 @@ except Exception:
     pass
 
 from agents.skim_swarm.company_context import load_all_contexts
-from agents.skim_swarm.coordinator import count_open, max_open_ok, should_halt_new_entries
+from agents.skim_swarm.coordinator import (
+    EntrySlotGuard,
+    apply_daily_pnl,
+    count_open,
+    max_open_ok,
+    should_halt_new_entries,
+)
 from agents.skim_swarm.eod import describe_eod_phase
 from agents.skim_swarm.features import build_shared_context, _fetch_bars
 from agents.skim_swarm.observe import observe_account
@@ -41,6 +47,7 @@ from utils.skim_swarm_config import (
     idle_poll_sec,
     instance_name,
     max_open_positions,
+    slow_lane_interval_sec,
     swarm_data_dir,
     universe,
 )
@@ -71,9 +78,26 @@ def append_jsonl(path: Path, record: dict) -> None:
 
 
 def _next_sleep_sec(results: list[dict], cycle_sec: float) -> float:
+    if any(r.get("slow_lane") for r in results):
+        return slow_lane_interval_sec()
     if any(r.get("fast_loop") for r in results):
         return fast_interval_sec()
     return max(8.0, base_interval_sec() - min(cycle_sec * 0.5, 20.0))
+
+
+def _wave_exit_pnl(results: list[dict]) -> float:
+    total = 0.0
+    for r in results:
+        act = r.get("act") or {}
+        decision = r.get("decision") or {}
+        if not act.get("executed"):
+            continue
+        if decision.get("action") not in ("exit_position", "flatten"):
+            continue
+        u = (r.get("features") or {}).get("unrealized_usd")
+        if u is not None:
+            total += float(u)
+    return round(total, 4)
 
 
 def run_loop(iterations: int | None = None) -> None:
@@ -119,6 +143,7 @@ def run_loop(iterations: int | None = None) -> None:
         shared = build_shared_context(bars)
         company_ctx = load_all_contexts(syms)
         max_open = max_open_positions() if max_open_ok(open_n) else 0
+        entry_guard = EntrySlotGuard(open_n, max_open) if max_open > 0 else None
 
         results: list[dict] = []
         with ThreadPoolExecutor(max_workers=min(16, len(syms))) as ex:
@@ -133,6 +158,7 @@ def run_loop(iterations: int | None = None) -> None:
                     open_count=open_n,
                     max_open=max_open,
                     company_context=company_ctx.get(sym),
+                    entry_guard=entry_guard,
                 ): sym
                 for sym in syms
             }
@@ -150,6 +176,10 @@ def run_loop(iterations: int | None = None) -> None:
                     )
 
         cycle_sec = time.perf_counter() - t0
+        exit_pnl = _wave_exit_pnl(results)
+        if exit_pnl:
+            swarm = apply_daily_pnl(swarm, exit_pnl)
+            save_swarm_state(swarm)
         sleep_sec = _next_sleep_sec(results, cycle_sec)
 
         wave = {
@@ -160,6 +190,9 @@ def run_loop(iterations: int | None = None) -> None:
             "equity": equity,
             "cycle_sec": round(cycle_sec, 3),
             "next_sleep_sec": sleep_sec,
+            "exit_pnl_usd": exit_pnl,
+            "day_realized_pnl": swarm.get("day_realized_pnl"),
+            "swarm_halted": bool(swarm.get("halted")),
             "results": results,
         }
         append_jsonl(_decisions_path(), wave)

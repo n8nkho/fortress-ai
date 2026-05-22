@@ -1,5 +1,14 @@
-<section id="fai-skim-swarm" class="fai-panel rounded-xl border-2 border-emerald-400/40 bg-emerald-950/30 p-4 mb-4 shadow-[0_0_24px_rgba(52,211,153,0.12)]">
-  <h2 class="text-base font-bold text-emerald-200 mb-1">Skim swarm (live)</h2>
+<section id="fai-skim-swarm" class="fai-panel rounded-xl border-2 border-emerald-400/40 bg-emerald-950/30 p-4 mb-4 shadow-[0_0_24px_rgba(52,211,153,0.12)]"
+  x-init="skimFallbackUniverse = {{ skim_preview.universe|tojson }}; $nextTick(() => recomputeSkimSort())">
+  <div class="flex flex-wrap items-start justify-between gap-2 mb-1">
+    <h2 class="text-base font-bold text-emerald-200">Skim swarm (live)</h2>
+    <button type="button"
+      class="px-2.5 py-1 rounded-lg border border-emerald-500/45 bg-emerald-900/40 text-[11px] text-emerald-100 hover:bg-emerald-800/50"
+      @click="openSkimSwarm()"
+      title="Fullscreen table (Esc to close)">
+      Expand all symbols
+    </button>
+  </div>
   <p class="text-[11px] text-emerald-100/80 mb-2">
     Build <span class="fai-text-mono text-amber-200">{{ ui_build }}</span> ·
     systemd <span class="fai-text-mono">{{ skim_preview.service }}</span> ·
@@ -8,36 +17,228 @@
   <p class="text-[11px] text-slate-400 mb-3 fai-text-mono break-words">
     {{ skim_preview.universe|join(', ') }}
   </p>
-  <div class="text-xs fai-text-mono text-slate-300 mb-2">
-    Server: dry_run=<span class="text-amber-200">{{ skim_preview.dry_run }}</span>
-    <span class="text-slate-600 mx-2">|</span>
-    Live poll:
-    dry_run=<span x-text="skim?.dry_run"></span> ·
-    open=<span x-text="skim?.latest_metric?.open_positions ?? '—'"></span> ·
-    executed=<span x-text="skim?.latest_metric?.executed_count ?? '—'"></span>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+    <div class="rounded-lg border border-emerald-500/25 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Daily realized</p>
+      <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.daily?.realized_usd)" x-text="skimPnlFmt(skim?.pnl?.daily?.realized_usd)"></p>
+      <p class="text-[10px] text-slate-600 mt-0.5"><span x-text="skim?.pnl?.daily?.exit_count ?? '—'"></span> exits</p>
+    </div>
+    <div class="rounded-lg border border-emerald-500/25 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Daily unrealized</p>
+      <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.daily?.unrealized_usd)" x-text="skimPnlFmt(skim?.pnl?.daily?.unrealized_usd)"></p>
+      <p class="text-[10px] text-slate-600 mt-0.5"><span x-text="skim?.pnl?.daily?.open_positions ?? skimOpenCount()"></span> open</p>
+    </div>
+    <div class="rounded-lg border border-cyan-500/20 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Cumulative realized</p>
+      <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.cumulative?.realized_usd)" x-text="skimPnlFmt(skim?.pnl?.cumulative?.realized_usd)"></p>
+      <p class="text-[10px] text-slate-600 mt-0.5">all closed trades</p>
+    </div>
+    <div class="rounded-lg border border-cyan-500/20 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Session net</p>
+      <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.daily?.net_usd)" x-text="skimPnlFmt(skim?.pnl?.daily?.net_usd)"></p>
+      <p class="text-[10px] text-slate-600 mt-0.5">realized + open uP&amp;L</p>
+    </div>
   </div>
-  <div class="overflow-x-auto max-h-56">
+
+  <div class="text-xs fai-text-mono text-slate-300 mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+    <span>
+      Server: dry_run=<span class="text-amber-200">{{ skim_preview.dry_run }}</span>
+      <span class="text-slate-600 mx-1">|</span>
+      Live: dry_run=<span x-text="skim?.dry_run"></span> ·
+      open=<span x-text="skim?.latest_metric?.open_positions ?? skimOpenCount()"></span> ·
+      executed=<span x-text="skim?.latest_metric?.executed_count ?? '—'"></span>
+    </span>
+    <span class="inline-flex items-center gap-1 text-[10px] text-cyan-300/90">
+      <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" aria-hidden="true"></span>
+      open position
+    </span>
+    <template x-if="skim?.pnl?.swarm_halted">
+      <span class="text-red-300">HALTED · <span x-text="skim?.pnl?.halt_reason"></span></span>
+    </template>
+  </div>
+
+  <div class="overflow-x-auto max-h-56 fai-scroll border border-emerald-500/15 rounded-lg">
     <table class="w-full text-[11px] text-left text-slate-300">
-      <thead class="text-slate-500">
-        <tr><th class="pr-2">Symbol</th><th>Side</th><th>Last</th><th>Learned</th><th>Company</th></tr>
+      <thead class="text-slate-500 sticky top-0 bg-emerald-950/95 backdrop-blur-sm">
+        <tr>
+          <th class="py-1.5 pl-2 w-6">
+            <button type="button" class="text-[10px] uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('open')" @click.stop="toggleSkimSort('open')" title="Sort by open">●<span x-text="skimSortIndicator('open')"></span></button>
+          </th>
+          <th class="pr-2 py-1.5">
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('symbol')" @click.stop="toggleSkimSort('symbol')">Symbol<span x-text="skimSortIndicator('symbol')"></span></button>
+          </th>
+          <th class="pr-2">
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('side')" @click.stop="toggleSkimSort('side')">Side<span x-text="skimSortIndicator('side')"></span></button>
+          </th>
+          <th class="pr-2">
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('last_price')" @click.stop="toggleSkimSort('last_price')">Price<span x-text="skimSortIndicator('last_price')"></span></button>
+          </th>
+          <th class="pr-2">
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('change_pct')" @click.stop="toggleSkimSort('change_pct')">Chg %<span x-text="skimSortIndicator('change_pct')"></span></button>
+          </th>
+          <th class="pr-2">
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('realized_usd')" @click.stop="toggleSkimSort('realized_usd')">Realized<span x-text="skimSortIndicator('realized_usd')"></span></button>
+          </th>
+          <th class="pr-2">
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('wins')" @click.stop="toggleSkimSort('wins')">Wins<span x-text="skimSortIndicator('wins')"></span></button>
+          </th>
+          <th>
+            <button type="button" class="uppercase tracking-wide cursor-pointer select-none" :class="skimSortThClass('company')" @click.stop="toggleSkimSort('company')">Company<span x-text="skimSortIndicator('company')"></span></button>
+          </th>
+        </tr>
       </thead>
       <tbody>
-        {% for sym in skim_preview.universe %}
-        <tr class="border-t border-white/5 text-slate-500">
-          <td class="pr-2 text-emerald-200/70">{{ sym }}</td>
-          <td colspan="4" class="text-[10px]">awaiting RTH waves — live row updates via API</td>
-        </tr>
-        {% endfor %}
-        <template x-for="row in (skim?.symbol_states || [])" :key="'live-'+row.symbol">
-          <tr class="border-t border-emerald-500/20 bg-emerald-950/20">
-            <td class="pr-2 text-emerald-200 font-medium" x-text="row.symbol"></td>
-            <td x-text="row.side"></td>
-            <td x-text="row.last_action"></td>
-            <td class="text-slate-400 text-[10px]" x-text="row.learned?.stats ? ('wins '+row.learned.stats.wins+' / ex '+row.learned.stats.exits) : '—'"></td>
-            <td class="text-slate-500 text-[10px] truncate max-w-[220px]" :title="row.company?.summary" x-text="row.company?.name || '—'"></td>
+        <template x-for="(row, idx) in skimSortedRows" :key="skimSortCol + '-' + skimSortDir + '-' + idx + '-' + row.symbol">
+          <tr class="border-t border-white/5 hover:bg-emerald-950/30"
+            :class="row.is_open ? 'bg-cyan-950/20 border-l-2 border-l-cyan-400/70' : ''">
+            <td class="py-1 pl-2 text-center">
+              <span x-show="row.is_open"
+                class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.75)]"
+                title="Open position"></span>
+            </td>
+            <td class="pr-2 text-emerald-200 font-medium">
+              <span x-text="row.symbol"></span>
+              <span x-show="row.is_open" class="ml-1 text-[9px] uppercase tracking-wide text-cyan-300/90 font-semibold">open</span>
+            </td>
+            <td class="pr-2" :class="row.side === 'long' ? 'text-emerald-400' : row.side === 'short' ? 'text-amber-300' : 'text-slate-500'" x-text="row.side"></td>
+            <td class="pr-2 fai-text-mono text-slate-200" x-text="skimPriceFmt(row.last_price)"></td>
+            <td class="pr-2 fai-text-mono" :class="skimPctClass(row.change_pct)" x-text="skimPctFmt(row.change_pct)"></td>
+            <td class="pr-2 fai-text-mono" :class="skimPnlClass(row.realized_usd)" x-text="row.realized_usd != null ? skimPnlFmt(row.realized_usd) : '—'"></td>
+            <td class="pr-2 fai-text-mono text-emerald-300/90" x-text="skimLearnedWins(row)"></td>
+            <td class="text-slate-500 truncate max-w-[120px]" :title="row.company?.summary" x-text="row.company?.name || '—'"></td>
           </tr>
+        </template>
+        <template x-if="!skimSortedRows.length">
+          <tr><td colspan="8" class="py-3 text-center text-slate-500">Loading skim universe…</td></tr>
         </template>
       </tbody>
     </table>
+  </div>
+  <p class="text-[10px] text-slate-600 mt-1.5">
+    Click column headers to sort ▲ asc / ▼ desc ·
+    Chg % = session move (1m bars today) ·
+    <span x-text="skimOpenCount()"></span> open ·
+    <button type="button" class="text-cyan-400 hover:underline" @click="openSkimSwarm()">Open fullscreen</button>
+  </p>
+
+  <!-- Fullscreen skim swarm view -->
+  <div x-show="skimSwarmOpen" x-transition.opacity
+    class="fixed inset-0 z-[70] flex flex-col bg-slate-950/95 backdrop-blur-md"
+    @click.self="closeSkimSwarm()"
+    @keydown.escape.window="closeSkimSwarm()"
+    role="dialog" aria-modal="true" aria-label="Skim swarm fullscreen">
+    <header class="shrink-0 border-b border-emerald-500/25 px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-emerald-950/40">
+      <div>
+        <h2 class="text-lg font-bold text-emerald-200">Skim swarm — all symbols</h2>
+        <p class="text-[11px] text-slate-400 mt-0.5">
+          <span x-text="skimSortedRows.length"></span> agents ·
+          <span x-text="skimOpenCount()"></span> open ·
+          session net <span class="fai-text-mono" :class="skimPnlClass(skim?.pnl?.daily?.net_usd)" x-text="skimPnlFmt(skim?.pnl?.daily?.net_usd)"></span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-slate-200 hover:bg-slate-700" @click="fetchSkimStatus()">Refresh</button>
+        <button type="button" class="px-3 py-1.5 rounded-lg bg-emerald-800/80 hover:bg-emerald-700 text-sm text-white" @click="closeSkimSwarm()" aria-label="Close">Close · Esc</button>
+      </div>
+    </header>
+
+    <div class="shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 px-4 py-3 border-b border-white/5">
+      <div class="rounded-lg border border-emerald-500/20 bg-black/30 px-3 py-2 text-center">
+        <p class="text-[10px] text-slate-500 uppercase">Daily realized</p>
+        <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.daily?.realized_usd)" x-text="skimPnlFmt(skim?.pnl?.daily?.realized_usd)"></p>
+      </div>
+      <div class="rounded-lg border border-emerald-500/20 bg-black/30 px-3 py-2 text-center">
+        <p class="text-[10px] text-slate-500 uppercase">Daily unrealized</p>
+        <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.daily?.unrealized_usd)" x-text="skimPnlFmt(skim?.pnl?.daily?.unrealized_usd)"></p>
+      </div>
+      <div class="rounded-lg border border-cyan-500/15 bg-black/30 px-3 py-2 text-center">
+        <p class="text-[10px] text-slate-500 uppercase">Cumulative realized</p>
+        <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(skim?.pnl?.cumulative?.realized_usd)" x-text="skimPnlFmt(skim?.pnl?.cumulative?.realized_usd)"></p>
+      </div>
+      <div class="rounded-lg border border-cyan-500/15 bg-black/30 px-3 py-2 text-center">
+        <p class="text-[10px] text-slate-500 uppercase">Open positions</p>
+        <p class="text-sm font-semibold fai-text-mono text-slate-200" x-text="skimOpenCount()"></p>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-auto fai-scroll px-4 py-3 min-h-0">
+      <table class="w-full text-sm text-left text-slate-300 fai-text-mono">
+        <thead class="sticky top-0 z-10 bg-slate-950 text-slate-500 text-xs uppercase tracking-wide">
+          <tr class="border-b border-emerald-500/20">
+            <th class="py-2 w-8 pl-1">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('open')" @click.stop="toggleSkimSort('open')" title="Sort by open">●<span x-text="skimSortIndicator('open')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('symbol')" @click.stop="toggleSkimSort('symbol')">Symbol<span x-text="skimSortIndicator('symbol')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('side')" @click.stop="toggleSkimSort('side')">Side<span x-text="skimSortIndicator('side')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('last_price')" @click.stop="toggleSkimSort('last_price')">Price<span x-text="skimSortIndicator('last_price')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('change_pct')" @click.stop="toggleSkimSort('change_pct')">Chg %<span x-text="skimSortIndicator('change_pct')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('position_pct')" @click.stop="toggleSkimSort('position_pct')">Pos %<span x-text="skimSortIndicator('position_pct')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('avg_entry')" @click.stop="toggleSkimSort('avg_entry')">Entry<span x-text="skimSortIndicator('avg_entry')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('unrealized_usd')" @click.stop="toggleSkimSort('unrealized_usd')">Unrealized<span x-text="skimSortIndicator('unrealized_usd')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('realized_usd')" @click.stop="toggleSkimSort('realized_usd')">Realized<span x-text="skimSortIndicator('realized_usd')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('last_action')" @click.stop="toggleSkimSort('last_action')">Last action<span x-text="skimSortIndicator('last_action')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('wins')" @click.stop="toggleSkimSort('wins')">Wins<span x-text="skimSortIndicator('wins')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('losses')" @click.stop="toggleSkimSort('losses')">Losses<span x-text="skimSortIndicator('losses')"></span></button>
+            </th>
+            <th class="py-2 pr-3">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('exits')" @click.stop="toggleSkimSort('exits')">Exits<span x-text="skimSortIndicator('exits')"></span></button>
+            </th>
+            <th class="py-2">
+              <button type="button" class="cursor-pointer select-none" :class="skimSortThClass('company')" @click.stop="toggleSkimSort('company')">Company<span x-text="skimSortIndicator('company')"></span></button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(row, idx) in skimSortedRows" :key="'full-' + skimSortCol + '-' + skimSortDir + '-' + idx + '-' + row.symbol">
+            <tr class="border-b border-white/5 hover:bg-emerald-950/25"
+              :class="row.is_open ? 'bg-cyan-950/15 border-l-2 border-l-cyan-400/60' : ''">
+              <td class="py-2 pl-1 text-center">
+                <span x-show="row.is_open"
+                  class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.75)]"
+                  title="Open position"></span>
+              </td>
+              <td class="py-2 pr-3 font-semibold text-emerald-200">
+                <span x-text="row.symbol"></span>
+                <span x-show="row.is_open" class="ml-1.5 text-[9px] px-1 py-0.5 rounded bg-cyan-500/20 text-cyan-200 uppercase">open</span>
+              </td>
+              <td class="py-2 pr-3" :class="row.side === 'long' ? 'text-emerald-400' : row.side === 'short' ? 'text-amber-300' : 'text-slate-500'" x-text="row.side"></td>
+              <td class="py-2 pr-3 text-slate-100" x-text="skimPriceFmt(row.last_price)"></td>
+              <td class="py-2 pr-3" :class="skimPctClass(row.change_pct)" x-text="skimPctFmt(row.change_pct)"></td>
+              <td class="py-2 pr-3" :class="skimPctClass(row.position_pct)" x-text="row.is_open ? skimPctFmt(row.position_pct) : '—'"></td>
+              <td class="py-2 pr-3 text-slate-400" x-text="row.is_open ? skimPriceFmt(row.avg_entry) : '—'"></td>
+              <td class="py-2 pr-3" :class="skimPnlClass(row.unrealized_usd)" x-text="row.unrealized_usd != null ? skimPnlFmt(row.unrealized_usd) : '—'"></td>
+              <td class="py-2 pr-3" :class="skimPnlClass(row.realized_usd)" x-text="row.realized_usd != null ? skimPnlFmt(row.realized_usd) : '—'"></td>
+              <td class="py-2 pr-3 text-[11px] truncate max-w-[120px]" :title="row.last_block_reason" x-text="row.last_action"></td>
+              <td class="py-2 pr-3 text-[11px] text-emerald-300/90" x-text="skimLearnedWins(row)"></td>
+              <td class="py-2 pr-3 text-[11px] text-red-300/80" x-text="skimLearnedLosses(row)"></td>
+              <td class="py-2 pr-3 text-[11px] text-slate-400" x-text="skimLearnedExits(row)"></td>
+              <td class="py-2 text-[11px] text-slate-400 max-w-[160px] truncate" :title="row.company?.summary" x-text="row.company?.name || '—'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>

@@ -1,4 +1,4 @@
-"""Adaptive rule-based decisions (long/short skim, no LLM)."""
+"""Adaptive rule-based decisions — per-symbol params from symbol_learning."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,14 +11,17 @@ from agents.skim_swarm.eod import (
     is_opening_blackout,
 )
 from agents.skim_swarm.company_context import context_score_adjustment
-from agents.skim_swarm.symbol_learning import get_params
+from agents.skim_swarm.symbol_learning import entry_blocked_by_causation, get_params
 from utils.skim_swarm_config import (
     atr_k,
     max_spread_bps,
+    max_stop_usd,
     mega_cap_tech_symbols,
     min_target_pct,
     min_target_usd,
+    runtime_denylist,
     semi_symbols,
+    stop_target_mult,
     thin_etf_symbols,
 )
 
@@ -73,6 +76,23 @@ def compute_score(features: dict[str, Any]) -> float:
     return max(-1.0, min(1.0, score))
 
 
+def stop_loss_usd(target: float) -> float:
+    raw = max(target * stop_target_mult(), 0.25)
+    return -min(raw, max_stop_usd())
+
+
+def _target_ok_for_volatility(features: dict[str, Any], target: float) -> bool:
+    """Per-symbol: skip entries when profit target is unrealistic vs 1m ATR."""
+    atr = _f(features.get("atr1m"))
+    last = _f(features.get("last"))
+    if atr <= 0 or last <= 0:
+        return True
+    atr_tgt = atr_k() * atr
+    if target <= max(min_target_usd() * 2, last * min_target_pct() * 2):
+        return True
+    return atr_tgt >= target * 0.85
+
+
 def _in_cooldown(st: dict[str, Any]) -> bool:
     raw = st.get("cooldown_until_utc")
     if not raw:
@@ -82,6 +102,39 @@ def _in_cooldown(st: dict[str, Any]) -> bool:
         return datetime.now(timezone.utc) < t
     except Exception:
         return False
+
+
+def _short_blocked_by_symbol_spy_filter(params: dict[str, Any], spy_r5: float) -> bool:
+    filt = float(params.get("short_spy_filter") or 0)
+    return filt > 0 and spy_r5 > filt
+
+
+def _try_entry(
+    out: dict[str, Any],
+    *,
+    sym: str,
+    features: dict[str, Any],
+    score: float,
+    pattern: str,
+    side: str,
+    action: str,
+    reasoning: str,
+    params: dict[str, Any],
+    spy_r5: float,
+) -> dict[str, Any] | None:
+    """Apply per-symbol causation gate before returning an entry decision."""
+    if action == "enter_short" and _short_blocked_by_symbol_spy_filter(params, spy_r5):
+        out["reasoning"] = f"symbol_short_spy_filter score={score:.2f}"
+        return out
+    blocked, reason = entry_blocked_by_causation(
+        sym, pattern=pattern, side=side, features=features, score=score
+    )
+    if blocked:
+        out["reasoning"] = reason or f"causation_blocked:{pattern}"
+        return out
+    out["action"] = action
+    out["reasoning"] = reasoning
+    return out
 
 
 def decide(
@@ -119,6 +172,11 @@ def decide(
             out["reasoning"] = "eod_force_flatten"
         return out
 
+    # Optional manual denylist (env/file only) — not auto-applied
+    if side == "flat" and sym in runtime_denylist():
+        out["reasoning"] = "manual_denylist"
+        return out
+
     if side == "flat" and _in_cooldown(symbol_state):
         out["reasoning"] = "cooldown"
         return out
@@ -134,12 +192,11 @@ def decide(
     unreal = features.get("unrealized_usd")
     peak = _f(symbol_state.get("peak_unrealized"), 0)
 
-    # --- in position: skim exit ---
     if side == "long" and unreal is not None:
         u = _f(unreal)
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
-        stop_usd = -max(target * 1.5, 0.25)
+        stop_usd = stop_loss_usd(target)
         if u >= target:
             out["action"] = "exit_position"
             out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
@@ -159,7 +216,7 @@ def decide(
         u = _f(unreal)
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
-        stop_usd = -max(target * 1.5, 0.25)
+        stop_usd = stop_loss_usd(target)
         if u >= target:
             out["action"] = "exit_position"
             out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
@@ -175,7 +232,6 @@ def decide(
         out["reasoning"] = f"hold_short:{u:.3f}"
         return out
 
-    # --- flat: entries ---
     if side != "flat":
         return out
 
@@ -183,37 +239,94 @@ def decide(
         out["reasoning"] = "max_open_positions"
         return out
 
-    spread_bps = max_spread_bps() * (1.4 if sym in thin_etf_symbols() else 1.0)
+    spread_limit = max_spread_bps() * (1.4 if sym in thin_etf_symbols() else 1.0)
+    feat_spread = features.get("spread_bps")
+    if feat_spread is not None and _f(feat_spread) > spread_limit:
+        out["reasoning"] = f"spread_too_wide:{_f(feat_spread):.1f}>{spread_limit:.1f}"
+        return out
     if last <= 0:
         out["reasoning"] = "no_price"
         return out
 
+    if not _target_ok_for_volatility(features, target):
+        out["reasoning"] = "target_unjustified_for_atr"
+        return out
+
     params = get_params(sym)
+    pd = params.get("pattern_deltas") or {}
     enter_long = float(params["enter_long"])
     enter_short = float(params["enter_short"])
-
     r1 = _f(features.get("r1m"))
     r5 = _f(features.get("r5m"))
+    spy_r5 = _f(features.get("spy_r5m"))
 
-    if score >= enter_long and r5 > 0 and r1 < 0.0015:
-        out["action"] = "enter_long"
-        out["reasoning"] = f"pullback_uptrend score={score:.2f}"
-        return out
+    rip_thresh = enter_short + float(pd.get("rip_fade") or 0)
+    if score <= rip_thresh and r5 < 0 and r1 > -0.0015:
+        hit = _try_entry(
+            out,
+            sym=sym,
+            features=features,
+            score=score,
+            pattern="rip_fade",
+            side="short",
+            action="enter_short",
+            reasoning=f"rip_fade score={score:.2f}",
+            params=params,
+            spy_r5=spy_r5,
+        )
+        if hit is not None:
+            return hit
 
-    if score <= enter_short and r5 < 0 and r1 > -0.0015:
-        out["action"] = "enter_short"
-        out["reasoning"] = f"rip_fade score={score:.2f}"
-        return out
+    pb_thresh = enter_long + float(pd.get("pullback_uptrend") or 0)
+    if score >= pb_thresh and r5 > 0 and r1 < 0.0015:
+        hit = _try_entry(
+            out,
+            sym=sym,
+            features=features,
+            score=score,
+            pattern="pullback_uptrend",
+            side="long",
+            action="enter_long",
+            reasoning=f"pullback_uptrend score={score:.2f}",
+            params=params,
+            spy_r5=spy_r5,
+        )
+        if hit is not None:
+            return hit
 
-    if score >= enter_long + 0.12 and r5 > 0.0008:
-        out["action"] = "enter_long"
-        out["reasoning"] = f"momentum_long score={score:.2f}"
-        return out
+    ml_thresh = enter_long + 0.12 + float(pd.get("momentum_long") or 0)
+    if score >= ml_thresh and r5 > 0.0008:
+        hit = _try_entry(
+            out,
+            sym=sym,
+            features=features,
+            score=score,
+            pattern="momentum_long",
+            side="long",
+            action="enter_long",
+            reasoning=f"momentum_long score={score:.2f}",
+            params=params,
+            spy_r5=spy_r5,
+        )
+        if hit is not None:
+            return hit
 
-    if score <= enter_short - 0.12 and r5 < -0.0008:
-        out["action"] = "enter_short"
-        out["reasoning"] = f"momentum_short score={score:.2f}"
-        return out
+    ms_thresh = enter_short - 0.12 + float(pd.get("momentum_short") or 0)
+    if score <= ms_thresh and r5 < -0.0008:
+        hit = _try_entry(
+            out,
+            sym=sym,
+            features=features,
+            score=score,
+            pattern="momentum_short",
+            side="short",
+            action="enter_short",
+            reasoning=f"momentum_short score={score:.2f}",
+            params=params,
+            spy_r5=spy_r5,
+        )
+        if hit is not None:
+            return hit
 
     out["reasoning"] = f"no_entry score={score:.2f}"
     return out

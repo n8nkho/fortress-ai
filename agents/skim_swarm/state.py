@@ -30,6 +30,9 @@ def load_swarm_state() -> dict[str, Any]:
         st = {}
     if st.get("session_date_et") != session_date_et():
         return {"session_date_et": session_date_et(), "day_realized_pnl": 0.0, "halted": False, "halt_reason": None}
+    from agents.skim_swarm.pnl import session_daily_realized_usd
+
+    st["day_realized_pnl"] = round(session_daily_realized_usd(), 4)
     return st
 
 

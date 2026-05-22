@@ -145,7 +145,7 @@ from dashboard.governance_panel import register_governance_routes  # noqa: E402
 register_governance_routes(app)
 
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
-_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-22-skim-v2").strip()
+_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-22-skim-sort").strip()
 
 
 def _dashboard_basic_credentials() -> tuple[str, str]:
@@ -1281,6 +1281,21 @@ def api_skim_status():
             swarm_st = json.loads(sp.read_text(encoding="utf-8"))
         except Exception:
             pass
+    pnl = {}
+    symbol_quotes: dict = {}
+    try:
+        from agents.skim_swarm.pnl import compute_pnl_summary
+
+        pnl = compute_pnl_summary()
+    except Exception:
+        logger.exception("skim pnl summary failed")
+    try:
+        from agents.skim_swarm.quotes import build_symbol_quotes
+
+        syms = universe()
+        symbol_quotes = build_symbol_quotes(syms)
+    except Exception:
+        logger.exception("skim symbol quotes failed")
     return jsonify(
         {
             "instance": instance_name(),
@@ -1289,7 +1304,9 @@ def api_skim_status():
             "latest_metric": latest,
             "last_wave": last_wave,
             "symbol_states": symbols,
+            "symbol_quotes": symbol_quotes,
             "swarm_state": swarm_st,
+            "pnl": pnl,
             "data_dir": str(dd),
         }
     )

@@ -7,6 +7,11 @@ document.addEventListener("alpine:init", () => {
     error: null,
     expertMode: false,
     comparisonOpen: false,
+    skimSwarmOpen: false,
+    skimFallbackUniverse: [],
+    skimSortCol: "wins",
+    skimSortDir: "desc",
+    skimSortedRows: [],
     detailModal: null,
     shortcutsOpen: false,
     expertTab: "prompt",
@@ -73,26 +78,8 @@ document.addEventListener("alpine:init", () => {
 
     comparison: null,
     tradingDiagnostics: null,
-    skim: { universe: [], dry_run: null },
-
-    spy: {
-      symbol: "SPY",
-      dry_run: true,
-      max_exposure_usd: 10000,
-      latest_metric: null,
-      ladder: null,
-      last_decision: null,
-      market_preview: null,
-      global_markets_enabled: true,
-      loading: false,
-      cyclePending: false,
-      error: null,
-      cycleMsg: null,
-      siMsg: null,
-      si: null,
-      lastRefresh: null,
-    },
-    spyPollTimer: null,
+    skim: { universe: [], dry_run: null, pnl: null },
+    skimPollTimer: null,
 
     init() {
       this.expertMode = localStorage.getItem("fai_expert") === "1";
@@ -100,8 +87,6 @@ document.addEventListener("alpine:init", () => {
       this.refresh();
       this.loadCharts();
       this.fetchComparison();
-      this.fetchSpyStatus();
-      this.fetchSkimStatus();
       if (this.expertMode) this.fetchExpertBundle();
       this.startPolling();
       if (this.tabVisible) this.connectSSE();
@@ -130,7 +115,6 @@ document.addEventListener("alpine:init", () => {
         this.connectSSE();
         this.refresh();
         this.fetchComparison();
-        this.fetchSpyStatus();
         this.fetchSkimStatus();
       } else {
         this.stopPolling();
@@ -146,10 +130,7 @@ document.addEventListener("alpine:init", () => {
       this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
       this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
       this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
-      this.spyPollTimer = setInterval(() => {
-        this.fetchSpyStatus();
-        this.fetchSkimStatus();
-      }, 45000);
+      this.skimPollTimer = setInterval(() => this.fetchSkimStatus(), 45000);
     },
 
     stopPolling() {
@@ -157,12 +138,12 @@ document.addEventListener("alpine:init", () => {
       if (this.chartPollTimer) clearInterval(this.chartPollTimer);
       if (this.mediumPollTimer) clearInterval(this.mediumPollTimer);
       if (this.slowPollTimer) clearInterval(this.slowPollTimer);
-      if (this.spyPollTimer) clearInterval(this.spyPollTimer);
+      if (this.skimPollTimer) clearInterval(this.skimPollTimer);
       this.pollTimer = null;
       this.chartPollTimer = null;
       this.mediumPollTimer = null;
       this.slowPollTimer = null;
-      this.spyPollTimer = null;
+      this.skimPollTimer = null;
     },
 
     disconnectSSE() {
@@ -185,6 +166,11 @@ document.addEventListener("alpine:init", () => {
       if (this.shortcutsOpen && (k === "escape" || k === "?")) {
         e.preventDefault();
         this.shortcutsOpen = false;
+        return;
+      }
+      if (this.skimSwarmOpen && k === "escape") {
+        e.preventDefault();
+        this.closeSkimSwarm();
         return;
       }
       if (k === "e") {
@@ -274,108 +260,233 @@ document.addEventListener("alpine:init", () => {
         const r = await fetch("/api/skim/status");
         if (!r.ok) throw new Error(await r.text());
         this.skim = await r.json();
+        this.recomputeSkimSort();
       } catch (_) {
         this.skim = this.skim || { error: "unavailable" };
+        this.recomputeSkimSort();
       }
     },
 
-    async fetchSpyStatus() {
-      this.spy.loading = true;
-      this.spy.error = null;
-      try {
-        const r = await fetch("/api/spy/status");
-        if (!r.ok) throw new Error(await r.text());
-        const j = await r.json();
-        this.spy = {
-          ...this.spy,
-          ...j,
-          loading: false,
-          lastRefresh: Date.now(),
+    skimPnlFmt(v) {
+      if (v == null || Number.isNaN(Number(v))) return "—";
+      const n = Number(v);
+      const sign = n >= 0 ? "+" : "";
+      return sign + "$" + n.toFixed(2);
+    },
+
+    skimPnlClass(v) {
+      if (v == null || Number.isNaN(Number(v))) return "text-slate-400";
+      return Number(v) >= 0 ? "text-emerald-300" : "text-red-300";
+    },
+
+    openSkimSwarm() {
+      this.skimSwarmOpen = true;
+      if (!this.skim?.pnl) this.fetchSkimStatus();
+    },
+
+    closeSkimSwarm() {
+      this.skimSwarmOpen = false;
+    },
+
+    skimUniverse() {
+      if (this.skim?.universe?.length) return this.skim.universe;
+      return this.skimFallbackUniverse || [];
+    },
+
+    skimSwarmRowsRaw() {
+      const universe = this.skimUniverse();
+      const states = this.skim?.symbol_states || [];
+      const quotes = this.skim?.symbol_quotes || {};
+      const openMap = {};
+      for (const p of this.skim?.pnl?.open_positions_detail || []) {
+        if (p?.symbol) openMap[p.symbol] = p;
+      }
+      const realizedMap = {};
+      for (const p of this.skim?.pnl?.per_symbol_realized || []) {
+        if (p?.symbol) realizedMap[p.symbol] = p;
+      }
+      const stateMap = {};
+      for (const s of states) {
+        if (s?.symbol) stateMap[s.symbol] = s;
+      }
+      return universe.map((sym) => {
+        const row = stateMap[sym] || {};
+        const quote = quotes[sym] || {};
+        const open = openMap[sym];
+        const real = realizedMap[sym];
+        const side = quote.side || open?.side || row.side || "flat";
+        const isOpen = Boolean(quote.is_open || (side !== "flat" && side !== "—"));
+        return {
+          symbol: sym,
+          side,
+          is_open: isOpen,
+          last_price: quote.last ?? null,
+          change_pct: quote.change_pct ?? null,
+          position_pct: quote.position_pct ?? null,
+          avg_entry: quote.avg_entry ?? null,
+          last_action: row.last_action || "—",
+          last_block_reason: row.last_block_reason || "—",
+          unrealized_usd: quote.unrealized_usd ?? open?.unrealized_usd,
+          realized_usd: real?.realized_usd,
+          exits: real?.exits,
+          wins: real?.wins,
+          losses: real?.losses,
+          learned: row.learned,
+          company: row.company,
         };
-      } catch (err) {
-        this.spy.loading = false;
-        this.spy.error = String(err).slice(0, 200);
+      });
+    },
+
+    skimSwarmRows() {
+      return this.skimSortedRows || [];
+    },
+
+    recomputeSkimSort() {
+      const dir = this.skimSortDir === "asc" ? 1 : -1;
+      const col = this.skimSortCol;
+      this.skimSortedRows = [...this.skimSwarmRowsRaw()].sort((a, b) => {
+        const cmp = this.skimSortCompare(a, b, col);
+        if (cmp !== 0) return cmp * dir;
+        return String(a.symbol).localeCompare(String(b.symbol));
+      });
+    },
+
+    toggleSkimSort(col) {
+      if (this.skimSortCol === col) {
+        this.skimSortDir = this.skimSortDir === "asc" ? "desc" : "asc";
+      } else {
+        this.skimSortCol = col;
+        const textAsc = ["symbol", "company", "last_action", "side"];
+        this.skimSortDir = textAsc.includes(col) ? "asc" : "desc";
+      }
+      this.recomputeSkimSort();
+    },
+
+    skimSortIndicator(col) {
+      if (this.skimSortCol !== col) return "";
+      return this.skimSortDir === "asc" ? " ▲" : " ▼";
+    },
+
+    skimSortThClass(col) {
+      if (this.skimSortCol !== col) return "text-slate-500 hover:text-emerald-200";
+      return "text-emerald-300";
+    },
+
+    skimSortValue(row, col) {
+      switch (col) {
+        case "open":
+          return row.is_open ? 1 : 0;
+        case "symbol":
+          return row.symbol || "";
+        case "side": {
+          const order = { long: 0, short: 1, flat: 2 };
+          return order[row.side] ?? 3;
+        }
+        case "last_price":
+          return row.last_price;
+        case "change_pct":
+          return row.change_pct;
+        case "position_pct":
+          return row.position_pct;
+        case "avg_entry":
+          return row.avg_entry;
+        case "unrealized_usd":
+          return row.unrealized_usd;
+        case "realized_usd":
+          return row.realized_usd;
+        case "last_action":
+          return row.last_action || "";
+        case "wins":
+          return this.skimLearnedWins(row);
+        case "losses":
+          return this.skimLearnedLosses(row);
+        case "exits":
+          return this.skimLearnedExits(row);
+        case "company":
+          return row.company?.name || "";
+        default:
+          return row.symbol || "";
       }
     },
 
-    async requestSpyCycle() {
-      this.spy.cyclePending = true;
-      this.spy.cycleMsg = null;
-      this.spy.error = null;
-      try {
-        const r = await fetch("/api/spy/run-cycle", { method: "POST" });
-        if (!r.ok) throw new Error(await r.text());
-        this.spy.cycleMsg = "Cycle queued — refresh in ~60s";
-        setTimeout(() => this.fetchSpyStatus(), 65000);
-        setTimeout(() => this.fetchSpyStatus(), 5000);
-      } catch (err) {
-        this.spy.error = String(err).slice(0, 200);
-      } finally {
-        this.spy.cyclePending = false;
+    skimSortCompare(a, b, col) {
+      const va = this.skimSortValue(a, col);
+      const vb = this.skimSortValue(b, col);
+      const aNull = va == null || va === "" || (typeof va === "number" && Number.isNaN(va));
+      const bNull = vb == null || vb === "" || (typeof vb === "number" && Number.isNaN(vb));
+      if (aNull && bNull) return 0;
+      if (aNull) return 1;
+      if (bNull) return -1;
+      if (typeof va === "number" && typeof vb === "number") return va - vb;
+      if (typeof va === "boolean" && typeof vb === "boolean") return Number(va) - Number(vb);
+      return String(va).localeCompare(String(vb));
+    },
+
+    skimLearnedWins(row) {
+      const stats = row?.learned?.stats;
+      if (stats?.wins != null) return Number(stats.wins) || 0;
+      if (row?.wins != null) return Number(row.wins) || 0;
+      return 0;
+    },
+
+    skimLearnedLosses(row) {
+      const stats = row?.learned?.stats;
+      if (stats?.losses != null) return Number(stats.losses) || 0;
+      if (row?.losses != null) return Number(row.losses) || 0;
+      return 0;
+    },
+
+    skimLearnedExits(row) {
+      const stats = row?.learned?.stats;
+      if (stats?.exits != null) return Number(stats.exits) || 0;
+      if (row?.exits != null) return Number(row.exits) || 0;
+      return 0;
+    },
+
+    skimOpenCount() {
+      return this.skimSwarmRowsRaw().filter((r) => r.is_open).length;
+    },
+
+    skimPriceFmt(v) {
+      if (v == null || Number.isNaN(Number(v))) return "—";
+      return Number(v).toFixed(2);
+    },
+
+    skimPctFmt(v) {
+      if (v == null || Number.isNaN(Number(v))) return "—";
+      const n = Number(v);
+      const sign = n >= 0 ? "+" : "";
+      return sign + n.toFixed(2) + "%";
+    },
+
+    skimPctClass(v) {
+      if (v == null || Number.isNaN(Number(v))) return "text-slate-400";
+      return Number(v) >= 0 ? "text-emerald-300" : "text-red-300";
+    },
+
+    skimLearnedLabel(row) {
+      const stats = row?.learned?.stats;
+      if (stats) {
+        return `W ${stats.wins ?? 0} / L ${stats.losses ?? 0} · ${stats.exits ?? 0} ex`;
       }
-    },
-
-    spyModeLabel() {
-      return this.spy.dry_run ? "DRY-RUN" : "PAPER LIVE";
-    },
-
-    spyLadderLabel() {
-      const l = this.spy.ladder;
-      if (!l) return "flat · 0/3";
-      return `${l.side || "flat"} · ${l.rungs_open ?? 0}/${l.max_rungs ?? 3}`;
-    },
-
-    spyLastSummaryLine() {
-      const m = this.spy.latest_metric;
-      const rth = m?.us_equity_rth ? "RTH" : "off-hours";
-      const eod = this.spy.last_decision?.observation_summary?.eod_phase || "";
-      return eod ? `${eod} · ${rth}` : rth;
-    },
-
-    spyReasoningLine() {
-      const d = this.spy.last_decision?.decision;
-      if (!d) return "No cycles yet — use Run SPY cycle or wait for Mon RTH auto.";
-      return d.reasoning || d.market_assessment || "—";
-    },
-
-    spyMetricAgeLabel() {
-      void this.ageTick;
-      const ts = this.spy.latest_metric?.ts;
-      if (!ts) return "";
-      const ms = Date.parse(ts);
-      if (Number.isNaN(ms)) return "";
-      return "Updated " + this.panelAgeLabel(ms);
-    },
-
-    spySiSkimRate() {
-      const r = this.spy.si?.performance?.skim_rate;
-      if (r == null) return "—";
-      return (r * 100).toFixed(1) + "%";
-    },
-
-    spySiPendingLine() {
-      const p = this.spy.si?.pending;
-      if (!p) return "No pending SI proposal.";
-      if (p.proposal?.parameter) {
-        return `Pending: ${p.proposal.parameter} → ${p.proposal.proposed_value}`;
+      if (row?.exits != null) {
+        return `W ${row.wins ?? 0} / L ${row.losses ?? 0} · ${row.exits} ex`;
       }
-      return "Pending SI review.";
+      return "—";
     },
 
-    async spySiPropose() {
-      this.spy.siMsg = null;
-      this.spy.error = null;
-      try {
-        const r = await fetch("/api/spy/self_improvement/propose", { method: "POST" });
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error || r.statusText);
-        this.spy.siMsg = j.skipped
-          ? `Skipped: ${j.reason || "—"}`
-          : `SI: ${j.decision || j.outcome || "done"}`;
-        await this.fetchSpyStatus();
-      } catch (err) {
-        this.spy.error = String(err).slice(0, 200);
-      }
+    skimBlockReasonPairs() {
+      const raw = this.tradingDiagnostics?.skim_swarm?.block_reason_counts || {};
+      return Object.entries(raw)
+        .sort((a, b) => b[1] - a[1])
+        .map(([reason, count]) => ({ reason, count }));
+    },
+
+    aiBlockReasonPairs() {
+      const raw = this.tradingDiagnostics?.fortress_ai?.block_reason_counts || {};
+      return Object.entries(raw)
+        .sort((a, b) => b[1] - a[1])
+        .map(([reason, count]) => ({ reason, count }));
     },
 
     async fetchExpertBundle() {
