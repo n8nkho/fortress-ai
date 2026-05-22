@@ -31,7 +31,7 @@ from agents.spy_intraday.eod import is_force_flatten_window, session_date_et
 from agents.spy_intraday.observe import observe
 from agents.spy_intraday.reason import reason
 from agents.spy_intraday.schedule import effective_loop_seconds, should_idle
-from utils.api_costs import weekly_budget_exceeded
+from utils.api_costs import weekly_llm_budget_status
 from utils.spy_agent_config import dry_run, index_symbol, instance_name, spy_data_dir
 from utils.spy_agent_runtime import consume_on_demand_cycle, sleep_until_wake
 from utils.us_equity_hours import is_us_equity_rth_et
@@ -82,25 +82,27 @@ def run_loop(iterations: int | None = None) -> None:
     )
     n = 0
     while iterations is None or n < iterations:
-        exceeded, spent, cap = weekly_budget_exceeded()
-        if exceeded:
+        budget = weekly_llm_budget_status()
+        if budget["should_stop_loop"]:
             rec = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "event": "weekly_cost_cap_stop",
-                "spent_usd": spent,
-                "cap_usd": cap,
+                "spent_usd": budget["spent_usd"],
+                "cap_usd": budget["cap_usd"],
+                "mode": budget["mode"],
             }
             append_jsonl(_decisions_path(), rec)
-            print(json.dumps(rec))
+            print(json.dumps(rec), flush=True)
             return
 
         on_demand = consume_on_demand_cycle()
         if should_idle(on_demand=on_demand):
             if iterations is not None:
-                print(json.dumps({"ok": True, "action": "idle", "reason": "off_hours_or_weekend"}))
+                print(json.dumps({"ok": True, "action": "idle", "reason": "off_hours_or_weekend"}), flush=True)
                 break
             sleep_until_wake(60.0)
             continue
+        degrade_llm = bool(budget.get("should_degrade_llm"))
 
         t0 = time.perf_counter()
         obs = observe()
@@ -120,7 +122,12 @@ def run_loop(iterations: int | None = None) -> None:
                 usage = {}
         else:
             try:
-                decision, usage = reason(obs)
+                if degrade_llm:
+                    from agents.spy_intraday.reason import reason_heuristic
+
+                    decision, usage = reason_heuristic(obs)
+                else:
+                    decision, usage = reason(obs)
             except Exception as e:
                 err = {
                     "ts": datetime.now(timezone.utc).isoformat(),
@@ -162,7 +169,18 @@ def run_loop(iterations: int | None = None) -> None:
         }
         append_jsonl(_metrics_path(), metric)
         write_latest_metric(metric)
-        print(json.dumps({"ok": True, "action": decision.get("action"), "latency_ms": latency_ms}, default=str))
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "action": decision.get("action"),
+                    "latency_ms": latency_ms,
+                    "llm_degraded": degrade_llm,
+                },
+                default=str,
+            ),
+            flush=True,
+        )
 
         try:
             from agents.spy_self_improvement_engine import get_spy_si_engine

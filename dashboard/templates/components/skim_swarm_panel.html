@@ -1,0 +1,43 @@
+<section id="fai-skim-swarm" class="fai-panel rounded-xl border-2 border-emerald-400/40 bg-emerald-950/30 p-4 mb-4 shadow-[0_0_24px_rgba(52,211,153,0.12)]">
+  <h2 class="text-base font-bold text-emerald-200 mb-1">Skim swarm (live)</h2>
+  <p class="text-[11px] text-emerald-100/80 mb-2">
+    Build <span class="fai-text-mono text-amber-200">{{ ui_build }}</span> ·
+    systemd <span class="fai-text-mono">{{ skim_preview.service }}</span> ·
+    <span class="font-semibold">{{ skim_preview.universe|length }} agents</span> (1 share each, self-improving)
+  </p>
+  <p class="text-[11px] text-slate-400 mb-3 fai-text-mono break-words">
+    {{ skim_preview.universe|join(', ') }}
+  </p>
+  <div class="text-xs fai-text-mono text-slate-300 mb-2">
+    Server: dry_run=<span class="text-amber-200">{{ skim_preview.dry_run }}</span>
+    <span class="text-slate-600 mx-2">|</span>
+    Live poll:
+    dry_run=<span x-text="skim?.dry_run"></span> ·
+    open=<span x-text="skim?.latest_metric?.open_positions ?? '—'"></span> ·
+    executed=<span x-text="skim?.latest_metric?.executed_count ?? '—'"></span>
+  </div>
+  <div class="overflow-x-auto max-h-56">
+    <table class="w-full text-[11px] text-left text-slate-300">
+      <thead class="text-slate-500">
+        <tr><th class="pr-2">Symbol</th><th>Side</th><th>Last</th><th>Learned</th><th>Company</th></tr>
+      </thead>
+      <tbody>
+        {% for sym in skim_preview.universe %}
+        <tr class="border-t border-white/5 text-slate-500">
+          <td class="pr-2 text-emerald-200/70">{{ sym }}</td>
+          <td colspan="4" class="text-[10px]">awaiting RTH waves — live row updates via API</td>
+        </tr>
+        {% endfor %}
+        <template x-for="row in (skim?.symbol_states || [])" :key="'live-'+row.symbol">
+          <tr class="border-t border-emerald-500/20 bg-emerald-950/20">
+            <td class="pr-2 text-emerald-200 font-medium" x-text="row.symbol"></td>
+            <td x-text="row.side"></td>
+            <td x-text="row.last_action"></td>
+            <td class="text-slate-400 text-[10px]" x-text="row.learned?.stats ? ('wins '+row.learned.stats.wins+' / ex '+row.learned.stats.exits) : '—'"></td>
+            <td class="text-slate-500 text-[10px] truncate max-w-[220px]" :title="row.company?.summary" x-text="row.company?.name || '—'"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</section>

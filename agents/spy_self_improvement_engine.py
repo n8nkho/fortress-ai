@@ -433,13 +433,56 @@ JSON only:
         except Exception as e:
             return {"error": str(e)[:200], "cycle": n}
 
+    def _threshold_gating_only(self, max_rows: int = 120) -> bool:
+        """True when trade actions were proposed but only blocked by confidence threshold."""
+        p = spy_data_dir() / "decisions.jsonl"
+        if not p.is_file():
+            return False
+        trade_proposed = 0
+        threshold_blocks = 0
+        try:
+            raw = p.read_bytes()
+            if len(raw) > 256_000:
+                raw = raw[-256_000:]
+            lines = raw.decode("utf-8", errors="replace").strip().split("\n")[-max_rows:]
+        except OSError:
+            return False
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
+            act = r.get("act") if isinstance(r.get("act"), dict) else {}
+            action = str(d.get("action") or "").lower()
+            if action not in ("add_long", "add_short", "trim"):
+                continue
+            trade_proposed += 1
+            detail = str(act.get("detail") or "")
+            if detail.startswith("confidence_below_threshold"):
+                threshold_blocks += 1
+        return trade_proposed >= 5 and threshold_blocks >= max(1, int(trade_proposed * 0.75))
+
     def monitor_performance(self) -> dict[str, Any] | None:
         perf = self.load_performance()
-        if perf.skim_rate is not None and perf.skim_rate < SAFE_SKIM_RATE_FLOOR and perf.cycles >= 20:
+        trade_attempts = perf.adds + perf.trims
+        if trade_attempts >= 10 and perf.executed == 0 and self._threshold_gating_only():
+            return {
+                "monitor": "skipped",
+                "reason": "zero_executions_threshold_gating_only",
+                "trade_attempts": trade_attempts,
+            }
+        if perf.executed <= 0 or perf.cycles < 20:
+            return None
+        effective_skim = perf.executed / max(trade_attempts, 1)
+        if effective_skim < SAFE_SKIM_RATE_FLOOR:
             clear_overrides()
             st = {"halted": True, "halt_reason": f"skim_rate_below_{SAFE_SKIM_RATE_FLOOR}"}
             _state_path().write_text(json.dumps(st, indent=2), encoding="utf-8")
-            return {"reverted": True, "halted": True, "skim_rate": perf.skim_rate}
+            return {"reverted": True, "halted": True, "skim_rate": effective_skim}
         return None
 
     def status_dict(self) -> dict[str, Any]:

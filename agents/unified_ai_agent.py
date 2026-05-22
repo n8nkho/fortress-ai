@@ -37,6 +37,7 @@ from utils.api_costs import (
     append_llm_cost_record,
     estimate_llm_cost_usd,
     weekly_budget_exceeded,
+    weekly_llm_budget_status,
 )
 from utils.agent_runtime import (
     consume_on_demand_cycle,
@@ -250,7 +251,11 @@ def build_prompt(
     constraints = (
         "Mean-reversion bias; equities only in MVP. "
         "Max position notional respects FORTRESS_MAX_ORDER_NOTIONAL_USD. "
-        f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually."
+        f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually. "
+        "PAPER/LIVE: When watchlist_hint symbols exist and VIX is not elevated, prefer enter_position "
+        f"with confidence >= {_min_confidence_execute():.2f} over prolonged wait. "
+        "Use wait only when no candidate passes gates, macro is hostile, or you lack a symbol/qty. "
+        "screen_market is for explicit rescans — do not use it as a substitute for enter_position when a dip is clear."
     )
     bias = (os.environ.get("FORTRESS_AI_PROMPT_BIAS") or "").strip()
     if bias:
@@ -283,6 +288,68 @@ AVAILABLE_ACTIONS (pick exactly one "action"):
 
 Output schema:
 {{"reasoning":"short chain of thought","market_assessment":"one line","action":"<name>","parameters":{{}},"confidence":0.0,"expected_outcome":"one line"}}"""
+
+
+def _log_prompt_tuning_event(
+    *,
+    variant: str,
+    action: str,
+    confidence: float,
+    executed: bool,
+    block_reason: str | None,
+    degraded: bool = False,
+) -> None:
+    rec = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "variant": variant,
+        "action": action,
+        "confidence": confidence,
+        "executed": executed,
+        "block_reason": block_reason,
+        "degraded_llm": degraded,
+    }
+    try:
+        p = _data_dir() / "prompt_tuning_log.jsonl"
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, default=str) + "\n")
+    except OSError:
+        pass
+
+
+def reason_heuristic(observation: dict[str, Any], state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Deterministic fallback when weekly LLM budget is in degrade mode."""
+    min_c = _min_confidence_execute()
+    wl = observation.get("watchlist_hint") or []
+    sym = str(wl[0]).upper() if wl else ""
+    positions = observation.get("positions") or []
+    held = {str(p.get("sym") or "").upper() for p in positions if isinstance(p, dict)}
+    vix = observation.get("vix_last")
+    try:
+        vix_ok = vix is None or float(vix) < 32.0
+    except (TypeError, ValueError):
+        vix_ok = True
+    if sym and sym not in held and vix_ok:
+        decision = {
+            "reasoning": "Weekly LLM cap — heuristic entry on watchlist lead (mean-reversion).",
+            "market_assessment": f"watchlist={sym} vix={vix}",
+            "action": "enter_position",
+            "parameters": {"symbol": sym, "qty": 1, "rationale": "budget_degrade_heuristic"},
+            "confidence": min_c,
+            "expected_outcome": "submit if gates and dry_run allow",
+            "_heuristic": True,
+        }
+    else:
+        decision = {
+            "reasoning": "Weekly LLM cap — heuristic wait (no gated entry candidate).",
+            "market_assessment": "degraded_cycle",
+            "action": "wait",
+            "parameters": {},
+            "confidence": 0.55,
+            "expected_outcome": "no trade",
+            "_heuristic": True,
+        }
+    usage = {"model": "heuristic", "cost_usd": 0.0, "latency_ms": 0, "degraded": True, "prompt_tokens": 0, "completion_tokens": 0}
+    return decision, usage
 
 
 def reason(observation: dict[str, Any], state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -327,13 +394,24 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     dry = _dry_run()
     if dry:
         result["detail"] = "dry_run_blocked"
+        result["block_reason"] = "dry_run_blocked"
         return result
 
     if conf < _min_confidence_execute():
         result["detail"] = f"confidence_below_threshold:{conf}<{_min_confidence_execute()}"
+        result["block_reason"] = "confidence_below_threshold"
         return result
 
     sym = str(params.get("symbol") or "").strip().upper()
+    try:
+        from utils.skim_swarm_config import normalize_symbol, symbol_denylist_for_unified_ai
+
+        if normalize_symbol(sym) in symbol_denylist_for_unified_ai():
+            result["detail"] = f"symbol_reserved_for_skim_swarm:{sym}"
+            result["block_reason"] = "skim_swarm_reserved"
+            return result
+    except Exception:
+        pass
     try:
         qty = int(abs(float(params.get("qty") or 0)))
     except (TypeError, ValueError):
@@ -410,8 +488,32 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         order = tc.submit_order(order_data)
         result["executed"] = True
         result["detail"] = {"id": str(order.id), "status": str(order.status)}
+        result["block_reason"] = "executed"
+        if action == "exit_position":
+            try:
+                from utils.ai_pnl_ledger import append_realized_fill
+
+                pnl_est = 0.0
+                for p in observation.get("positions") or []:
+                    if str(p.get("sym") or "").upper() == sym:
+                        try:
+                            pnl_est = float(p.get("unrealized_pl") or p.get("unrealized_plc") or 0)
+                        except (TypeError, ValueError):
+                            pnl_est = 0.0
+                        break
+                append_realized_fill(
+                    symbol=sym,
+                    pnl_usd=pnl_est,
+                    side=side,
+                    qty=qty,
+                    order_id=str(order.id),
+                    extra={"action": action, "note": "exit_fill_pnl_estimate"},
+                )
+            except Exception:
+                pass
     except Exception as e:
         result["detail"] = f"broker_error:{type(e).__name__}:{e}"
+        result["block_reason"] = "broker_error"
 
     return result
 
@@ -433,18 +535,20 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
     state = load_state()
     n = 0
     while iterations is None or n < iterations:
-        exceeded, spent, cap = weekly_budget_exceeded()
-        if exceeded:
+        budget = weekly_llm_budget_status()
+        if budget["should_stop_loop"]:
             rec = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "event": "weekly_cost_cap_stop",
-                "spent_usd": spent,
-                "cap_usd": cap,
+                "spent_usd": budget["spent_usd"],
+                "cap_usd": budget["cap_usd"],
+                "mode": budget["mode"],
             }
             append_decision(rec)
             append_metric(rec)
-            print(json.dumps(rec))
+            print(json.dumps(rec), flush=True)
             return
+        degrade_llm = bool(budget.get("should_degrade_llm"))
 
         on_demand = consume_on_demand_cycle()
         # Idle until on-demand: (a) outside US RTH, or (b) FORTRESS_AI_MANUAL_ONLY=1 (no auto loops even in RTH).
@@ -469,7 +573,10 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
 
             _log.getLogger("unified_ai_agent").exception("belief ledger hook failed")
         try:
-            decision, usage = reason(obs, state)
+            if degrade_llm:
+                decision, usage = reason_heuristic(obs, state)
+            else:
+                decision, usage = reason(obs, state)
         except Exception as e:
             err = {
                 "ts": datetime.now(timezone.utc).isoformat(),
@@ -553,6 +660,18 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
         _ov = _gi(interval_sec)
         if _ov is not None:
             sleep_sec = float(_ov)
+        br = act_result.get("block_reason")
+        if not br and act_result.get("detail"):
+            d = str(act_result.get("detail") or "")
+            br = d.split(":")[0] if ":" in d else d
+        _log_prompt_tuning_event(
+            variant=str(decision.get("prompt_variant") or "default"),
+            action=str(decision.get("action") or "wait"),
+            confidence=float(decision.get("confidence") or 0),
+            executed=bool(act_result.get("executed")),
+            block_reason=br,
+            degraded=bool(usage.get("degraded")),
+        )
         snap = {
             "ts": log_rec["ts"],
             "opportunity_detection": decision.get("action") not in ("wait",),
@@ -560,25 +679,48 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             "decision_latency_ms": usage.get("latency_ms"),
             "total_cycle_latency_ms": latency_total,
             "llm_cost_usd": usage.get("cost_usd"),
-            "weekly_llm_spend_usd": weekly_budget_exceeded()[1],
+            "weekly_llm_spend_usd": budget["spent_usd"],
+            "weekly_budget_mode": budget["mode"],
+            "llm_degraded": degrade_llm or bool(usage.get("degraded")),
             "executed": bool(act_result.get("executed")),
+            "block_reason": br,
+            "action": decision.get("action"),
             "us_equity_rth": is_us_equity_rth_et(),
             "next_sleep_sec": sleep_sec,
         }
         append_metric(snap)
         (_data_dir() / "ai_latest_metric.json").write_text(json.dumps(snap, indent=2), encoding="utf-8")
 
+        try:
+            from agents.self_improvement_engine import get_engine
+
+            si = get_engine()
+            si_out = si.maybe_improve_after_cycle()
+            if si_out:
+                print(json.dumps({"event": "self_improvement", "result": si_out}, default=str), flush=True)
+            mon = si.monitor_and_revert_if_needed()
+            if mon:
+                print(json.dumps({"event": "si_monitor", "result": mon}, default=str), flush=True)
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("self-improvement hook failed")
+
         print(
             json.dumps(
                 {
                     "ok": True,
                     "action": decision.get("action"),
+                    "executed": bool(act_result.get("executed")),
+                    "block_reason": br,
                     "latency_ms": latency_total,
                     "us_equity_rth": is_us_equity_rth_et(),
                     "next_sleep_sec": sleep_sec,
+                    "llm_degraded": degrade_llm,
                 },
                 default=str,
-            )
+            ),
+            flush=True,
         )
         n += 1
         if iterations is not None and n >= iterations:

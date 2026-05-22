@@ -66,7 +66,6 @@ def week_cost_usd(now: datetime | None = None) -> tuple[float, datetime, datetim
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
-    # Monday as week start (ISO)
     weekday = now.weekday()
     week_start = (now - timedelta(days=weekday)).replace(hour=0, minute=0, second=0, microsecond=0)
     week_end = week_start + timedelta(days=7)
@@ -92,13 +91,37 @@ def week_cost_usd(now: datetime | None = None) -> tuple[float, datetime, datetim
     return round(total, 6), week_start, week_end
 
 
-def weekly_budget_exceeded(now: datetime | None = None) -> tuple[bool, float, float]:
+def weekly_budget_mode() -> str:
+    """stop = halt agent loop; degrade = heuristic cycles without LLM."""
+    return str(os.environ.get("FORTRESS_AI_WEEKLY_BUDGET_MODE", "degrade")).strip().lower()
+
+
+def weekly_llm_budget_status(now: datetime | None = None) -> dict[str, Any]:
     """
-    Returns (exceeded, week_spend_usd, cap_usd).
+    Returns spent, cap, exceeded, mode, should_stop_loop, should_degrade_llm.
     """
     try:
         cap = float(os.environ.get("FORTRESS_AI_WEEKLY_COST_CAP_USD", "1.0"))
     except ValueError:
         cap = 1.0
-    spent, _, _ = week_cost_usd(now)
-    return spent >= cap, spent, cap
+    spent, wstart, wend = week_cost_usd(now)
+    exceeded = spent >= cap
+    mode = weekly_budget_mode()
+    if mode not in ("stop", "degrade"):
+        mode = "degrade"
+    return {
+        "spent_usd": spent,
+        "cap_usd": cap,
+        "exceeded": exceeded,
+        "mode": mode,
+        "should_stop_loop": exceeded and mode == "stop",
+        "should_degrade_llm": exceeded and mode == "degrade",
+        "week_start_utc": wstart.isoformat(),
+        "week_end_utc": wend.isoformat(),
+    }
+
+
+def weekly_budget_exceeded(now: datetime | None = None) -> tuple[bool, float, float]:
+    """Returns (should_stop_loop, week_spend_usd, cap_usd)."""
+    st = weekly_llm_budget_status(now)
+    return bool(st["should_stop_loop"]), float(st["spent_usd"]), float(st["cap_usd"])

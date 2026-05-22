@@ -36,7 +36,7 @@ from utils.alpaca_env import (
     alpaca_trading_client_kwargs,
     is_alpaca_paper,
 )
-from utils.api_costs import week_cost_usd
+from utils.api_costs import week_cost_usd, weekly_llm_budget_status
 from utils.agent_runtime import (
     read_runtime_prefs,
     request_on_demand_cycle,
@@ -145,7 +145,7 @@ from dashboard.governance_panel import register_governance_routes  # noqa: E402
 register_governance_routes(app)
 
 # Shown in the UI so you can confirm which bundle is live. Override in .env if you want a custom label.
-_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-17-cmp-pnl").strip()
+_DASHBOARD_UI_BUILD = (os.environ.get("FORTRESS_AI_DASHBOARD_BUILD") or "v2-2026-05-22-skim-v2").strip()
 
 
 def _dashboard_basic_credentials() -> tuple[str, str]:
@@ -904,7 +904,14 @@ def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
         },
         "belief_memory": belief_memory,
         "ingest_health": ingest_health,
+        "weekly_budget": weekly_llm_budget_status(),
     }
+    try:
+        from utils.trading_diagnostics import build_trading_diagnostics
+
+        payload["trading_diagnostics"] = build_trading_diagnostics(days=14)
+    except Exception as exc:
+        payload["trading_diagnostics"] = {"error": str(exc)[:200]}
     _STATE_CACHE["t"] = time.time()
     _STATE_CACHE["payload"] = payload
     logger.debug("build_current_state keys: %s", sorted(payload.keys()))
@@ -913,7 +920,22 @@ def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
 
 @app.route("/")
 def index():
-    return render_template("ai_dashboard.html", ui_build=_DASHBOARD_UI_BUILD)
+    skim_preview: dict = {"universe": [], "dry_run": True, "service": "fortress-ai-skim-swarm"}
+    try:
+        from utils.skim_swarm_config import dry_run as skim_dry_run, universe as skim_universe
+
+        skim_preview = {
+            "universe": skim_universe(),
+            "dry_run": skim_dry_run(),
+            "service": "fortress-ai-skim-swarm",
+        }
+    except Exception:
+        logger.exception("skim_preview for index failed")
+    return render_template(
+        "ai_dashboard.html",
+        ui_build=_DASHBOARD_UI_BUILD,
+        skim_preview=skim_preview,
+    )
 
 
 @app.route("/mockup")
@@ -1074,6 +1096,14 @@ def api_dashboard_ingest_health():
     return _ingest_health_json_response()
 
 
+@app.route("/api/trading/diagnostics")
+def api_trading_diagnostics():
+    from utils.trading_diagnostics import build_trading_diagnostics
+
+    days = int(request.args.get("days", 14) or 14)
+    return jsonify(_json_sanitize_for_api(build_trading_diagnostics(days=days)))
+
+
 @app.route("/api/comparison")
 def api_comparison():
     return jsonify(_comparison_payload())
@@ -1188,6 +1218,81 @@ def _tail_spy_decision(path: Path) -> dict | None:
     except Exception:
         return None
     return None
+
+
+@app.route("/api/skim/status")
+def api_skim_status():
+    """Skim swarm basket snapshot."""
+    from utils.skim_swarm_config import dry_run, instance_name, swarm_data_dir, universe
+
+    dd = swarm_data_dir()
+    latest = None
+    p = dd / "latest_metric.json"
+    if p.exists():
+        try:
+            latest = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    last_wave = _tail_spy_decision(dd / "decisions.jsonl")
+    symbols: list[dict] = []
+    state_dir = dd / "state"
+    learned_dir = dd / "learned"
+    ctx_dir = dd / "company_context"
+    if state_dir.is_dir():
+        for f in sorted(state_dir.glob("*.json")):
+            try:
+                st = json.loads(f.read_text(encoding="utf-8"))
+                sym = st.get("symbol")
+                row = {
+                    "symbol": sym,
+                    "side": st.get("side"),
+                    "last_action": st.get("last_action"),
+                    "last_block_reason": st.get("last_block_reason"),
+                }
+                lp = learned_dir / f"{str(sym or '').replace('.', '_')}.json"
+                if lp.exists():
+                    try:
+                        L = json.loads(lp.read_text(encoding="utf-8"))
+                        row["learned"] = {
+                            "stats": L.get("stats"),
+                            "target_mult": L.get("target_mult"),
+                            "enter_long_delta": L.get("enter_long_delta"),
+                        }
+                    except Exception:
+                        pass
+                cp = ctx_dir / f"{str(sym or '').replace('.', '_')}.json"
+                if cp.exists():
+                    try:
+                        C = json.loads(cp.read_text(encoding="utf-8"))
+                        row["company"] = {
+                            "name": C.get("name"),
+                            "sector": C.get("sector"),
+                            "summary": (C.get("summary") or "")[:120],
+                        }
+                    except Exception:
+                        pass
+                symbols.append(row)
+            except Exception:
+                continue
+    swarm_st = {}
+    sp = dd / "swarm_state.json"
+    if sp.exists():
+        try:
+            swarm_st = json.loads(sp.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return jsonify(
+        {
+            "instance": instance_name(),
+            "universe": universe(),
+            "dry_run": dry_run(),
+            "latest_metric": latest,
+            "last_wave": last_wave,
+            "symbol_states": symbols,
+            "swarm_state": swarm_st,
+            "data_dir": str(dd),
+        }
+    )
 
 
 @app.route("/api/spy/status")

@@ -49,6 +49,8 @@ MANDATES:
   Before US open, weight Asia+Europe + futures heavily for gap risk; during RTH, use them for drift/conflict checks.
 - Geopolitical/macro headlines in qualitative — weight non-quant risks explicitly (wars, rates, FX, China/EU policy).
 - EOD phase: {eod}. If eod_caution or force_flatten: only trim or flatten_all.
+- When exposure is below max and intraday swell is up/mixed (not force_flatten), prefer add_long with confidence at or above operator min over repeated wait.
+- Do not propose add_long/add_short with confidence below the execution threshold — either wait or commit with sufficient confidence.
 - Shorting allowed on {sym} when bearish intraday structure; use add_short rungs (sell to open).
 
 LADDER: scale in with add_long or add_short (one rung per action). trim removes one rung. flatten_all closes entire position.
@@ -80,4 +82,55 @@ def reason(observation: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]
     if action not in ALLOWED_ACTIONS:
         raise ValueError(f"invalid action: {action}")
     decision["_raw_response"] = text[:4000]
+    return decision, usage
+
+
+def reason_heuristic(observation: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Budget-degrade path: no LLM; rule-based skim bias."""
+    from utils.spy_tunable_overrides import get_spy_min_confidence
+
+    min_c = get_spy_min_confidence()
+    eod = str(observation.get("eod_phase") or "normal")
+    if eod in ("force_flatten", "eod_caution"):
+        pos = observation.get("position") or {}
+        qty = int(pos.get("qty") or 0)
+        if qty > 0:
+            action = "trim" if eod == "eod_caution" else "flatten_all"
+        else:
+            action = "wait"
+        decision = {
+            "reasoning": "Weekly LLM cap — heuristic EOD risk reduction.",
+            "market_assessment": eod,
+            "bias": "neutral",
+            "action": action,
+            "confidence": 1.0,
+            "expected_outcome": "flat or reduce before close",
+            "_heuristic": True,
+        }
+        usage = {"model": "heuristic", "cost_usd": 0.0, "latency_ms": 0, "degraded": True}
+        return decision, usage
+
+    swell = ((observation.get("market") or {}).get("intraday") or {}).get("intraday_swell") or "mixed"
+    exposure = float(observation.get("exposure_usd") or 0)
+    max_exp = max_exposure_usd()
+    pos_qty = int((observation.get("position") or {}).get("qty") or 0)
+    if exposure < max_exp * 0.85 and swell in ("up", "mixed") and pos_qty >= 0:
+        action = "add_long"
+        assessment = f"swell={swell} exposure={exposure:.0f}"
+    elif pos_qty > 0 and swell == "down":
+        action = "trim"
+        assessment = "swell down — take skim"
+    else:
+        action = "wait"
+        assessment = "no heuristic edge"
+    decision = {
+        "reasoning": "Weekly LLM cap — heuristic intraday skim.",
+        "market_assessment": assessment,
+        "bias": "bullish" if action == "add_long" else "neutral",
+        "action": action,
+        "confidence": min_c if action in ("add_long", "add_short") else 0.6,
+        "expected_outcome": "ladder step if gates pass",
+        "_heuristic": True,
+    }
+    usage = {"model": "heuristic", "cost_usd": 0.0, "latency_ms": 0, "degraded": True}
     return decision, usage

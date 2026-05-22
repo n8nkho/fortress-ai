@@ -1,0 +1,27 @@
+# Fortress AI — multi-symbol skim swarm (SPY + equities/ETFs, 1-share, no LLM).
+# Install: sudo cp deploy/fortress-ai-skim-swarm.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable --now fortress-ai-skim-swarm
+# Disable legacy SPY-only unit to avoid duplicate SPY logic:
+#          sudo systemctl disable --now fortress-ai-spy-agent
+
+[Unit]
+Description=Fortress AI skim swarm (intraday multi-symbol)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+EnvironmentFile=-/home/ubuntu/fortress-ai/.env
+ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/agents/skim_swarm_agent.py
+Restart=on-failure
+RestartSec=20
+KillSignal=SIGINT
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

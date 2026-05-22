@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=12" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=12" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard.css') }}?v=16" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai-dashboard-v2.css') }}?v=16" />
   <style>[x-cloak]{display:none!important}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}?v=15"></script>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=15"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v=17"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=17"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
   <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=12" defer></script>
 </head>
@@ -33,16 +33,24 @@
 
     {% include 'components/header_bar.html' %}
 
+    {% include 'components/skim_swarm_panel.html' %}
+
+    {% include 'components/why_no_trade.html' %}
+
     <div class="rounded-lg border border-fuchsia-500/25 bg-fuchsia-950/20 px-3 py-2 mb-4 text-center text-[11px] text-slate-400 leading-relaxed"
       id="fai-ops-panels-hint">
+      <span class="text-amber-200/90 font-medium">Why no trade?</span> ·
+      <span class="text-emerald-200/90 font-medium">Skim swarm</span> ·
       <span class="text-fuchsia-200/90 font-medium">Self-improvement</span> ·
-      <span class="text-violet-200/90 font-medium">Prompt evolution</span> ·
-      <span class="text-slate-200/90 font-medium">Governance</span>
+      <span class="text-violet-200/90 font-medium">Prompt evolution</span>
       <span class="text-slate-600 mx-1">—</span>
-      <a href="#fai-self-improve" class="text-cyan-400 hover:underline">Jump</a>
+      <a href="#fai-why-no-trade" class="text-cyan-400 hover:underline">Why</a>
+      <span class="text-slate-600">·</span>
+      <a href="#fai-skim-swarm" class="text-cyan-400 hover:underline">Skim</a>
+      <span class="text-slate-600">·</span>
+      <a href="#fai-self-improve" class="text-cyan-400 hover:underline">SI</a>
       <span class="text-slate-600 mx-2">·</span>
-      <span class="text-slate-500">Panels sit <strong class="text-slate-400">below</strong> the three columns. Don’t see this strip after refresh?
-        Server needs latest <code class="fai-text-mono text-[10px] text-slate-400">fortress-ai</code>: <code class="fai-text-mono text-[10px]">git pull</code> + restart the dashboard process.</span>
+      <span class="text-slate-500">Scroll <strong class="text-slate-400">below</strong> the three columns. Hard refresh if build stamp is not <strong class="text-amber-200/90">{{ ui_build }}</strong>.</span>
     </div>
 
     <main class="fai-grid">

@@ -72,6 +72,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     comparison: null,
+    tradingDiagnostics: null,
+    skim: { universe: [], dry_run: null },
 
     spy: {
       symbol: "SPY",
@@ -94,10 +96,12 @@ document.addEventListener("alpine:init", () => {
 
     init() {
       this.expertMode = localStorage.getItem("fai_expert") === "1";
+      this.fetchSkimStatus();
       this.refresh();
       this.loadCharts();
       this.fetchComparison();
       this.fetchSpyStatus();
+      this.fetchSkimStatus();
       if (this.expertMode) this.fetchExpertBundle();
       this.startPolling();
       if (this.tabVisible) this.connectSSE();
@@ -127,6 +131,7 @@ document.addEventListener("alpine:init", () => {
         this.refresh();
         this.fetchComparison();
         this.fetchSpyStatus();
+        this.fetchSkimStatus();
       } else {
         this.stopPolling();
         this.disconnectSSE();
@@ -141,7 +146,10 @@ document.addEventListener("alpine:init", () => {
       this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
       this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
       this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
-      this.spyPollTimer = setInterval(() => this.fetchSpyStatus(), 45000);
+      this.spyPollTimer = setInterval(() => {
+        this.fetchSpyStatus();
+        this.fetchSkimStatus();
+      }, 45000);
     },
 
     stopPolling() {
@@ -224,6 +232,7 @@ document.addEventListener("alpine:init", () => {
           patch.ingest_health = { _missing: true };
         }
         this.state = { ...this.state, ...patch };
+        this.tradingDiagnostics = patch.trading_diagnostics || null;
         this.loopSeconds = Number(patch.loop_interval_seconds || 300);
         this.loading = false;
         this.error = null;
@@ -257,6 +266,16 @@ document.addEventListener("alpine:init", () => {
       const canvas = document.getElementById("fai-chart-comparison");
       if (window.FortressCharts && canvas && this.comparison?.chart) {
         window.FortressCharts.renderComparison(canvas, this.comparison.chart);
+      }
+    },
+
+    async fetchSkimStatus() {
+      try {
+        const r = await fetch("/api/skim/status");
+        if (!r.ok) throw new Error(await r.text());
+        this.skim = await r.json();
+      } catch (_) {
+        this.skim = this.skim || { error: "unavailable" };
       }
     },
 

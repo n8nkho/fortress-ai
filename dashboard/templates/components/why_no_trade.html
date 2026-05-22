@@ -1,0 +1,38 @@
+<section id="fai-why-no-trade" class="fai-panel rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 mb-4">
+  <h2 class="text-sm font-semibold text-amber-200/90 mb-2">Why no trade?</h2>
+  <p class="text-[11px] text-slate-500 mb-3">14-day block reasons (Fortress AI + legacy SPY logs). Fills in after market cycles run.</p>
+  <p x-show="!tradingDiagnostics || tradingDiagnostics.error" class="text-xs text-amber-200/80 mb-2">Loading diagnostics from <code class="fai-text-mono">/api/ai/current_state</code>…</p>
+  <template x-if="tradingDiagnostics && !tradingDiagnostics.error">
+    <div class="grid md:grid-cols-2 gap-4 text-xs">
+      <div>
+        <div class="text-cyan-300/90 font-medium mb-1">Fortress AI</div>
+        <div class="fai-text-mono text-slate-400">
+          dry_run: <span x-text="tradingDiagnostics.fortress_ai?.dry_run"></span> ·
+          min_conf: <span x-text="tradingDiagnostics.fortress_ai?.min_confidence"></span> ·
+          executed: <span x-text="tradingDiagnostics.fortress_ai?.executed"></span> /
+          <span x-text="tradingDiagnostics.fortress_ai?.cycles"></span> cycles
+        </div>
+        <ul class="mt-2 space-y-0.5 text-slate-300">
+          <template x-for="(cnt, reason) in (tradingDiagnostics.fortress_ai?.block_reason_counts || {})" :key="'ai-'+reason">
+            <li><span class="text-amber-200/80" x-text="reason"></span>: <span x-text="cnt"></span></li>
+          </template>
+        </ul>
+      </div>
+      <div>
+        <div class="text-fuchsia-300/90 font-medium mb-1">SPY intraday</div>
+        <div class="fai-text-mono text-slate-400">
+          dry_run: <span x-text="tradingDiagnostics.spy_intraday?.dry_run"></span> ·
+          min_conf: <span x-text="tradingDiagnostics.spy_intraday?.min_confidence"></span> ·
+          executed: <span x-text="tradingDiagnostics.spy_intraday?.executed"></span> /
+          <span x-text="tradingDiagnostics.spy_intraday?.cycles"></span> cycles
+        </div>
+        <ul class="mt-2 space-y-0.5 text-slate-300">
+          <template x-for="(cnt, reason) in (tradingDiagnostics.spy_intraday?.block_reason_counts || {})" :key="'spy-'+reason">
+            <li><span class="text-amber-200/80" x-text="reason"></span>: <span x-text="cnt"></span></li>
+          </template>
+        </ul>
+      </div>
+    </div>
+  </template>
+  <p x-show="tradingDiagnostics?.error" class="text-red-300/80 text-xs" x-text="tradingDiagnostics?.error"></p>
+</section>

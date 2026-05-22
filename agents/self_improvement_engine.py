@@ -528,5 +528,30 @@ Respond with JSON:
             return 0
 
 
+    def maybe_improve_after_cycle(self) -> dict[str, Any] | None:
+        """Called from unified agent loop — recursive SI every N cycles."""
+        if str(os.environ.get("FORTRESS_AI_SI_ENABLED", "1")).strip().lower() in ("0", "false", "no", "off"):
+            return None
+        every = max(5, int(os.environ.get("FORTRESS_AI_SI_EVERY_N_CYCLES", "10") or 10))
+        cp = _data_dir() / "ai_si_cycle_counter.json"
+        n = 0
+        if cp.exists():
+            try:
+                n = int(json.loads(cp.read_text(encoding="utf-8")).get("count", 0))
+            except Exception:
+                n = 0
+        n += 1
+        cp.write_text(
+            json.dumps({"count": n, "updated_utc": datetime.now(timezone.utc).isoformat()}, indent=2),
+            encoding="utf-8",
+        )
+        if n % every != 0:
+            return None
+        try:
+            return self.analyze_performance_and_propose_change()
+        except Exception as e:
+            return {"error": str(e)[:200], "cycle": n}
+
+
 def get_engine() -> SelfImprovementEngine:
     return SelfImprovementEngine()
