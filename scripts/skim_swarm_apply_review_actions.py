@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply operator review actions to skim swarm per-symbol params (no global bans)."""
+"""DEPRECATED: use per-symbol adaptive_policy via symbol_learning on each exit/boot."""
 from __future__ import annotations
 
 import argparse

@@ -39,6 +39,7 @@ from agents.skim_swarm.eod import describe_eod_phase
 from agents.skim_swarm.features import build_shared_context, _fetch_bars
 from agents.skim_swarm.observe import observe_account
 from agents.skim_swarm.session_reconcile import reconcile_session_on_boot
+from agents.skim_swarm.symbol_learning import sync_adaptive_state_on_boot
 from agents.skim_swarm.state import load_swarm_state, save_swarm_state
 from agents.skim_swarm.worker import run_symbol_cycle
 from utils.skim_swarm_config import (
@@ -104,6 +105,7 @@ def _wave_exit_pnl(results: list[dict]) -> float:
 def run_loop(iterations: int | None = None) -> None:
     _ensure_dirs()
     reconcile_report = reconcile_session_on_boot()
+    adaptive_report = sync_adaptive_state_on_boot()
     syms = universe()
     print(
         json.dumps(
@@ -115,6 +117,7 @@ def run_loop(iterations: int | None = None) -> None:
                 "rth": is_us_equity_rth_et(),
                 "eod_phase": describe_eod_phase(),
                 "session_reconcile": reconcile_report,
+                "adaptive_sync": adaptive_report,
             },
             default=str,
         ),

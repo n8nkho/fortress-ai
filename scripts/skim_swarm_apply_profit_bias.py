@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Loosen params on session winners so gains can accumulate (per-symbol only)."""
+"""DEPRECATED: winner bias is applied automatically by adaptive_policy per symbol."""
 from __future__ import annotations
 
 import argparse

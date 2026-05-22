@@ -16,6 +16,7 @@ from agents.skim_swarm.symbol_learning import (
     _learned_lock,
     catch_up_improvement,
     load_learned,
+    refresh_adaptive_params,
     save_learned,
 )
 from utils.skim_swarm_config import normalize_symbol, swarm_data_dir, universe
@@ -176,9 +177,10 @@ def reconcile_session_stats(*, force: bool = False) -> dict[str, Any]:
             continue
         updated.append(row)
         try:
+            refresh_adaptive_params(sym)
             catch_up_improvement(sym)
         except Exception:
-            logger.exception("catch_up_improvement failed for %s", sym)
+            logger.exception("adaptive refresh failed for %s", sym)
         logger.info(
             "reconciled %s session_stats exits %s->%s pnl=%s",
             sym,

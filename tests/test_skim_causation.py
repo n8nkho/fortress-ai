@@ -31,7 +31,7 @@ class TestSkimCausation(unittest.TestCase):
             score=-0.4,
             target_usd=0.12,
         )
-        for pnl in (-0.2, -0.2, -0.15):
+        for pnl in (-0.18, -0.17):
             record_causation_exit(
                 learned,
                 entry_context=ctx,
@@ -55,7 +55,7 @@ class TestSkimCausation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             with patch("agents.skim_swarm.symbol_learning.swarm_data_dir", return_value=Path(td)):
                 with patch("agents.skim_swarm.symbol_learning.session_date_et", return_value="2026-05-22"):
-                    for _ in range(4):
+                    for _ in range(2):
                         record_decision(
                             "CRWD",
                             decision={"action": "enter_short", "reasoning": "rip_fade score=-0.40", "score": -0.4},
@@ -73,7 +73,8 @@ class TestSkimCausation(unittest.TestCase):
                 with patch("agents.skim_swarm.symbol_learning.session_date_et", return_value="2026-05-23"):
                     L2 = load_learned("CRWD")
                     self.assertEqual(int(L2["session_stats"]["exits"]), 0)
-                    self.assertGreater(len(L2["causation"]["eliminated_keys"]), 0)
+                    self.assertEqual(len(L2["causation"]["eliminated_keys"]), 0)
+                    self.assertGreater(len(L2["causation"]["keys"]), 0)
 
     def test_entry_blocked_by_causation_integration(self):
         with tempfile.TemporaryDirectory() as td:

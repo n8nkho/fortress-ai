@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from agents.skim_swarm.adaptive_policy import apply_adaptations, reset_session_adaptive_state
 from agents.skim_swarm.eod import session_date_et
 from agents.skim_swarm.symbol_causation import (
     build_entry_context,
@@ -15,7 +16,7 @@ from agents.skim_swarm.symbol_causation import (
     ensure_causation,
     record_causation_exit,
 )
-from utils.skim_swarm_config import improve_interval_exits, improve_min_exits, runtime_overrides, swarm_data_dir, thin_etf_symbols
+from utils.skim_swarm_config import improve_interval_exits, improve_min_exits, runtime_overrides, side_pause_min_exits, swarm_data_dir, thin_etf_symbols
 
 _learned_lock = threading.RLock()
 
@@ -40,6 +41,7 @@ _DEFAULT_PARAMS = {
     "short_spy_filter": 0.0,
     "pause_long": False,
     "pause_short": False,
+    "pause_entries": False,
     "pattern_deltas": {p: 0.0 for p in _PATTERNS},
 }
 
@@ -55,6 +57,10 @@ _DEFAULT_SESSION_STATS = {
     "short_pnl_usd": 0.0,
     "long_exits": 0,
     "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0,
 }
 
 _DEFAULT_LEARNED = {
@@ -153,6 +159,7 @@ def _reset_session(learned: dict[str, Any]) -> dict[str, Any]:
     learned["last_entry_side"] = None
     learned["last_entry_context"] = None
     ensure_causation(learned)
+    reset_session_adaptive_state(learned)
     return learned
 
 
@@ -200,50 +207,12 @@ def append_experience(symbol: str, record: dict[str, Any]) -> None:
         f.write(json.dumps(rec, default=str) + "\n")
 
 
-def _clamp_param(name: str, val: float) -> float:
-    lo, hi = _BOUNDS.get(name, (-1.0, 1.0))
-    return max(lo, min(hi, val))
-
-
 def _entry_pattern_from_reasoning(reasoning: str | None) -> str | None:
     if not reasoning:
         return None
     head = str(reasoning).split()[0]
     if head in _PATTERNS:
         return head
-    return None
-
-
-def _analyze_short_spy_experience(symbol: str) -> float | None:
-    """Learn per-symbol SPY filter for shorts from entry experience."""
-    p = experience_path(symbol)
-    if not p.exists():
-        return None
-    short_loss_spy: list[float] = []
-    short_win_spy: list[float] = []
-    for line in p.read_text(encoding="utf-8").splitlines()[-120:]:
-        if not line.strip():
-            continue
-        try:
-            rec = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if rec.get("event") != "exit":
-            continue
-        if rec.get("side") != "short":
-            continue
-        spy = rec.get("entry_spy_r5m")
-        pnl = rec.get("pnl_usd")
-        if spy is None or pnl is None:
-            continue
-        (short_loss_spy if float(pnl) < 0 else short_win_spy).append(float(spy))
-    if len(short_loss_spy) < 3:
-        return None
-    loss_up = sum(1 for x in short_loss_spy if x > 0.0002)
-    if loss_up / len(short_loss_spy) >= 0.6:
-        return 0.00025
-    if short_win_spy and sum(1 for x in short_win_spy if x > 0.0002) / len(short_win_spy) >= 0.5:
-        return 0.0
     return None
 
 
@@ -264,89 +233,12 @@ def improve_from_history(symbol: str, *, force: bool = False) -> dict[str, Any] 
         losses = int(stats.get("losses") or 0)
         closed = max(wins + losses, 1)
         win_rate = wins / closed
-        sum_pnl = float(stats.get("sum_pnl_usd") or 0)
 
+        notes = apply_adaptations(symbol, learned, experience_path_fn=experience_path)
         params = learned["params"]
-        notes: list[str] = []
-        el = float(params.get("enter_long_delta") or 0)
-        es = float(params.get("enter_short_delta") or 0)
-        tm = float(params.get("target_mult") or 1)
-        cm = float(params.get("cooldown_mult") or 1)
-        sb = float(params.get("score_bias") or 0)
-        ssf = float(params.get("short_spy_filter") or 0)
-        pd = dict(params.get("pattern_deltas") or {})
-
-        long_pnl = float(stats.get("long_pnl_usd") or 0)
-        short_pnl = float(stats.get("short_pnl_usd") or 0)
-        long_ex = int(stats.get("long_exits") or 0)
-        short_ex = int(stats.get("short_exits") or 0)
-
-        if long_ex >= 3 and long_pnl < -0.75:
-            el += 0.02
-            notes.append(f"tighten_long pnl={long_pnl:.2f}")
-        elif long_ex >= 5 and long_pnl > 0.5:
-            el -= 0.01
-            notes.append(f"loosen_long pnl={long_pnl:.2f}")
-
-        if short_ex >= 3 and short_pnl < -0.75:
-            es += 0.02
-            notes.append(f"tighten_short pnl={short_pnl:.2f}")
-        elif short_ex >= 5 and short_pnl > 0.5:
-            es -= 0.01
-            notes.append(f"loosen_short pnl={short_pnl:.2f}")
-
-        for pattern, ps in (learned.get("pattern_stats") or {}).items():
-            p_ex = int(ps.get("exits") or 0)
-            p_pnl = float(ps.get("sum_pnl_usd") or 0)
-            if p_ex < 3:
-                continue
-            p_wr = int(ps.get("wins") or 0) / max(p_ex, 1)
-            cur = float(pd.get(pattern) or 0)
-            if p_pnl < -0.5 or p_wr < 0.35:
-                pd[pattern] = round(_clamp_param("pattern_delta", cur + 0.025), 4)
-                notes.append(f"tighten_{pattern} pnl={p_pnl:.2f}")
-            elif p_pnl > 0.4 and p_wr > 0.55:
-                pd[pattern] = round(_clamp_param("pattern_delta", cur - 0.015), 4)
-                notes.append(f"loosen_{pattern} pnl={p_pnl:.2f}")
-
-        causation = ensure_causation(learned)
-        for key in causation.get("eliminated_keys") or []:
-            parts = str(key).split("|")
-            if not parts:
-                continue
-            pat = parts[0]
-            if pat in pd:
-                pd[pat] = round(_clamp_param("pattern_delta", float(pd.get(pat) or 0) + 0.03), 4)
-                notes.append(f"causation_eliminated:{key[:48]}")
-
-        if win_rate < 0.38:
-            tm *= 0.94
-            cm *= 1.10
-            notes.append(f"shrink_targets win_rate={win_rate:.2f}")
-        elif win_rate > 0.62 and sum_pnl > 0.75 and exits >= 6:
-            tm *= 0.98
-            notes.append(f"loosen_targets win_rate={win_rate:.2f}")
-
-        if losses >= 3 and sum_pnl < 0:
-            cm *= 1.12
-            sb *= 0.5
-            notes.append("loss_streak_cooldown")
-
-        learned_spy = _analyze_short_spy_experience(symbol)
-        if learned_spy is not None:
-            ssf = learned_spy
-            notes.append(f"short_spy_filter={ssf:.5f}")
-
-        params["enter_long_delta"] = round(_clamp_param("enter_long_delta", el), 4)
-        params["enter_short_delta"] = round(_clamp_param("enter_short_delta", es), 4)
-        params["target_mult"] = round(_clamp_param("target_mult", tm), 4)
-        params["cooldown_mult"] = round(_clamp_param("cooldown_mult", cm), 4)
-        params["score_bias"] = round(_clamp_param("score_bias", sb), 4)
-        params["short_spy_filter"] = round(_clamp_param("short_spy_filter", ssf), 5)
-        params["pattern_deltas"] = pd
         stats["improvement_cycles"] = int(stats.get("improvement_cycles") or 0) + 1
         learned["last_improvement_utc"] = datetime.now(timezone.utc).isoformat()
-        learned["notes"] = (learned.get("notes") or [])[-8:] + notes
+        learned["notes"] = (learned.get("notes") or [])[-10:] + notes
         save_learned(symbol, learned)
         return {"symbol": symbol, "win_rate": win_rate, "adjustments": notes, "params": params}
 
@@ -361,6 +253,60 @@ def catch_up_improvement(symbol: str) -> dict[str, Any] | None:
     if cycles > 0 or exits < improve_min_exits():
         return None
     return improve_from_history(symbol, force=True)
+
+
+def sync_adaptive_state_on_boot(symbols: list[str] | None = None) -> dict[str, Any]:
+    """After reconcile: refresh per-symbol adaptive params; migrate off manual denylist."""
+    from utils.skim_swarm_config import runtime_denylist, side_pause_min_exits, swarm_data_dir, universe
+
+    syms = symbols or universe()
+    refreshed: list[str] = []
+    improved: list[str] = []
+    for sym in syms:
+        try:
+            with _learned_lock:
+                learned = load_learned(sym)
+                exits = int(learned["session_stats"].get("exits") or 0)
+                if exits >= side_pause_min_exits():
+                    notes = apply_adaptations(sym, learned, experience_path_fn=experience_path)
+                    if notes:
+                        learned["notes"] = (learned.get("notes") or [])[-10:] + ["boot_adaptive_refresh"]
+                        save_learned(sym, learned)
+                        refreshed.append(sym)
+            imp = catch_up_improvement(sym)
+            if imp:
+                improved.append(sym)
+        except Exception:
+            continue
+
+    ov_path = swarm_data_dir() / "runtime_overrides.json"
+    deny = runtime_denylist()
+    cleared: list[str] = []
+    if deny and ov_path.exists():
+        try:
+            ov = json.loads(ov_path.read_text(encoding="utf-8"))
+            if ov.pop("denylist_symbols", None):
+                ov["denylist_symbols_migrated_utc"] = datetime.now(timezone.utc).isoformat()
+                ov["note"] = "Per-symbol pause_entries/pause_long/pause_short adapt in learned/*.json"
+                ov_path.write_text(json.dumps(ov, indent=2), encoding="utf-8")
+                cleared = sorted(deny)
+        except Exception:
+            pass
+
+    return {"symbols_refreshed": refreshed, "symbols_improved": improved, "denylist_cleared": cleared}
+
+
+def refresh_adaptive_params(symbol: str) -> list[str] | None:
+    """Re-run adaptation without incrementing improvement_cycles (boot / reconcile helper)."""
+    with _learned_lock:
+        learned = load_learned(symbol)
+        exits = int(learned["session_stats"].get("exits") or 0)
+        if exits < side_pause_min_exits():
+            return None
+        notes = apply_adaptations(symbol, learned, experience_path_fn=experience_path)
+        if notes:
+            save_learned(symbol, learned)
+        return notes or None
 
 
 def record_decision(
@@ -439,9 +385,17 @@ def record_decision(
                     if side == "long":
                         stats["long_pnl_usd"] = round(float(stats.get("long_pnl_usd") or 0) + pv, 4)
                         stats["long_exits"] = int(stats.get("long_exits") or 0) + 1
+                        if pv >= 0:
+                            stats["long_wins"] = int(stats.get("long_wins") or 0) + 1
+                        else:
+                            stats["long_losses"] = int(stats.get("long_losses") or 0) + 1
                     elif side == "short":
                         stats["short_pnl_usd"] = round(float(stats.get("short_pnl_usd") or 0) + pv, 4)
                         stats["short_exits"] = int(stats.get("short_exits") or 0) + 1
+                        if pv >= 0:
+                            stats["short_wins"] = int(stats.get("short_wins") or 0) + 1
+                        else:
+                            stats["short_losses"] = int(stats.get("short_losses") or 0) + 1
                     if pattern and pattern in learned.get("pattern_stats", {}):
                         ps = learned["pattern_stats"][pattern]
                         ps["exits"] = int(ps.get("exits") or 0) + 1
@@ -524,6 +478,7 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
         "short_spy_filter": float(P.get("short_spy_filter") or 0.0),
         "pause_long": bool(P.get("pause_long")),
         "pause_short": bool(P.get("pause_short")),
+        "pause_entries": bool(P.get("pause_entries")),
         "pattern_deltas": {p: float(pd.get(p) or 0.0) for p in _PATTERNS},
     }
 

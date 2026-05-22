@@ -3,14 +3,32 @@ from __future__ import annotations
 
 from typing import Any
 
-# Minimum closed trades before a causal key can block entries for this symbol only.
-_MIN_SAMPLES_BLOCK = 3
-_MIN_SAMPLES_STRONG_BLOCK = 3
+from utils.skim_swarm_config import (
+    causation_block_pnl_hard,
+    causation_block_pnl_soft,
+    causation_block_win_rate,
+    causation_min_samples,
+)
 
-# Loss thresholds (per-symbol cumulative on one causal key) — tuned for ~$0.10 skim legs.
-_BLOCK_PNL_SOFT = -0.50
-_BLOCK_PNL_HARD = -0.75
-_BLOCK_WIN_RATE = 0.35
+
+def _min_samples_block() -> int:
+    return causation_min_samples()
+
+
+def _min_samples_strong_block() -> int:
+    return causation_min_samples()
+
+
+def _block_pnl_soft() -> float:
+    return causation_block_pnl_soft()
+
+
+def _block_pnl_hard() -> float:
+    return causation_block_pnl_hard()
+
+
+def _block_win_rate() -> float:
+    return causation_block_win_rate()
 
 
 def _f(v: Any, default: float = 0.0) -> float:
@@ -120,14 +138,17 @@ def _key_row(keys: dict[str, Any], causation_key: str) -> dict[str, Any]:
 
 def _should_eliminate(row: dict[str, Any]) -> bool:
     exits = int(row.get("exits") or 0)
-    if exits < _MIN_SAMPLES_STRONG_BLOCK:
+    if exits < _min_samples_strong_block():
         return False
     pnl = float(row.get("sum_pnl_usd") or 0)
     wins = int(row.get("wins") or 0)
+    losses = int(row.get("losses") or 0)
     wr = wins / max(exits, 1)
-    if exits >= _MIN_SAMPLES_BLOCK and pnl <= _BLOCK_PNL_SOFT and wr < _BLOCK_WIN_RATE:
+    if exits >= _min_samples_block() and pnl <= _block_pnl_soft() and wr < _block_win_rate():
         return True
-    if exits >= _MIN_SAMPLES_STRONG_BLOCK and pnl <= _BLOCK_PNL_HARD:
+    if exits >= _min_samples_strong_block() and pnl <= _block_pnl_hard():
+        return True
+    if losses >= 2 and wins == 0 and exits >= 2:
         return True
     return False
 

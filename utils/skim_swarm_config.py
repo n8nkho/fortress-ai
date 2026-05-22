@@ -234,17 +234,87 @@ def bar_provider() -> str:
 def improve_min_exits() -> int:
     """Minimum session exits before per-symbol param tuning runs."""
     try:
-        return max(3, int(os.environ.get("FORTRESS_SKIM_IMPROVE_MIN_EXITS", "15") or 15))
+        return max(3, int(os.environ.get("FORTRESS_SKIM_IMPROVE_MIN_EXITS", "10") or 10))
     except ValueError:
-        return 15
+        return 10
 
 
 def improve_interval_exits() -> int:
-    """Re-tune every N exits after improve_min_exits (15, 20, 25, ...)."""
+    """Re-tune every N exits after improve_min_exits (10, 15, 20, ...)."""
     try:
         return max(1, int(os.environ.get("FORTRESS_SKIM_IMPROVE_INTERVAL_EXITS", "5") or 5))
     except ValueError:
         return 5
+
+
+def side_pause_min_exits() -> int:
+    try:
+        return max(2, int(os.environ.get("FORTRESS_SKIM_SIDE_PAUSE_MIN_EXITS", "4") or 4))
+    except ValueError:
+        return 4
+
+
+def side_pause_min_pnl_usd() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_SIDE_PAUSE_MIN_PNL_USD", "-0.45") or -0.45)
+    except ValueError:
+        return -0.45
+
+
+def side_pause_share() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_SIDE_PAUSE_SHARE", "0.55") or 0.55)
+    except ValueError:
+        return 0.55
+
+
+def symbol_pause_min_exits() -> int:
+    try:
+        return max(4, int(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_MIN_EXITS", "8") or 8))
+    except ValueError:
+        return 8
+
+
+def symbol_pause_min_pnl_usd() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_MIN_PNL_USD", "-2.0") or -2.0)
+    except ValueError:
+        return -2.0
+
+
+def symbol_pause_win_rate() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_WIN_RATE", "0.38") or 0.38)
+    except ValueError:
+        return 0.38
+
+
+def causation_min_samples() -> int:
+    try:
+        return max(2, int(os.environ.get("FORTRESS_SKIM_CAUSATION_MIN_SAMPLES", "2") or 2))
+    except ValueError:
+        return 2
+
+
+def causation_block_pnl_soft() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_CAUSATION_PNL_SOFT", "-0.35") or -0.35)
+    except ValueError:
+        return -0.35
+
+
+def causation_block_pnl_hard() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_CAUSATION_PNL_HARD", "-0.55") or -0.55)
+    except ValueError:
+        return -0.55
+
+
+def causation_block_win_rate() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_CAUSATION_WIN_RATE", "0.40") or 0.40)
+    except ValueError:
+        return 0.40
 
 
 def symbol_denylist_for_unified_ai() -> frozenset[str]:

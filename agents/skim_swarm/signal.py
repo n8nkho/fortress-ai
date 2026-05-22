@@ -184,6 +184,11 @@ def decide(
         out["reasoning"] = "manual_denylist"
         return out
 
+    params_early = get_params(sym)
+    if side == "flat" and params_early.get("pause_entries"):
+        out["reasoning"] = "pause_entries"
+        return out
+
     if side == "flat" and _in_cooldown(symbol_state):
         out["reasoning"] = "cooldown"
         return out
