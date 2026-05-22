@@ -22,8 +22,28 @@ class TestSkimTuning(unittest.TestCase):
         self.assertTrue(guard.try_reserve())
 
     def test_stop_loss_capped(self):
-        self.assertEqual(stop_loss_usd(0.10), -0.25)
-        self.assertEqual(stop_loss_usd(1.0), -0.40)
+        self.assertEqual(stop_loss_usd(0.10), -0.10)
+        self.assertEqual(stop_loss_usd(1.0), -0.30)
+
+    def test_trailing_giveback_only_when_profitable(self):
+        features = {
+            "symbol": "AMZN",
+            "last": 100.0,
+            "r1m": 0.0,
+            "r5m": 0.0,
+            "atr1m": 0.15,
+            "rsi1m": 50,
+            "residual_vs_spy": 0.0,
+            "unrealized_usd": -0.35,
+            "side": "long",
+            "thin_etf": False,
+        }
+        st = {"side": "long", "peak_unrealized": 0.20}
+        with patch("agents.skim_swarm.signal.runtime_denylist", return_value=frozenset()):
+            d = decide(features, st, swarm_halted=False, open_positions=0, max_open=6)
+        self.assertEqual(d["action"], "exit_position")
+        self.assertIn("stop_loss", d["reasoning"])
+        self.assertNotEqual(d["reasoning"], "trailing_giveback")
 
     def test_spread_blocks_entry(self):
         features = {

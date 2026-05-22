@@ -159,16 +159,27 @@ def high_vol_target_cap_usd() -> float:
 
 def max_stop_usd() -> float:
     try:
-        return max(0.15, float(os.environ.get("FORTRESS_SKIM_MAX_STOP_USD", "0.40") or 0.40))
+        return max(0.10, float(os.environ.get("FORTRESS_SKIM_MAX_STOP_USD", "0.30") or 0.30))
     except ValueError:
-        return 0.40
+        return 0.30
+
+
+def min_stop_usd() -> float:
+    """Floor for stop distance — should track skim target scale, not a wide fixed $0.25."""
+    raw = (os.environ.get("FORTRESS_SKIM_MIN_STOP_USD") or "").strip()
+    if raw:
+        try:
+            return max(0.05, float(raw))
+        except ValueError:
+            pass
+    return max(min_target_usd(), 0.08)
 
 
 def stop_target_mult() -> float:
     try:
-        return max(1.0, float(os.environ.get("FORTRESS_SKIM_STOP_TARGET_MULT", "1.0") or 1.0))
+        return max(0.5, float(os.environ.get("FORTRESS_SKIM_STOP_TARGET_MULT", "1.0") or 1.0))
     except ValueError:
-        return 1.2
+        return 1.0
 
 
 def daily_stop_usd() -> float:

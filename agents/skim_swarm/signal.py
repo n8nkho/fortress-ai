@@ -17,6 +17,7 @@ from utils.skim_swarm_config import (
     max_spread_bps,
     max_stop_usd,
     mega_cap_tech_symbols,
+    min_stop_usd,
     min_target_pct,
     min_target_usd,
     runtime_denylist,
@@ -77,7 +78,7 @@ def compute_score(features: dict[str, Any]) -> float:
 
 
 def stop_loss_usd(target: float) -> float:
-    raw = max(target * stop_target_mult(), 0.25)
+    raw = max(target * stop_target_mult(), min_stop_usd())
     return -min(raw, max_stop_usd())
 
 
@@ -207,7 +208,7 @@ def decide(
             out["action"] = "exit_position"
             out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
             return out
-        if peak >= target * 0.6 and u < peak * 0.55:
+        if u > 0 and peak >= target * 0.6 and u < peak * 0.55:
             out["action"] = "exit_position"
             out["reasoning"] = "trailing_giveback"
             return out
@@ -227,7 +228,7 @@ def decide(
             out["action"] = "exit_position"
             out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
             return out
-        if peak >= target * 0.6 and u < peak * 0.55:
+        if u > 0 and peak >= target * 0.6 and u < peak * 0.55:
             out["action"] = "exit_position"
             out["reasoning"] = "trailing_giveback"
             return out
