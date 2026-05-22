@@ -73,6 +73,38 @@ class TestSkimTuning(unittest.TestCase):
         self.assertEqual(d["action"], "wait")
         self.assertIn("symbol_short_spy_filter", d["reasoning"])
 
+    def test_pause_long_blocks_long_entry(self):
+        features = {
+            "symbol": "CRWD",
+            "last": 100.0,
+            "r1m": -0.0005,
+            "r5m": 0.003,
+            "spy_r5m": 0.0,
+            "atr1m": 0.15,
+            "rsi1m": 52,
+            "residual_vs_spy": 0.002,
+            "side": "flat",
+            "thin_etf": False,
+        }
+        st = {"side": "flat", "peak_unrealized": 0}
+        params = {
+            "enter_long": 0.22,
+            "enter_short": -0.22,
+            "target_mult": 1.0,
+            "cooldown_mult": 1.0,
+            "score_bias": 0.0,
+            "short_spy_filter": 0.0,
+            "pause_long": True,
+            "pause_short": False,
+            "pattern_deltas": {"rip_fade": 0, "pullback_uptrend": 0, "momentum_long": 0, "momentum_short": 0},
+        }
+        with patch("agents.skim_swarm.signal.runtime_denylist", return_value=frozenset()):
+            with patch("agents.skim_swarm.signal.get_params", return_value=params):
+                with patch("agents.skim_swarm.signal.entry_blocked_by_causation", return_value=(False, None)):
+                    d = decide(features, st, swarm_halted=False, open_positions=0, max_open=6)
+        self.assertEqual(d["action"], "wait")
+        self.assertEqual(d["reasoning"], "pause_long")
+
     def test_analyze_uses_window_pnl_not_cumulative(self):
         with tempfile.TemporaryDirectory() as td:
             data_dir = Path(td)

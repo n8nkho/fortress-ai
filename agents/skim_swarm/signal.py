@@ -123,6 +123,12 @@ def _try_entry(
     spy_r5: float,
 ) -> dict[str, Any] | None:
     """Apply per-symbol causation gate before returning an entry decision."""
+    if side == "long" and params.get("pause_long"):
+        out["reasoning"] = "pause_long"
+        return out
+    if side == "short" and params.get("pause_short"):
+        out["reasoning"] = "pause_short"
+        return out
     if action == "enter_short" and _short_blocked_by_symbol_spy_filter(params, spy_r5):
         out["reasoning"] = f"symbol_short_spy_filter score={score:.2f}"
         return out

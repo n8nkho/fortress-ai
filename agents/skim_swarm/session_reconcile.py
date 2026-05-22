@@ -14,6 +14,7 @@ from agents.skim_swarm.symbol_learning import (
     _empty_pattern_stats,
     _entry_pattern_from_reasoning,
     _learned_lock,
+    catch_up_improvement,
     load_learned,
     save_learned,
 )
@@ -174,6 +175,10 @@ def reconcile_session_stats(*, force: bool = False) -> dict[str, Any]:
         if row is None:
             continue
         updated.append(row)
+        try:
+            catch_up_improvement(sym)
+        except Exception:
+            logger.exception("catch_up_improvement failed for %s", sym)
         logger.info(
             "reconciled %s session_stats exits %s->%s pnl=%s",
             sym,

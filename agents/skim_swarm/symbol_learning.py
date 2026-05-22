@@ -38,6 +38,8 @@ _DEFAULT_PARAMS = {
     "cooldown_mult": 1.0,
     "score_bias": 0.0,
     "short_spy_filter": 0.0,
+    "pause_long": False,
+    "pause_short": False,
     "pattern_deltas": {p: 0.0 for p in _PATTERNS},
 }
 
@@ -245,7 +247,7 @@ def _analyze_short_spy_experience(symbol: str) -> float | None:
     return None
 
 
-def improve_from_history(symbol: str) -> dict[str, Any] | None:
+def improve_from_history(symbol: str, *, force: bool = False) -> dict[str, Any] | None:
     """Tune this symbol's params from its own session exits and pattern stats."""
     min_ex = improve_min_exits()
     interval = improve_interval_exits()
@@ -255,7 +257,7 @@ def improve_from_history(symbol: str) -> dict[str, Any] | None:
         exits = int(stats.get("exits") or 0)
         if exits < min_ex:
             return None
-        if (exits - min_ex) % interval != 0:
+        if not force and (exits - min_ex) % interval != 0:
             return None
 
         wins = int(stats.get("wins") or 0)
@@ -347,6 +349,18 @@ def improve_from_history(symbol: str) -> dict[str, Any] | None:
         learned["notes"] = (learned.get("notes") or [])[-8:] + notes
         save_learned(symbol, learned)
         return {"symbol": symbol, "win_rate": win_rate, "adjustments": notes, "params": params}
+
+
+def catch_up_improvement(symbol: str) -> dict[str, Any] | None:
+    """Run one improvement when reconcile restored stats but tuning never fired."""
+    with _learned_lock:
+        learned = load_learned(symbol)
+        stats = learned["session_stats"]
+        exits = int(stats.get("exits") or 0)
+        cycles = int(stats.get("improvement_cycles") or 0)
+    if cycles > 0 or exits < improve_min_exits():
+        return None
+    return improve_from_history(symbol, force=True)
 
 
 def record_decision(
@@ -508,6 +522,8 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
         "cooldown_mult": float(P.get("cooldown_mult") or 1.0),
         "score_bias": float(P.get("score_bias") or 0.0),
         "short_spy_filter": float(P.get("short_spy_filter") or 0.0),
+        "pause_long": bool(P.get("pause_long")),
+        "pause_short": bool(P.get("pause_short")),
         "pattern_deltas": {p: float(pd.get(p) or 0.0) for p in _PATTERNS},
     }
 
