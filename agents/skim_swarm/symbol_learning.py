@@ -266,6 +266,9 @@ def sync_adaptive_state_on_boot(symbols: list[str] | None = None) -> dict[str, A
         try:
             with _learned_lock:
                 learned = load_learned(sym)
+                if promote_historical_verify_params(learned):
+                    learned["notes"] = (learned.get("notes") or [])[-10:] + ["promote_historical_disable_patterns"]
+                    save_learned(sym, learned)
                 exits = int(learned["session_stats"].get("exits") or 0)
                 if exits >= side_pause_min_exits():
                     notes = apply_adaptations(sym, learned, experience_path_fn=experience_path)
@@ -462,6 +465,26 @@ def entry_blocked_by_causation(
     )
 
 
+def _disable_patterns_from_learned(learned: dict[str, Any]) -> list[str]:
+    params = learned.get("params") or {}
+    if params.get("disable_patterns") is not None:
+        return list(params.get("disable_patterns") or [])
+    hv = learned.get("historical_verify") or {}
+    rec = hv.get("recommended_params") or {}
+    return list(rec.get("disable_patterns") or [])
+
+
+def promote_historical_verify_params(learned: dict[str, Any]) -> bool:
+    """Seed params.disable_patterns from historical_verify when apply left it nested only."""
+    params = learned.setdefault("params", {})
+    hv = learned.get("historical_verify") or {}
+    rec = hv.get("recommended_params") or {}
+    if params.get("disable_patterns") is None and rec.get("disable_patterns") is not None:
+        params["disable_patterns"] = list(rec["disable_patterns"])
+        return True
+    return False
+
+
 def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
     L = load_learned(symbol)
     P = L.get("params") or {}
@@ -480,6 +503,7 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
         "pause_short": bool(P.get("pause_short")),
         "pause_entries": bool(P.get("pause_entries")),
         "pattern_deltas": {p: float(pd.get(p) or 0.0) for p in _PATTERNS},
+        "disable_patterns": _disable_patterns_from_learned(L),
     }
 
 

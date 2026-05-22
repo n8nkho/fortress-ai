@@ -255,11 +255,16 @@ def _grid_search_train(sym: str, train_df: pd.DataFrame, cfg: SimConfig) -> dict
                     s = _summarize(trades)
                     if s["trades"] < 30:
                         continue
-                    # Prefer positive expectancy with enough trades
-                    score = s["sum_pnl_usd"] + s["avg_pnl"] * 10
+                    pat_active = [(p, st) for p, st in pstats.items() if st.trades >= 5]
+                    win_share = (
+                        sum(1 for _, st in pat_active if st.sum_pnl_usd > 0) / len(pat_active)
+                        if pat_active
+                        else 0.0
+                    )
+                    # Prefer positive expectancy and high winning-pattern share
+                    score = s["sum_pnl_usd"] + s["avg_pnl"] * 10 + win_share * 40
                     if score > best["score"]:
-                        pat_pnls = {p: st.sum_pnl_usd for p, st in pstats.items() if st.trades >= 5}
-                        disable = {p for p, v in pat_pnls.items() if v < -2.0}
+                        disable = {p for p, st in pstats.items() if st.trades >= 5 and st.sum_pnl_usd <= 0}
                         best = {
                             "score": score,
                             "params": {
@@ -359,6 +364,20 @@ def verify_symbol(
         if st.trades >= 10 and st.sum_pnl_usd > 1.0:
             recommendations.append(f"emphasize_{pat}")
 
+    # Enforce full-sample losers off the book (grid search uses train only)
+    disable = set(p.get("disable_patterns") or [])
+    for pat, st in full_pstats.items():
+        if st.trades >= 10 and st.sum_pnl_usd <= 0:
+            disable.add(pat)
+    p["disable_patterns"] = sorted(disable)
+
+    pat_active = [(pat, st) for pat, st in full_pstats.items() if st.trades >= 5]
+    win_pat_share = (
+        round(sum(1 for _, st in pat_active if st.sum_pnl_usd > 0) / len(pat_active), 3)
+        if pat_active
+        else None
+    )
+
     return {
         "symbol": sym,
         "ok": True,
@@ -381,6 +400,7 @@ def verify_symbol(
             for p, st in full_pstats.items()
         },
         "side_pnl": {"long": round(long_pnl, 2), "short": round(short_pnl, 2)},
+        "winning_pattern_share": win_pat_share,
         "recommendations": recommendations,
         "note": "Daily-bar proxy; calibrate live 1m params from direction/pattern edges only.",
     }
@@ -426,7 +446,14 @@ def apply_recommendations_to_learned(report: dict[str, Any]) -> list[str]:
         rec = row.get("recommended_params") or {}
         L = load_learned(sym)
         params = L.setdefault("params", {})
-        for k in ("enter_long_delta", "enter_short_delta", "target_mult", "short_spy_filter", "score_bias"):
+        for k in (
+            "enter_long_delta",
+            "enter_short_delta",
+            "target_mult",
+            "short_spy_filter",
+            "score_bias",
+            "disable_patterns",
+        ):
             if k in rec and rec[k] is not None:
                 params[k] = rec[k]
         notes = L.setdefault("notes", [])

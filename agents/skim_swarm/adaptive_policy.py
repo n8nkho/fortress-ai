@@ -1,4 +1,10 @@
-"""Per-symbol recursive self-improvement — all tunables adapt from this symbol's own stats."""
+"""Per-symbol recursive self-improvement — all tunables adapt from this symbol's own stats.
+
+Phase 1 (current): maximize winning-pattern share (positive PnL per pattern), not trade win rate.
+Phase 2 (deferred): Karpathy-style autoresearch after FORTRESS_SKIM_AUTORESEARCH_MIN_WINNING_SYMBOLS
+symbols sustain FORTRESS_SKIM_TARGET_WINNING_PATTERN_SHARE — threshold TBD from live paper data.
+See docs/SKIM_SWARM.md.
+"""
 from __future__ import annotations
 
 import json
@@ -6,12 +12,15 @@ from typing import Any
 
 from agents.skim_swarm.symbol_causation import ensure_causation
 from utils.skim_swarm_config import (
+    improve_min_exits,
+    pattern_disable_min_exits,
     side_pause_min_exits,
     side_pause_min_pnl_usd,
     side_pause_share,
     symbol_pause_min_exits,
     symbol_pause_min_pnl_usd,
     symbol_pause_win_rate,
+    target_winning_pattern_share,
 )
 
 _BOUNDS = {
@@ -25,6 +34,28 @@ _BOUNDS = {
 }
 
 _PATTERNS = ("rip_fade", "pullback_uptrend", "momentum_long", "momentum_short")
+
+
+def winning_pattern_share(
+    pattern_stats: dict[str, Any],
+    *,
+    min_exits: int = 2,
+    disabled: set[str] | None = None,
+) -> float | None:
+    """Share of enabled patterns (with min_exits) that have positive session PnL."""
+    skip = disabled or set()
+    scored: list[bool] = []
+    for pattern in _PATTERNS:
+        if pattern in skip:
+            continue
+        ps = pattern_stats.get(pattern) or {}
+        ex = int(ps.get("exits") or 0)
+        if ex < min_exits:
+            continue
+        scored.append(float(ps.get("sum_pnl_usd") or 0) > 0)
+    if not scored:
+        return None
+    return sum(scored) / len(scored)
 
 
 def clamp_param(name: str, val: float) -> float:
@@ -156,6 +187,63 @@ def _adapt_pattern_deltas(params: dict[str, Any], learned: dict[str, Any], notes
     params["pattern_deltas"] = pd
 
 
+def _adapt_disable_patterns(params: dict[str, Any], learned: dict[str, Any], notes: list[str]) -> None:
+    """Hard-disable toxic patterns; re-enable when live stats recover."""
+    disabled = set(params.get("disable_patterns") or [])
+    min_ex = pattern_disable_min_exits()
+    for pattern, ps in (learned.get("pattern_stats") or {}).items():
+        if pattern not in _PATTERNS:
+            continue
+        p_ex = int(ps.get("exits") or 0)
+        if p_ex < min_ex:
+            continue
+        p_wr = int(ps.get("wins") or 0) / max(p_ex, 1)
+        p_pnl = float(ps.get("sum_pnl_usd") or 0)
+        if p_pnl <= -0.10:
+            if pattern not in disabled:
+                disabled.add(pattern)
+                notes.append(f"auto_disable_{pattern} pnl={p_pnl:.2f}")
+        elif pattern in disabled and p_ex >= min_ex + 2 and p_pnl > 0.20:
+            disabled.discard(pattern)
+            notes.append(f"auto_enable_{pattern} pnl={p_pnl:.2f}")
+    params["disable_patterns"] = sorted(disabled)
+
+
+def _adapt_to_winning_pattern_share(
+    params: dict[str, Any], learned: dict[str, Any], notes: list[str]
+) -> None:
+    """Disable losing patterns until share of winning patterns meets goal."""
+    goal = target_winning_pattern_share()
+    pstats = learned.get("pattern_stats") or {}
+    disabled = set(params.get("disable_patterns") or [])
+    share = winning_pattern_share(
+        pstats, min_exits=pattern_disable_min_exits(), disabled=disabled
+    )
+    if share is None or share >= goal - 0.02:
+        return
+
+    disabled = set(params.get("disable_patterns") or [])
+    losers: list[tuple[str, float, int]] = []
+    for pattern in _PATTERNS:
+        if pattern in disabled:
+            continue
+        ps = pstats.get(pattern) or {}
+        ex = int(ps.get("exits") or 0)
+        if ex < pattern_disable_min_exits():
+            continue
+        pnl = float(ps.get("sum_pnl_usd") or 0)
+        if pnl <= 0:
+            losers.append((pattern, pnl, ex))
+    if not losers:
+        return
+
+    losers.sort(key=lambda x: x[1])
+    worst = losers[0][0]
+    disabled.add(worst)
+    params["disable_patterns"] = sorted(disabled)
+    notes.append(f"disable_loser_for_pattern_share:{worst} share={share:.2f} goal={goal:.2f}")
+
+
 def _adapt_targets_and_cooldown(params: dict[str, Any], stats: dict[str, Any], notes: list[str]) -> None:
     wins = int(stats.get("wins") or 0)
     losses = int(stats.get("losses") or 0)
@@ -259,6 +347,8 @@ def apply_adaptations(
     _adapt_entry_thresholds(params, stats, notes)
     _adapt_side_pauses(params, stats, notes)
     _adapt_pattern_deltas(params, learned, notes)
+    _adapt_disable_patterns(params, learned, notes)
+    _adapt_to_winning_pattern_share(params, learned, notes)
     _adapt_targets_and_cooldown(params, stats, notes)
     _adapt_short_spy_filter(symbol, params, stats, experience_path_fn, notes)
 

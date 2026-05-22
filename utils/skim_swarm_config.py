@@ -317,6 +317,46 @@ def causation_block_win_rate() -> float:
         return 0.40
 
 
+def target_winning_pattern_share() -> float:
+    """Goal share of patterns with positive PnL (default 75%). Not trade win rate."""
+    raw = (
+        os.environ.get("FORTRESS_SKIM_TARGET_WINNING_PATTERN_SHARE")
+        or os.environ.get("FORTRESS_SKIM_TARGET_WIN_RATE")
+        or "0.75"
+    )
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.75
+
+
+def target_win_rate() -> float:
+    """Deprecated alias — use target_winning_pattern_share()."""
+    return target_winning_pattern_share()
+
+
+def pattern_disable_min_exits() -> int:
+    try:
+        return max(2, int(os.environ.get("FORTRESS_SKIM_PATTERN_DISABLE_MIN_EXITS", "3") or 3))
+    except ValueError:
+        return 3
+
+
+def autoresearch_min_winning_symbols() -> int | None:
+    """Phase 2 gate — Karpathy-style autoresearch after N symbols sustain target_winning_pattern_share.
+
+    Unset/empty env = not ready to enable autoresearch (fine-tune pattern curation first).
+    Suggested starting point once live data confirms backtest: 12 of 15 universe symbols.
+    """
+    raw = (os.environ.get("FORTRESS_SKIM_AUTORESEARCH_MIN_WINNING_SYMBOLS") or "").strip()
+    if not raw:
+        return None
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return None
+
+
 def symbol_denylist_for_unified_ai() -> frozenset[str]:
     """Symbols reserved for skim swarm — unified agent must not trade them."""
     extra = (os.environ.get("FORTRESS_AI_SYMBOL_DENYLIST") or "").strip()

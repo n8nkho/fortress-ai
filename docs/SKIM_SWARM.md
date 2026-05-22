@@ -6,7 +6,22 @@ Always-on intraday service (`fortress-ai-skim-swarm`) trading up to **1 share** 
 
 `SPY, NVDA, MSFT, GOOG, AMZN, AAPL, SOXX, NASA, BRK.B, AGIX, AVGO, LLY, V, MA, PLTR, CRWD`
 
-Each symbol is a **self-improving agent**: after every 3 closed trades it adjusts entry thresholds, skim targets, and cooldowns from win rate and P&amp;L (`data/skim_swarm/learned/`). Company/ETF context is cached under `data/skim_swarm/company_context/` (yfinance + static summaries).
+Each symbol is a **self-improving agent**: after every 10 closed trades (then every 5) it adjusts entry thresholds, pattern disables, side pauses, and targets from **pattern-level P&amp;L** (`data/skim_swarm/learned/`). Company/ETF context is cached under `data/skim_swarm/company_context/` (yfinance + static summaries).
+
+### Phase 1 — pattern curation (now)
+
+Goal: **≥75% of enabled patterns per symbol have positive net PnL** (`FORTRESS_SKIM_TARGET_WINNING_PATTERN_SHARE=0.75`). This is **not** trade win rate. Historical seeds: `python3 scripts/skim_symbol_historical_verify.py --years 10 --apply`.
+
+### Phase 2 — autoresearch (deferred)
+
+Do **not** enable Karpathy-style strategy mutation until enough symbols pass Phase 1 on **live paper** data (not daily proxy alone). Gate env (threshold TBD):
+
+```bash
+# Example once validated: 12 of 15 universe symbols at ≥75% winning-pattern share
+# FORTRESS_SKIM_AUTORESEARCH_MIN_WINNING_SYMBOLS=12
+```
+
+Until set, autoresearch stays off; recursive improvement is deterministic (`adaptive_policy.py`, causation, `disable_patterns`).
 
 (`BRKB` in env aliases to `BRK.B`. `NASA` = Tema Space Innovators ETF.)
 

@@ -124,6 +124,9 @@ def _try_entry(
     spy_r5: float,
 ) -> dict[str, Any] | None:
     """Apply per-symbol causation gate before returning an entry decision."""
+    if pattern in (params.get("disable_patterns") or []):
+        out["reasoning"] = f"pattern_disabled:{pattern}"
+        return out
     if side == "long" and params.get("pause_long"):
         out["reasoning"] = "pause_long"
         return out
