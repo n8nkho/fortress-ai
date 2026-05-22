@@ -45,11 +45,11 @@ def get_spy_min_confidence() -> float:
         base = 0.85
     o = load_overrides().get("spy_min_confidence")
     if o is None:
-        return max(0.72, min(0.92, base))
+        return max(0.65, min(0.92, base))
     try:
-        return max(0.72, min(0.92, float(o)))
+        return max(0.65, min(0.92, float(o)))
     except (TypeError, ValueError):
-        return max(0.72, min(0.92, base))
+        return max(0.65, min(0.92, base))
 
 
 def get_spy_loop_seconds_rth() -> float:

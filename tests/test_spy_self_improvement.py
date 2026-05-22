@@ -67,7 +67,10 @@ class TestSpySelfImprovement(unittest.TestCase):
                         from agents.spy_self_improvement_engine import SpySelfImprovementEngine
 
                         eng = SpySelfImprovementEngine()
-                        with patch.dict("os.environ", {"FORTRESS_SPY_SI_EVERY_N_CYCLES": "5"}):
+                        with patch.dict(
+                            "os.environ",
+                            {"FORTRESS_SPY_SI_ENABLED": "1", "FORTRESS_SPY_SI_EVERY_N_CYCLES": "5"},
+                        ):
                             for _ in range(4):
                                 self.assertIsNone(eng.maybe_improve_after_cycle())
                             with patch.object(eng, "analyze_and_propose", return_value={"ok": True}):

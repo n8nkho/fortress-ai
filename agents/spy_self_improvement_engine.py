@@ -31,7 +31,7 @@ SPY_IMMUTABLE = {
 }
 
 SPY_TUNABLE_BOUNDS: dict[str, dict[str, float]] = {
-    "spy_min_confidence": {"min": 0.72, "max": 0.92},
+    "spy_min_confidence": {"min": 0.65, "max": 0.92},
     "spy_loop_seconds_rth": {"min": 120, "max": 600},
     "spy_loop_seconds_active": {"min": 60, "max": 360},
     "spy_ladder_rungs": {"min": 2, "max": 4},
