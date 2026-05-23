@@ -29,6 +29,30 @@ class TestGovernanceTiers(unittest.TestCase):
 
         self.assertEqual(determine_governance_tier("rsi_entry_threshold"), "tier_1_notify")
 
+    def test_tier_0_relaxed_proxy_auto_apply(self):
+        from utils.improvement_governance import meets_tier_0_relaxed_proxy
+
+        os.environ["FORTRESS_AI_SI_AUTO_APPLY"] = "1"
+        proposal = {
+            "parameter": "confidence_threshold",
+            "current_value": 0.75,
+            "proposed_value": 0.7,
+        }
+        shadow = {"decision_count": 120, "sample_decisions": 119}
+        self.assertTrue(meets_tier_0_relaxed_proxy(proposal, shadow))
+
+    def test_tier_0_relaxed_rejects_large_step(self):
+        from utils.improvement_governance import meets_tier_0_relaxed_proxy
+
+        os.environ["FORTRESS_AI_SI_AUTO_APPLY"] = "1"
+        proposal = {
+            "parameter": "confidence_threshold",
+            "current_value": 0.75,
+            "proposed_value": 0.55,
+        }
+        shadow = {"decision_count": 120}
+        self.assertFalse(meets_tier_0_relaxed_proxy(proposal, shadow))
+
 
 if __name__ == "__main__":
     unittest.main()

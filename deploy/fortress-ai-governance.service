@@ -1,0 +1,15 @@
+# Daily autonomous governance maintenance (veto windows, performance monitor).
+# Install: sudo cp deploy/fortress-ai-governance.* /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-governance.timer
+
+[Unit]
+Description=Fortress AI governance maintenance (autonomous)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/scripts/governance_maintenance.py

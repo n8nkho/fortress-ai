@@ -77,6 +77,56 @@ def determine_governance_tier(parameter: str) -> str:
     return "tier_2_require_approval"
 
 
+def si_auto_apply_enabled() -> bool:
+    return str(os.environ.get("FORTRESS_AI_SI_AUTO_APPLY", "1")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+_TIER_0_RELAXED_MAX_STEP = {
+    "confidence_threshold": 0.08,
+    "decision_interval": 300.0,
+}
+
+
+def meets_tier_0_relaxed_proxy(proposal: dict[str, Any], shadow_results: dict[str, Any]) -> bool:
+    """Bounded Tier-0 change with enough sample history — no human gate when auto-apply is on."""
+    if not si_auto_apply_enabled():
+        return False
+    param = str(proposal.get("parameter") or "")
+    if param not in TIER_0_PARAMS:
+        return False
+    try:
+        cur = float(proposal.get("current_value"))
+        new = float(proposal.get("proposed_value"))
+    except (TypeError, ValueError):
+        return False
+    from agents.self_improvement_engine import TUNABLE_BOUNDS
+
+    bounds = TUNABLE_BOUNDS.get(param) or {}
+    lo = float(bounds.get("min", new))
+    hi = float(bounds.get("max", new))
+    if new < lo or new > hi:
+        return False
+    if abs(new - cur) > float(_TIER_0_RELAXED_MAX_STEP.get(param, 0.05)):
+        return False
+
+    n = int(shadow_results.get("decision_count") or shadow_results.get("sample_decisions") or 0)
+    if n < 20:
+        return False
+
+    wr = shadow_results.get("win_rate_delta")
+    if wr is not None and float(wr) < -0.02:
+        return False
+    dd = shadow_results.get("max_drawdown_delta")
+    if dd is not None and float(dd) > 0.03:
+        return False
+    return True
+
+
 def meets_auto_approve_criteria(shadow_results: dict[str, Any]) -> bool:
     """Tier-0 gate: strict when win_rate_delta exists; proxy otherwise."""
     criteria = AUTO_APPROVE_CRITERIA
@@ -266,7 +316,13 @@ class ImprovementGovernance:
         return d
 
     def _process_tier_0(self, proposal: dict[str, Any], proposal_id: str, shadow: dict[str, Any]) -> dict[str, Any]:
+        via = None
         if meets_auto_approve_criteria(shadow):
+            via = "tier_0_auto"
+        elif meets_tier_0_relaxed_proxy(proposal, shadow):
+            via = "tier_0_relaxed_proxy"
+
+        if via:
             self.apply_change(proposal, proposal_id)
             self.log_outcome(
                 {
@@ -275,13 +331,25 @@ class ImprovementGovernance:
                     "old_value": proposal.get("current_value"),
                     "new_value": proposal.get("proposed_value"),
                     "status": "active",
-                    "via": "tier_0_auto",
+                    "via": via,
                 }
             )
             d = {
                 "proposal_id": proposal_id,
                 "decision": "auto_approved",
                 "governance_tier": "tier_0_auto",
+                "shadow_results": shadow,
+                "via": via,
+            }
+            self.log_decision(d)
+            return d
+
+        if si_auto_apply_enabled():
+            d = {
+                "proposal_id": proposal_id,
+                "decision": "skipped_tier_0_unsafe",
+                "governance_tier": "tier_0_auto",
+                "reason": "shadow_and_relaxed_criteria_not_met",
                 "shadow_results": shadow,
             }
             self.log_decision(d)

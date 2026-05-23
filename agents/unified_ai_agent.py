@@ -534,6 +534,14 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
         flush=True,
     )
     state = load_state()
+    try:
+        from agents.self_improvement_engine import get_engine
+
+        boot_gov = get_engine().process_autonomous_governance()
+        if boot_gov:
+            print(json.dumps({"event": "self_improvement_boot", "result": boot_gov}, default=str), flush=True)
+    except Exception:
+        pass
     n = 0
     while iterations is None or n < iterations:
         budget = weekly_llm_budget_status()

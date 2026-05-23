@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily Fortress AI governance maintenance
+
+[Timer]
+OnCalendar=*-*-* 06:15:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

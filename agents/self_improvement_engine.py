@@ -334,7 +334,15 @@ Respond with JSON:
         elif gdec in ("escalated_pending_human", "requires_explicit_approval"):
             rec["decision"] = "pending_human"
             rec["outcome"] = "pending"
-            _pending_path().write_text(json.dumps({"id": pid, **rec}, indent=2, default=str), encoding="utf-8")
+            if not (
+                str(os.environ.get("FORTRESS_AI_SI_AUTO_APPLY", "1")).strip().lower()
+                in ("1", "true", "yes", "on")
+            ):
+                _pending_path().write_text(
+                    json.dumps({"id": pid, **rec}, indent=2, default=str), encoding="utf-8"
+                )
+        elif gdec == "skipped_tier_0_unsafe":
+            rec["outcome"] = "skipped"
         elif gdec == "blocked_tier_3":
             raise RuntimeError("tier_3_blocked")
 
@@ -403,7 +411,7 @@ Respond with JSON:
         }
         save_overrides(cur)
 
-    def approve_pending(self, proposal_id: str | None = None) -> dict[str, Any]:
+    def approve_pending(self, proposal_id: str | None = None, *, via: str = "approved_human") -> dict[str, Any]:
         if not _pending_path().exists():
             raise FileNotFoundError("no_pending_proposal")
         pending = json.loads(_pending_path().read_text(encoding="utf-8"))
@@ -416,7 +424,7 @@ Respond with JSON:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "proposal_id": pid,
             "proposal": prop,
-            "decision": "approved_human",
+            "decision": via,
             "outcome": "applied",
         }
         with open(_log_path(), "a", encoding="utf-8") as f:
@@ -528,10 +536,43 @@ Respond with JSON:
             return 0
 
 
+    def process_autonomous_governance(self) -> dict[str, Any] | None:
+        """Apply expired veto windows and clear stale Tier-0 pending without human action."""
+        from utils.improvement_governance import (
+            ImprovementGovernance,
+            determine_governance_tier,
+            meets_tier_0_relaxed_proxy,
+            si_auto_apply_enabled,
+        )
+
+        out: dict[str, Any] = {}
+        if not si_auto_apply_enabled():
+            return None
+
+        applied = ImprovementGovernance().process_expired_veto_windows()
+        if applied:
+            out["veto_applied"] = applied
+
+        if _pending_path().exists():
+            try:
+                pending = json.loads(_pending_path().read_text(encoding="utf-8"))
+            except Exception:
+                pending = {}
+            prop = pending.get("proposal") or {}
+            tier = (pending.get("governance") or {}).get("governance_tier") or determine_governance_tier(
+                str(prop.get("parameter") or "")
+            )
+            shadow = pending.get("shadow_test") or (pending.get("governance") or {}).get("shadow_results") or {}
+            if tier == "tier_0_auto" and meets_tier_0_relaxed_proxy(prop, shadow):
+                out["pending_applied"] = self.approve_pending(via="auto_approved_relaxed")
+
+        return out or None
+
     def maybe_improve_after_cycle(self) -> dict[str, Any] | None:
         """Called from unified agent loop — recursive SI every N cycles."""
         if str(os.environ.get("FORTRESS_AI_SI_ENABLED", "1")).strip().lower() in ("0", "false", "no", "off"):
             return None
+        gov = self.process_autonomous_governance()
         every = max(5, int(os.environ.get("FORTRESS_AI_SI_EVERY_N_CYCLES", "10") or 10))
         cp = _data_dir() / "ai_si_cycle_counter.json"
         n = 0
@@ -546,11 +587,17 @@ Respond with JSON:
             encoding="utf-8",
         )
         if n % every != 0:
-            return None
+            return gov
         try:
-            return self.analyze_performance_and_propose_change()
+            rec = self.analyze_performance_and_propose_change()
+            if gov:
+                rec = {**(rec or {}), "governance": gov}
+            return rec
         except Exception as e:
-            return {"error": str(e)[:200], "cycle": n}
+            err = {"error": str(e)[:200], "cycle": n}
+            if gov:
+                err["governance"] = gov
+            return err
 
 
 def get_engine() -> SelfImprovementEngine:
