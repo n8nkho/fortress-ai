@@ -484,7 +484,8 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     try:
         from alpaca.trading.requests import MarketOrderRequest
 
-        order_data = MarketOrderRequest(symbol=sym, qty=qty, side=side, time_in_force="day")
+        alpaca_side = "buy" if side == "BUY" else "sell" if side == "SELL" else str(side).lower()
+        order_data = MarketOrderRequest(symbol=sym, qty=qty, side=alpaca_side, time_in_force="day")
         order = tc.submit_order(order_data)
         result["executed"] = True
         result["detail"] = {"id": str(order.id), "status": str(order.status)}

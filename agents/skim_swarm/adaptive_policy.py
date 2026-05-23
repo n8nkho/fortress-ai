@@ -187,9 +187,14 @@ def _adapt_pattern_deltas(params: dict[str, Any], learned: dict[str, Any], notes
     params["pattern_deltas"] = pd
 
 
+def _historical_seed_disables(learned: dict[str, Any]) -> set[str]:
+    return set(learned.get("historical_seed_disables") or [])
+
+
 def _adapt_disable_patterns(params: dict[str, Any], learned: dict[str, Any], notes: list[str]) -> None:
-    """Hard-disable toxic patterns; re-enable when live stats recover."""
+    """Hard-disable toxic patterns; re-enable only with live recovery (historical disables need stronger proof)."""
     disabled = set(params.get("disable_patterns") or [])
+    seed_disables = _historical_seed_disables(learned)
     min_ex = pattern_disable_min_exits()
     for pattern, ps in (learned.get("pattern_stats") or {}).items():
         if pattern not in _PATTERNS:
@@ -204,6 +209,8 @@ def _adapt_disable_patterns(params: dict[str, Any], learned: dict[str, Any], not
                 disabled.add(pattern)
                 notes.append(f"auto_disable_{pattern} pnl={p_pnl:.2f}")
         elif pattern in disabled and p_ex >= min_ex + 2 and p_pnl > 0.20:
+            if pattern in seed_disables and (p_pnl <= 0.35 or p_wr < 0.55):
+                continue
             disabled.discard(pattern)
             notes.append(f"auto_enable_{pattern} pnl={p_pnl:.2f}")
     params["disable_patterns"] = sorted(disabled)

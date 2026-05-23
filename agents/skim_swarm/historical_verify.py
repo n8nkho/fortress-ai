@@ -436,7 +436,7 @@ def verify_universe(years: int = 10, out_path: Path | None = None) -> dict[str, 
 
 def apply_recommendations_to_learned(report: dict[str, Any]) -> list[str]:
     """Seed learned/*.json params from historical verification (non-destructive merge)."""
-    from agents.skim_swarm.symbol_learning import load_learned, save_learned
+    from agents.skim_swarm.symbol_learning import load_learned, refresh_historical_seeds, save_learned
 
     applied: list[str] = []
     for row in report.get("symbols") or []:
@@ -456,15 +456,17 @@ def apply_recommendations_to_learned(report: dict[str, Any]) -> list[str]:
         ):
             if k in rec and rec[k] is not None:
                 params[k] = rec[k]
-        notes = L.setdefault("notes", [])
-        notes.append(f"historical_verify:{row.get('history_start')}->{row.get('history_end')}")
-        L["notes"] = notes[-12:]
         L["historical_verify"] = {
             "ts": report.get("ts"),
             "test_summary": row.get("test_summary"),
             "recommendations": row.get("recommendations"),
             "recommended_params": rec,
+            "winning_pattern_share": row.get("winning_pattern_share"),
         }
+        refresh_historical_seeds(L)
+        notes = L.setdefault("notes", [])
+        notes.append(f"historical_verify:{row.get('history_start')}->{row.get('history_end')}")
+        L["notes"] = notes[-12:]
         save_learned(sym, L)
         applied.append(sym)
     return applied

@@ -82,6 +82,8 @@ document.addEventListener("alpine:init", () => {
     skimPollTimer: null,
 
     init() {
+      this.loadSkimFallbackUniverse();
+      this.recomputeSkimSort();
       this.expertMode = localStorage.getItem("fai_expert") === "1";
       this.fetchSkimStatus();
       this.refresh();
@@ -253,6 +255,15 @@ document.addEventListener("alpine:init", () => {
       if (window.FortressCharts && canvas && this.comparison?.chart) {
         window.FortressCharts.renderComparison(canvas, this.comparison.chart);
       }
+    },
+
+    loadSkimFallbackUniverse() {
+      try {
+        const el = document.getElementById("fai-skim-fallback-universe");
+        if (!el?.textContent) return;
+        const parsed = JSON.parse(el.textContent);
+        if (Array.isArray(parsed)) this.skimFallbackUniverse = parsed;
+      } catch (_) {}
     },
 
     async fetchSkimStatus() {

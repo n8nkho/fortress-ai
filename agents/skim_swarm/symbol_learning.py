@@ -261,14 +261,16 @@ def sync_adaptive_state_on_boot(symbols: list[str] | None = None) -> dict[str, A
 
     syms = symbols or universe()
     refreshed: list[str] = []
+    seeded: list[str] = []
     improved: list[str] = []
     for sym in syms:
         try:
             with _learned_lock:
                 learned = load_learned(sym)
-                if promote_historical_verify_params(learned):
-                    learned["notes"] = (learned.get("notes") or [])[-10:] + ["promote_historical_disable_patterns"]
+                if refresh_historical_seeds(learned):
+                    learned["notes"] = (learned.get("notes") or [])[-10:] + ["boot_historical_seed_refresh"]
                     save_learned(sym, learned)
+                    seeded.append(sym)
                 exits = int(learned["session_stats"].get("exits") or 0)
                 if exits >= side_pause_min_exits():
                     notes = apply_adaptations(sym, learned, experience_path_fn=experience_path)
@@ -296,7 +298,7 @@ def sync_adaptive_state_on_boot(symbols: list[str] | None = None) -> dict[str, A
         except Exception:
             pass
 
-    return {"symbols_refreshed": refreshed, "symbols_improved": improved, "denylist_cleared": cleared}
+    return {"symbols_seeded": seeded, "symbols_refreshed": refreshed, "symbols_improved": improved, "denylist_cleared": cleared}
 
 
 def refresh_adaptive_params(symbol: str) -> list[str] | None:
@@ -465,24 +467,61 @@ def entry_blocked_by_causation(
     )
 
 
+_HISTORICAL_SEED_KEYS = (
+    "enter_long_delta",
+    "enter_short_delta",
+    "target_mult",
+    "short_spy_filter",
+    "score_bias",
+    "disable_patterns",
+)
+
+
+def _historical_recommended(learned: dict[str, Any]) -> dict[str, Any]:
+    hv = learned.get("historical_verify") or {}
+    return hv.get("recommended_params") or {}
+
+
+def refresh_historical_seeds(learned: dict[str, Any]) -> bool:
+    """Reset seed params from latest historical_verify; live session may add disables later."""
+    rec = _historical_recommended(learned)
+    if not rec:
+        return False
+    params = learned.setdefault("params", {})
+    changed = False
+    for k in _HISTORICAL_SEED_KEYS:
+        if k not in rec or rec[k] is None:
+            continue
+        val = list(rec[k]) if k == "disable_patterns" else rec[k]
+        if params.get(k) != val:
+            params[k] = val
+            changed = True
+    seed_disables = list(rec.get("disable_patterns") or [])
+    if learned.get("historical_seed_disables") != seed_disables:
+        learned["historical_seed_disables"] = seed_disables
+        changed = True
+    if len(seed_disables) >= len(_PATTERNS):
+        if not params.get("pause_entries"):
+            params["pause_entries"] = True
+            changed = True
+    elif params.get("pause_entries") and len(seed_disables) < len(_PATTERNS):
+        # Historical seed re-enabled at least one pattern — clear full pause from prior all-disabled seed.
+        params["pause_entries"] = False
+        changed = True
+    return changed
+
+
+def promote_historical_verify_params(learned: dict[str, Any]) -> bool:
+    """Legacy helper — prefer refresh_historical_seeds on boot."""
+    return refresh_historical_seeds(learned)
+
+
 def _disable_patterns_from_learned(learned: dict[str, Any]) -> list[str]:
     params = learned.get("params") or {}
     if params.get("disable_patterns") is not None:
         return list(params.get("disable_patterns") or [])
-    hv = learned.get("historical_verify") or {}
-    rec = hv.get("recommended_params") or {}
+    rec = _historical_recommended(learned)
     return list(rec.get("disable_patterns") or [])
-
-
-def promote_historical_verify_params(learned: dict[str, Any]) -> bool:
-    """Seed params.disable_patterns from historical_verify when apply left it nested only."""
-    params = learned.setdefault("params", {})
-    hv = learned.get("historical_verify") or {}
-    rec = hv.get("recommended_params") or {}
-    if params.get("disable_patterns") is None and rec.get("disable_patterns") is not None:
-        params["disable_patterns"] = list(rec["disable_patterns"])
-        return True
-    return False
 
 
 def get_params(symbol: str) -> dict[str, float | dict[str, float]]:

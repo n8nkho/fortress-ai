@@ -15,7 +15,7 @@
   <style>[x-cloak]{display:none!important}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="{{ url_for('static', filename='js/charts.js') }}?v=17"></script>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=25"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=26"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
   <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=12" defer></script>
 </head>
@@ -142,5 +142,6 @@
       </div>
     </div>
   </div>
+  <script type="application/json" id="fai-skim-fallback-universe">{{ skim_preview.universe|tojson }}</script>
 </body>
 </html>
