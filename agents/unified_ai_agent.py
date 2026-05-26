@@ -251,6 +251,8 @@ def build_prompt(
     constraints = (
         "Mean-reversion bias; equities only in MVP. "
         "Max position notional respects FORTRESS_MAX_ORDER_NOTIONAL_USD. "
+        "Never enter_position for a symbol you already hold (adds are blocked). "
+        "For exit_position, qty may be chunked automatically under notional caps. "
         f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually. "
         "PAPER/LIVE: When watchlist_hint symbols exist and VIX is not elevated, prefer enter_position "
         f"with confidence >= {_min_confidence_execute():.2f} over prolonged wait. "
@@ -420,6 +422,25 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         result["detail"] = "invalid_symbol_or_qty"
         return result
 
+    from utils.order_chunking import chunk_qtys, held_qty_for_symbol, max_order_notional_usd
+
+    positions = observation.get("positions") or []
+    held_qty = held_qty_for_symbol(positions, sym)
+
+    if action == "enter_position" and held_qty > 0:
+        result["detail"] = f"already_holding:{sym}:{held_qty}"
+        result["block_reason"] = "already_holding"
+        return result
+
+    if action == "exit_position":
+        if held_qty <= 0:
+            result["detail"] = f"no_position:{sym}"
+            result["block_reason"] = "no_position"
+            return result
+        if qty > held_qty:
+            qty = held_qty
+            result["qty_clamped_to_position"] = True
+
     qty_requested = qty
 
     side = "BUY" if action == "enter_position" else "SELL"
@@ -461,20 +482,14 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         ask_e = float(px) * 1.0015
         quote_age = 45.0
 
-    gate = evaluate_pre_trade_submission(
-        side=side,
-        symbol=sym,
-        qty=float(qty),
-        estimated_notional_usd=est,
-        portfolio_equity_usd=equity if equity > 0 else None,
-        order_class="equity",
-        bid=bid_e,
-        ask=ask_e,
-        quote_age_seconds=quote_age,
-    )
-    if not gate["allowed"]:
-        result["detail"] = format_gate_block_message(gate)
+    max_notional = max_order_notional_usd(side=side, portfolio_equity_usd=equity if equity > 0 else None)
+    order_qtys = chunk_qtys(qty, px=float(px or 0), max_notional_usd=max_notional) if px else [qty]
+    if not order_qtys:
+        result["detail"] = "invalid_chunk_qty"
         return result
+    if len(order_qtys) > 1:
+        result["chunked_exit"] = True
+        result["chunk_count"] = len(order_qtys)
 
     tc = _alpaca_client()
     if not tc:
@@ -485,12 +500,40 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         from alpaca.trading.requests import MarketOrderRequest
 
         alpaca_side = "buy" if side == "BUY" else "sell" if side == "SELL" else str(side).lower()
-        order_data = MarketOrderRequest(symbol=sym, qty=qty, side=alpaca_side, time_in_force="day")
-        order = tc.submit_order(order_data)
+        submitted: list[dict[str, Any]] = []
+        for chunk_qty in order_qtys:
+            chunk_est = chunk_qty * px if px else None
+            gate = evaluate_pre_trade_submission(
+                side=side,
+                symbol=sym,
+                qty=float(chunk_qty),
+                estimated_notional_usd=chunk_est,
+                portfolio_equity_usd=equity if equity > 0 else None,
+                order_class="equity",
+                bid=bid_e,
+                ask=ask_e,
+                quote_age_seconds=quote_age,
+            )
+            if not gate["allowed"]:
+                if submitted:
+                    result["executed"] = True
+                    result["partial"] = True
+                    result["detail"] = {"orders": submitted, "stopped_at": format_gate_block_message(gate)}
+                    result["block_reason"] = "partial_exit"
+                    return result
+                result["detail"] = format_gate_block_message(gate)
+                return result
+
+            order_data = MarketOrderRequest(
+                symbol=sym, qty=chunk_qty, side=alpaca_side, time_in_force="day"
+            )
+            order = tc.submit_order(order_data)
+            submitted.append({"id": str(order.id), "status": str(order.status), "qty": chunk_qty})
+
         result["executed"] = True
-        result["detail"] = {"id": str(order.id), "status": str(order.status)}
+        result["detail"] = submitted[0] if len(submitted) == 1 else {"orders": submitted}
         result["block_reason"] = "executed"
-        if action == "exit_position":
+        if action == "exit_position" and submitted:
             try:
                 from utils.ai_pnl_ledger import append_realized_fill
 
@@ -502,13 +545,15 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                         except (TypeError, ValueError):
                             pnl_est = 0.0
                         break
+                sold = sum(int(o.get("qty") or 0) for o in submitted)
+                ratio = sold / held_qty if held_qty > 0 else 1.0
                 append_realized_fill(
                     symbol=sym,
-                    pnl_usd=pnl_est,
+                    pnl_usd=pnl_est * ratio,
                     side=side,
-                    qty=qty,
-                    order_id=str(order.id),
-                    extra={"action": action, "note": "exit_fill_pnl_estimate"},
+                    qty=sold,
+                    order_id=str(submitted[-1].get("id") or ""),
+                    extra={"action": action, "note": "exit_fill_pnl_estimate", "chunked": len(submitted) > 1},
                 )
             except Exception:
                 pass

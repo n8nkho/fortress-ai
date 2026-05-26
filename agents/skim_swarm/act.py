@@ -1,4 +1,4 @@
-"""Execute skim actions — max 1 share per symbol."""
+"""Execute skim actions — max 1 share per symbol on entry; exits sized to position."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -7,6 +7,7 @@ from typing import Any
 import yfinance as yf
 
 from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
+from utils.order_chunking import chunk_qtys, max_order_notional_usd
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
 from utils.skim_swarm_config import dry_run, max_shares, normalize_symbol
 
@@ -73,8 +74,12 @@ def act(
     pos_qty = int(pos.get("qty") or 0)
     qty_cap = max_shares()
 
-    def _submit(side: str, qty: int) -> dict[str, Any]:
-        if qty <= 0 or qty > qty_cap:
+    def _submit_one(side: str, qty: int, *, is_exit: bool) -> dict[str, Any]:
+        if qty <= 0:
+            return {"executed": False, "detail": "qty_invalid", "block_reason": "qty_invalid"}
+        if not is_exit and qty > qty_cap:
+            return {"executed": False, "detail": "qty_invalid", "block_reason": "qty_invalid"}
+        if is_exit and qty > pos_qty:
             return {"executed": False, "detail": "qty_invalid", "block_reason": "qty_invalid"}
         est = qty * px
         gate = evaluate_pre_trade_submission(
@@ -94,7 +99,6 @@ def act(
         try:
             from alpaca.trading.requests import MarketOrderRequest
 
-            # Alpaca SDK v2 expects lowercase buy/sell (not BUY/SELL).
             alpaca_side = "buy" if side == "BUY" else "sell" if side == "SELL" else str(side).lower()
             order = tc.submit_order(
                 MarketOrderRequest(symbol=sym, qty=qty, side=alpaca_side, time_in_force="day")
@@ -111,13 +115,38 @@ def act(
                 "block_reason": "broker_error",
             }
 
+    def _submit_exit(side: str, total_qty: int) -> dict[str, Any]:
+        max_notional = max_order_notional_usd(side=side, portfolio_equity_usd=equity if equity > 0 else None)
+        chunks = chunk_qtys(total_qty, px=float(px), max_notional_usd=max_notional)
+        submitted: list[dict[str, Any]] = []
+        for q in chunks:
+            r = _submit_one(side, q, is_exit=True)
+            if not r.get("executed"):
+                if submitted:
+                    return {
+                        "executed": True,
+                        "partial": True,
+                        "detail": {"orders": submitted, "stopped_at": r.get("detail")},
+                        "block_reason": "partial_exit",
+                    }
+                return r
+            submitted.append(r["detail"])
+        if len(submitted) == 1:
+            return {"executed": True, "detail": submitted[0], "block_reason": "executed"}
+        return {
+            "executed": True,
+            "chunked_exit": True,
+            "detail": {"orders": submitted},
+            "block_reason": "executed",
+        }
+
     if action == "flatten":
         if pos_qty <= 0:
             result["detail"] = "already_flat"
             result["block_reason"] = "already_flat"
             return result
         side = "SELL" if pos_side == "long" else "BUY"
-        result.update(_submit(side, pos_qty))
+        result.update(_submit_exit(side, pos_qty))
         return result
 
     if action == "exit_position":
@@ -126,7 +155,7 @@ def act(
             result["block_reason"] = "no_position"
             return result
         side = "SELL" if pos_side == "long" else "BUY"
-        result.update(_submit(side, pos_qty))
+        result.update(_submit_exit(side, pos_qty))
         return result
 
     if action == "enter_long":
@@ -134,7 +163,7 @@ def act(
             result["detail"] = f"not_flat:{pos_side}"
             result["block_reason"] = "not_flat"
             return result
-        result.update(_submit("BUY", qty_cap))
+        result.update(_submit_one("BUY", qty_cap, is_exit=False))
         return result
 
     if action == "enter_short":
@@ -142,7 +171,7 @@ def act(
             result["detail"] = f"not_flat:{pos_side}"
             result["block_reason"] = "not_flat"
             return result
-        result.update(_submit("SELL", qty_cap))
+        result.update(_submit_one("SELL", qty_cap, is_exit=False))
         return result
 
     result["detail"] = "unknown_action"

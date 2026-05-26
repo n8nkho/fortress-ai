@@ -358,8 +358,31 @@ def apply_adaptations(
     _adapt_to_winning_pattern_share(params, learned, notes)
     _adapt_targets_and_cooldown(params, stats, notes)
     _adapt_short_spy_filter(symbol, params, stats, experience_path_fn, notes)
+    _adapt_integrity_recommendations(params, notes)
 
     return notes
+
+
+def _adapt_integrity_recommendations(params: dict[str, Any], notes: list[str]) -> None:
+    """Apply bounded nudges from cross-symbol integrity scan (recursive SI hook)."""
+    try:
+        from utils.integrity_diagnostics import skim_adaptive_actions
+
+        actions = skim_adaptive_actions()
+    except Exception:
+        return
+    if not actions:
+        return
+    cm = float(params.get("cooldown_mult") or 1)
+    sb = float(params.get("score_bias") or 0)
+    if "cooldown_mult" in actions:
+        cm = clamp_param("cooldown_mult", cm + float(actions["cooldown_mult"]))
+        notes.append(f"integrity_cooldown_mult={cm:.3f}")
+    if "score_bias" in actions:
+        sb = clamp_param("score_bias", sb + float(actions["score_bias"]))
+        notes.append(f"integrity_score_bias={sb:.3f}")
+    params["cooldown_mult"] = round(cm, 4)
+    params["score_bias"] = round(sb, 4)
 
 
 def reset_session_adaptive_state(learned: dict[str, Any]) -> None:

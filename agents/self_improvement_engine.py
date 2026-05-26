@@ -231,14 +231,20 @@ class SelfImprovementEngine:
 
     def propose_via_llm(self) -> dict[str, Any]:
         from agents.unified_ai_agent import call_deepseek, _parse_llm_json
+        from utils.integrity_diagnostics import findings_for_si_prompt, run_integrity_scan
 
         perf = self.load_recent_performance()
         tunable = self.current_tunable_snapshot()
+        integrity = run_integrity_scan(log=True)
+        integrity_blob = findings_for_si_prompt(integrity)
         prompt = f"""You are a conservative trading-system tuner. Output ONE JSON object only (no markdown).
 
 IMMUTABLE (never propose changing): {json.dumps(IMMUTABLE_CONSTRAINTS)}
 TUNABLE_BOUNDS: {json.dumps(TUNABLE_BOUNDS)}
 CURRENT_TUNABLE: {json.dumps(tunable)}
+
+INTEGRITY_SCAN (address via safe tunables when possible; never weaken pre-trade gate):
+{integrity_blob}
 
 Recent stats (best-effort from logs):
 - decisions_sampled: {perf.decision_count}
@@ -247,6 +253,8 @@ Recent stats (best-effort from logs):
 - missed_proxy_count: {perf.missed_count}
 
 Propose exactly ONE parameter change within bounds to improve opportunity capture OR stability.
+If duplicate_entry_accumulation or exit_notional_blocked appeared, prefer raising confidence_threshold
+or decision_interval to reduce unsafe repeat entries until code guards hold.
 Respond with JSON:
 {{"parameter":"confidence_threshold|decision_interval|rsi_entry_threshold|position_size_pct","current_value":number,"proposed_value":number,"reasoning":"...","expected_impact":"...","risks":"..."}}
 """
@@ -259,7 +267,26 @@ Respond with JSON:
 
     def propose_heuristic(self) -> dict[str, Any]:
         """Fallback when LLM unavailable — tiny nudge toward mid-bound if at edge."""
+        from utils.integrity_diagnostics import run_integrity_scan
+
+        integrity = run_integrity_scan(log=False)
+        codes = {str(f.get("code") or "") for f in integrity.get("findings") or []}
         tunable = self.current_tunable_snapshot()
+        if "duplicate_entry_accumulation" in codes or "exit_notional_blocked" in codes:
+            ct = float(tunable["confidence_threshold"])
+            new_ct = min(TUNABLE_BOUNDS["confidence_threshold"]["max"], round(ct + 0.03, 4))
+            raw = {
+                "parameter": "confidence_threshold",
+                "current_value": ct,
+                "proposed_value": new_ct,
+                "reasoning": "Integrity: duplicate entries or blocked exits — raise threshold conservatively.",
+                "expected_impact": "Fewer repeat enter attempts while position guards stabilize.",
+                "risks": "May reduce trade count.",
+            }
+            val = self.validate_proposal_json(raw)
+            if val:
+                return {"proposal": val, "usage": {}, "integrity_triggered": True}
+
         # Nudge confidence down 0.02 if avg confidence high and many waits — conservative demo
         ct = float(tunable["confidence_threshold"])
         mid = (TUNABLE_BOUNDS["confidence_threshold"]["min"] + TUNABLE_BOUNDS["confidence_threshold"]["max"]) / 2
@@ -589,7 +616,15 @@ Respond with JSON:
         if n % every != 0:
             return gov
         try:
+            from utils.integrity_diagnostics import run_integrity_scan
+
+            scan = run_integrity_scan(log=True)
+        except Exception:
+            scan = None
+        try:
             rec = self.analyze_performance_and_propose_change()
+            if scan:
+                rec = {**(rec or {}), "integrity_scan": scan}
             if gov:
                 rec = {**(rec or {}), "governance": gov}
             return rec
