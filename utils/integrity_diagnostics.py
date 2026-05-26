@@ -14,6 +14,40 @@ from typing import Any
 
 _ROOT = Path(__file__).resolve().parent.parent
 
+RECENT_DECISION_WINDOW = 12
+
+
+def _parse_row_ts(raw: Any) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        s = str(raw).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _rows_after_deploy(rows: list[dict[str, Any]], code: str) -> list[dict[str, Any]]:
+    """Decision rows after a code-guard fix was deployed (or full tail if unknown)."""
+    try:
+        from utils.si_fix_deployment import load_deployed
+
+        entry = (load_deployed().get("fixes") or {}).get(code) or {}
+        deployed_at = _parse_row_ts(entry.get("deployed_at_utc"))
+    except Exception:
+        deployed_at = None
+    if deployed_at is None:
+        return rows[-RECENT_DECISION_WINDOW:] if len(rows) > RECENT_DECISION_WINDOW else rows
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        ts = _parse_row_ts(r.get("ts"))
+        if ts and ts >= deployed_at:
+            out.append(r)
+    return out
+
 
 def _data_dir() -> Path:
     raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
@@ -59,7 +93,8 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
     recent_exit_notional_blocks = 0
     already_holding_blocks = 0
 
-    tail = rows[-80:] if len(rows) > 80 else rows
+    tail = _rows_after_deploy(rows, "duplicate_entry_accumulation")
+    exit_tail = _rows_after_deploy(rows, "exit_notional_blocked")
     for r in rows:
         d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
         act = r.get("act") if isinstance(r.get("act"), dict) else {}
@@ -78,11 +113,16 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
         d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
         act = r.get("act") if isinstance(r.get("act"), dict) else {}
         action = str(d.get("action") or "")
-        detail = str(act.get("detail") or "")
         if action == "enter_position" and act.get("executed"):
             sym = str((d.get("parameters") or {}).get("symbol") or "").upper()
             if sym:
                 recent_enter_by_sym[sym] += 1
+
+    for r in exit_tail:
+        d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
+        act = r.get("act") if isinstance(r.get("act"), dict) else {}
+        action = str(d.get("action") or "")
+        detail = str(act.get("detail") or "")
         if "estimated_notional_exceeds_cap" in detail and action == "exit_position":
             recent_exit_notional_blocks += 1
 
@@ -127,17 +167,26 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
                 "si_action": "chunked_exit_orders",
             }
         )
-    elif exit_notional_blocks >= 1 and recent_exit_notional_blocks == 0:
-        findings.append(
-            {
-                "code": "exit_notional_blocked",
-                "severity": "info",
-                "component": "unified_ai",
-                "count_sampled": exit_notional_blocks,
-                "recommendation": "Historical exit blocks only — chunked exit path deployed; monitor.",
-                "si_action": "monitor",
-            }
-        )
+    elif exit_notional_blocks >= 1:
+        try:
+            from utils.si_fix_deployment import is_deployed
+
+            deployed = is_deployed("exit_notional_blocked")
+        except Exception:
+            deployed = False
+        if deployed and recent_exit_notional_blocks == 0:
+            pass  # historical only — guard deployed, no recent blocks
+        else:
+            findings.append(
+                {
+                    "code": "exit_notional_blocked",
+                    "severity": "info",
+                    "component": "unified_ai",
+                    "count_sampled": exit_notional_blocks,
+                    "recommendation": "Historical exit blocks only — chunked exit path deployed; monitor.",
+                    "si_action": "monitor",
+                }
+            )
 
     return findings
 

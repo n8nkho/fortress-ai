@@ -223,8 +223,19 @@ def upsert_from_finding(
     now = _now_iso()
 
     disposition = DISPOSITION_PENDING_AGENT
-    if mitigation_active(code, scan or {"findings": [finding]}):
+    sev = str(finding.get("severity") or "")
+    if sev == "info":
         disposition = DISPOSITION_AUTO_RESOLVED
+    elif mitigation_active(code, scan or {"findings": [finding]}):
+        disposition = DISPOSITION_AUTO_RESOLVED
+    elif meta.get("kind") == "code_guard":
+        try:
+            from utils.si_fix_deployment import is_deployed
+
+            if is_deployed(code) and sev not in ("critical", "high"):
+                disposition = DISPOSITION_AUTO_RESOLVED
+        except Exception:
+            pass
     elif meta.get("kind") == "monitor":
         disposition = DISPOSITION_MONITORING
     elif meta.get("auto_tunable") and meta.get("kind") == "tunable":
@@ -367,8 +378,50 @@ def scan_opportunities() -> list[dict[str, Any]]:
     return out
 
 
+def reconcile_deployed_guards(scan: dict[str, Any]) -> list[str]:
+    """Close open queue items for deployed code guards with no critical/high findings."""
+    active = {
+        str(f.get("code") or "")
+        for f in scan.get("findings") or []
+        if str(f.get("severity") or "") in ("critical", "high")
+    }
+    closed: list[str] = []
+    queue = load_queue()
+    changed = False
+    for i, item in enumerate(queue.get("items") or []):
+        if not isinstance(item, dict) or item.get("status") != STATUS_OPEN:
+            continue
+        code = str(item.get("code") or "")
+        if code in active:
+            continue
+        try:
+            from utils.si_fix_deployment import is_deployed
+
+            if not is_deployed(code):
+                continue
+        except Exception:
+            continue
+        item["status"] = STATUS_IMPLEMENTED
+        item["disposition"] = DISPOSITION_AUTO_RESOLVED
+        item["closed_reason"] = "deployed_guard_no_active_findings"
+        item["updated_utc"] = _now_iso()
+        queue["items"][i] = item
+        closed.append(code)
+        changed = True
+    if changed:
+        save_queue(queue)
+    return closed
+
+
 def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
     from utils.integrity_diagnostics import run_integrity_scan
+
+    try:
+        from utils.si_fix_deployment import sync_deployed_from_registry
+
+        sync_deployed_from_registry()
+    except Exception:
+        pass
 
     scan = scan or run_integrity_scan(log=True)
     opportunities = scan_opportunities()
@@ -389,6 +442,12 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
                     auto_applied.append(res)
                     item["disposition"] = DISPOSITION_AUTO_APPLIED
                     item["auto_correct"] = res
+
+    pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
+    pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
+
+    # Auto-close open code-guard items when fix is deployed and scan is clean
+    reconcile_deployed_guards(scan)
 
     pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
     pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
