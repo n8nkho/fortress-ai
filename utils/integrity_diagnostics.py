@@ -54,9 +54,12 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
     rows = rows if rows is not None else _read_jsonl_tail(_data_dir() / "ai_decisions.jsonl")
     findings: list[dict[str, Any]] = []
     enter_by_sym: Counter[str] = Counter()
+    recent_enter_by_sym: Counter[str] = Counter()
     exit_notional_blocks = 0
+    recent_exit_notional_blocks = 0
     already_holding_blocks = 0
 
+    tail = rows[-80:] if len(rows) > 80 else rows
     for r in rows:
         d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
         act = r.get("act") if isinstance(r.get("act"), dict) else {}
@@ -71,15 +74,28 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
         if act.get("block_reason") == "already_holding":
             already_holding_blocks += 1
 
+    for r in tail:
+        d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
+        act = r.get("act") if isinstance(r.get("act"), dict) else {}
+        action = str(d.get("action") or "")
+        detail = str(act.get("detail") or "")
+        if action == "enter_position" and act.get("executed"):
+            sym = str((d.get("parameters") or {}).get("symbol") or "").upper()
+            if sym:
+                recent_enter_by_sym[sym] += 1
+        if "estimated_notional_exceeds_cap" in detail and action == "exit_position":
+            recent_exit_notional_blocks += 1
+
     for sym, n in enter_by_sym.items():
-        if n >= 3:
+        recent_n = int(recent_enter_by_sym.get(sym) or 0)
+        if recent_n >= 3:
             findings.append(
                 {
                     "code": "duplicate_entry_accumulation",
-                    "severity": "critical" if n >= 10 else "high",
+                    "severity": "critical" if recent_n >= 10 else "high",
                     "component": "unified_ai",
                     "symbol": sym,
-                    "enter_executions_sampled": n,
+                    "enter_executions_sampled": recent_n,
                     "recommendation": (
                         "Block enter_position when symbol already held; chunk exit orders under "
                         "FORTRESS_MAX_ORDER_NOTIONAL_USD; flatten oversized legacy positions."
@@ -87,27 +103,38 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
                     "si_action": "enforce_position_deduplication",
                 }
             )
+        elif n >= 10 and recent_n == 0 and already_holding_blocks >= 1:
+            findings.append(
+                {
+                    "code": "duplicate_entry_prevented",
+                    "severity": "info",
+                    "component": "unified_ai",
+                    "symbol": sym,
+                    "historical_enter_executions": n,
+                    "recommendation": "Historical stacking mitigated — already-holding gate active.",
+                    "si_action": "monitor",
+                }
+            )
 
-    if exit_notional_blocks >= 1:
+    if recent_exit_notional_blocks >= 1:
         findings.append(
             {
                 "code": "exit_notional_blocked",
                 "severity": "critical",
                 "component": "unified_ai",
-                "count_sampled": exit_notional_blocks,
+                "count_sampled": recent_exit_notional_blocks,
                 "recommendation": "Chunk SELL orders so each slice fits notional cap.",
                 "si_action": "chunked_exit_orders",
             }
         )
-
-    if already_holding_blocks >= 1:
+    elif exit_notional_blocks >= 1 and recent_exit_notional_blocks == 0:
         findings.append(
             {
-                "code": "duplicate_entry_prevented",
+                "code": "exit_notional_blocked",
                 "severity": "info",
                 "component": "unified_ai",
-                "count_sampled": already_holding_blocks,
-                "recommendation": "Already-holding gate active — monitor for exit completion.",
+                "count_sampled": exit_notional_blocks,
+                "recommendation": "Historical exit blocks only — chunked exit path deployed; monitor.",
                 "si_action": "monitor",
             }
         )
@@ -221,6 +248,13 @@ def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     snap = _data_dir() / "integrity_scan_latest.json"
     snap.parent.mkdir(parents=True, exist_ok=True)
     snap.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    if log:
+        try:
+            from utils.si_recommendation_queue import process_scan_to_queue
+
+            process_scan_to_queue(out)
+        except Exception:
+            pass
     return out
 
 

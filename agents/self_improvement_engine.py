@@ -524,6 +524,13 @@ Respond with JSON:
         proposals = self.list_recent_log(40)
         approved = sum(1 for x in proposals if x.get("decision") in ("approved_human", "auto_approved"))
         total_lines = self.count_log_lines()
+        si_queue: dict[str, Any] = {}
+        try:
+            from utils.si_recommendation_queue import status_dict as queue_status
+
+            si_queue = queue_status()
+        except Exception:
+            si_queue = {"error": "queue_unavailable"}
         return {
             "immutable": IMMUTABLE_CONSTRAINTS,
             "tunable_bounds": TUNABLE_BOUNDS,
@@ -537,6 +544,7 @@ Respond with JSON:
                 "approved_total_sampled": approved,
                 "total_log_entries": total_lines,
             },
+            "recommendation_queue": si_queue,
         }
 
     def list_recent_log(self, n: int = 50) -> list[dict[str, Any]]:

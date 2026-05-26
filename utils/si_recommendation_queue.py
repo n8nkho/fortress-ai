@@ -1,0 +1,512 @@
+"""
+Recursive SI recommendation queue — learn, auto-correct, escalate for agent/human review.
+
+Flow:
+1. integrity + opportunity scans produce findings
+2. fix registry maps findings → auto-tunable nudges or code-guard mitigation checks
+3. tunable corrections apply within governance bounds (Tier 0/1)
+4. unresolved code/ops items → pending_agent_review → agent assessment → pending_human_go
+"""
+from __future__ import annotations
+
+import json
+import os
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+_ROOT = Path(__file__).resolve().parent.parent
+
+DISPOSITION_AUTO_RESOLVED = "auto_resolved"
+DISPOSITION_AUTO_APPLIED = "auto_applied"
+DISPOSITION_MONITORING = "monitoring"
+DISPOSITION_PENDING_AGENT = "pending_agent_review"
+DISPOSITION_PENDING_HUMAN = "pending_human_go"
+DISPOSITION_DISMISSED = "dismissed"
+
+STATUS_OPEN = "open"
+STATUS_CLOSED = "closed"
+STATUS_IMPLEMENTED = "implemented"
+
+
+def _data_dir() -> Path:
+    raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
+    return Path(raw) if raw else (_ROOT / "data")
+
+
+def queue_path() -> Path:
+    return _data_dir() / "si_recommendation_queue.json"
+
+
+def queue_log_path() -> Path:
+    return _data_dir() / "si_recommendation_queue.jsonl"
+
+
+def fix_registry_path() -> Path:
+    return _ROOT / "config" / "si_fix_registry.json"
+
+
+def load_fix_registry() -> dict[str, Any]:
+    p = fix_registry_path()
+    if not p.exists():
+        return {"fixes": {}}
+    try:
+        doc = json.loads(p.read_text(encoding="utf-8"))
+        return doc if isinstance(doc, dict) else {"fixes": {}}
+    except Exception:
+        return {"fixes": {}}
+
+
+def load_queue() -> dict[str, Any]:
+    p = queue_path()
+    if not p.exists():
+        return {"version": 1, "items": []}
+    try:
+        doc = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(doc, dict) and isinstance(doc.get("items"), list):
+            return doc
+    except Exception:
+        pass
+    return {"version": 1, "items": []}
+
+
+def save_queue(doc: dict[str, Any]) -> None:
+    _data_dir().mkdir(parents=True, exist_ok=True)
+    queue_path().write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+
+def _append_log(record: dict[str, Any]) -> None:
+    p = queue_log_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, default=str) + "\n")
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _finding_key(code: str, component: str = "") -> str:
+    return f"{component}:{code}" if component else str(code)
+
+
+def find_open_item(queue: dict[str, Any], *, code: str, component: str = "") -> dict[str, Any] | None:
+    key = _finding_key(code, component)
+    for item in queue.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("status") not in (STATUS_OPEN,):
+            continue
+        if item.get("finding_key") == key:
+            return item
+    return None
+
+
+def register_fix_in_registry(
+    *,
+    code: str,
+    title: str,
+    kind: str = "code_guard",
+    recommendation: str = "",
+    effort: str = "medium",
+    impact: str = "medium",
+    agent_review_if_unmitigated: bool = True,
+    mitigation_markers: list[str] | None = None,
+    auto_tunable: dict[str, float] | None = None,
+) -> None:
+    """Record a deployed fix so future scans treat the pattern as known (manual / agent use)."""
+    reg = load_fix_registry()
+    fixes = reg.setdefault("fixes", {})
+    fixes[code] = {
+        "title": title,
+        "kind": kind,
+        "mitigation_markers": mitigation_markers or [],
+        "auto_tunable": auto_tunable or {},
+        "agent_review_if_unmitigated": agent_review_if_unmitigated,
+        "effort": effort,
+        "impact": impact,
+        "recommendation": recommendation,
+        "registered_at_utc": _now_iso(),
+    }
+    fix_registry_path().write_text(json.dumps(reg, indent=2), encoding="utf-8")
+    _append_log({"event": "fix_registered", "code": code, "title": title, "ts": _now_iso()})
+
+
+def mitigation_active(code: str, scan: dict[str, Any]) -> bool:
+    """True when guard markers appear in recent logs and the anomaly code is absent."""
+    reg = load_fix_registry().get("fixes") or {}
+    meta = reg.get(code) if isinstance(reg, dict) else None
+    if not isinstance(meta, dict):
+        return False
+    markers = meta.get("mitigation_markers") or []
+    if not markers:
+        return False
+
+    active_codes = {str(f.get("code") or "") for f in scan.get("findings") or []}
+    if code in active_codes:
+        return False
+
+    from utils.integrity_diagnostics import _read_jsonl_tail
+
+    ai_rows = _read_jsonl_tail(_data_dir() / "ai_decisions.jsonl", max_lines=400)
+    skim_rows = _read_jsonl_tail(_data_dir() / "skim_swarm" / "decisions.jsonl", max_lines=400)
+    blob = json.dumps(ai_rows + skim_rows, default=str)
+    marker_hits = sum(1 for m in markers if m in blob)
+    return marker_hits >= max(1, len(markers) // 2 + 1)
+
+
+def _apply_auto_tunable(code: str, tunable_delta: dict[str, float]) -> dict[str, Any] | None:
+    if not tunable_delta:
+        return None
+    if not str(os.environ.get("FORTRESS_AI_SI_AUTO_APPLY", "1")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        return {"skipped": "auto_apply_disabled", "code": code}
+
+    from agents.self_improvement_engine import SelfImprovementEngine, TUNABLE_BOUNDS
+
+    eng = SelfImprovementEngine()
+    cur = eng.current_tunable_snapshot()
+    applied: list[dict[str, Any]] = []
+    for param, delta in tunable_delta.items():
+        if param not in TUNABLE_BOUNDS:
+            continue
+        try:
+            base = float(cur.get(param) or 0)
+            new_val = base + float(delta)
+        except (TypeError, ValueError):
+            continue
+        raw = {
+            "parameter": param,
+            "current_value": base,
+            "proposed_value": round(new_val, 4),
+            "reasoning": f"Auto-correct from integrity finding {code}.",
+            "expected_impact": "Stabilize after anomaly without weakening immutable rails.",
+            "risks": "Bounded single-step nudge only.",
+        }
+        val = eng.validate_proposal_json(raw)
+        if not val:
+            continue
+        from utils.improvement_governance import ImprovementGovernance, determine_governance_tier
+
+        tier = determine_governance_tier(param)
+        if tier == "tier_3_blocked":
+            continue
+        pid = str(uuid.uuid4())
+        gov = ImprovementGovernance()
+        shadow = eng.shadow_test_proposal(val)
+        gd = gov.process_proposal(proposal=val, proposal_id=pid, shadow_results=shadow)
+        if gd.get("decision") in ("auto_approved", "pending_veto_window"):
+            applied.append({"parameter": param, "delta": delta, "governance": gd.get("decision")})
+    return {"code": code, "applied": applied} if applied else None
+
+
+def upsert_from_finding(
+    finding: dict[str, Any],
+    *,
+    source: str = "integrity_scan",
+    scan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    code = str(finding.get("code") or "")
+    component = str(finding.get("component") or "")
+    reg = load_fix_registry().get("fixes") or {}
+    meta = reg.get(code, {}) if isinstance(reg, dict) else {}
+    if not isinstance(meta, dict):
+        meta = {}
+
+    queue = load_queue()
+    existing = find_open_item(queue, code=code, component=component)
+    now = _now_iso()
+
+    disposition = DISPOSITION_PENDING_AGENT
+    if mitigation_active(code, scan or {"findings": [finding]}):
+        disposition = DISPOSITION_AUTO_RESOLVED
+    elif meta.get("kind") == "monitor":
+        disposition = DISPOSITION_MONITORING
+    elif meta.get("auto_tunable") and meta.get("kind") == "tunable":
+        disposition = DISPOSITION_AUTO_APPLIED
+    elif not meta.get("agent_review_if_unmitigated", True):
+        disposition = DISPOSITION_MONITORING
+
+    item = existing or {
+        "id": str(uuid.uuid4()),
+        "finding_key": _finding_key(code, component),
+        "created_utc": now,
+        "status": STATUS_OPEN,
+        "human_go": None,
+        "agent_assessment": None,
+    }
+    item.update(
+        {
+            "updated_utc": now,
+            "code": code,
+            "component": component,
+            "title": meta.get("title") or code,
+            "kind": meta.get("kind") or finding.get("kind") or "unknown",
+            "severity": finding.get("severity"),
+            "recommendation": finding.get("recommendation") or meta.get("recommendation") or "",
+            "effort": meta.get("effort") or "medium",
+            "impact": meta.get("impact") or finding.get("severity") or "medium",
+            "disposition": disposition,
+            "source": source,
+            "finding": finding,
+        }
+    )
+
+    if disposition == DISPOSITION_AUTO_RESOLVED:
+        item["status"] = STATUS_CLOSED
+        item["closed_reason"] = "mitigation_active"
+    elif disposition == DISPOSITION_PENDING_AGENT and meta.get("agent_review_if_unmitigated", True):
+        item["disposition"] = DISPOSITION_PENDING_AGENT
+
+    if existing:
+        idx = next(i for i, x in enumerate(queue["items"]) if x.get("id") == existing.get("id"))
+        queue["items"][idx] = item
+    else:
+        queue.setdefault("items", []).append(item)
+
+    save_queue(queue)
+    _append_log({"event": "upsert", "item_id": item["id"], "code": code, "disposition": disposition})
+    return item
+
+
+def scan_opportunities() -> list[dict[str, Any]]:
+    """Proactive improvement suggestions beyond anomaly detection."""
+    out: list[dict[str, Any]] = []
+    from utils.integrity_diagnostics import _read_jsonl_tail
+
+    rows = _read_jsonl_tail(_data_dir() / "ai_decisions.jsonl", max_lines=120)
+    exec_n = wait_n = 0
+    for r in rows:
+        d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
+        act = r.get("act") if isinstance(r.get("act"), dict) else {}
+        if act.get("executed"):
+            exec_n += 1
+        if d.get("action") == "wait":
+            wait_n += 1
+    n = max(len(rows), 1)
+    exec_rate = exec_n / n
+    if len(rows) >= 30 and exec_rate < 0.05 and wait_n > 20:
+        out.append(
+            {
+                "code": "low_unified_execution_rate",
+                "severity": "medium",
+                "component": "unified_ai",
+                "execution_rate": round(exec_rate, 4),
+                "recommendation": (
+                    "Execution rate very low — consider lowering confidence_threshold within bounds "
+                    "or widening watchlist if gates are too tight."
+                ),
+                "si_action": "tune_confidence_down",
+            }
+        )
+
+    try:
+        from utils.api_costs import weekly_llm_budget_status
+
+        b = weekly_llm_budget_status()
+        cap = float(b.get("cap_usd") or 0)
+        spent = float(b.get("spent_usd") or 0)
+        if cap > 0 and spent / cap >= 0.85:
+            out.append(
+                {
+                    "code": "weekly_llm_budget_tight",
+                    "severity": "medium",
+                    "component": "unified_ai",
+                    "spent_usd": spent,
+                    "cap_usd": cap,
+                    "recommendation": (
+                        "Weekly LLM budget >=85% — raise FORTRESS_AI_WEEKLY_LLM_CAP_USD or reduce "
+                        "FORTRESS_AI_SI_EVERY_N_CYCLES; agent review recommended."
+                    ),
+                    "si_action": "ops_budget_review",
+                }
+            )
+    except Exception:
+        pass
+
+    skim_learned = _data_dir() / "skim_swarm" / "learned"
+    if skim_learned.is_dir():
+        try:
+            from utils.skim_swarm_config import target_winning_pattern_share
+            from agents.skim_swarm.adaptive_policy import winning_pattern_share
+
+            goal = target_winning_pattern_share()
+            shares: list[float] = []
+            for p in skim_learned.glob("*.json"):
+                doc = json.loads(p.read_text(encoding="utf-8"))
+                ps = doc.get("pattern_stats") or {}
+                disabled = set((doc.get("params") or {}).get("disable_patterns") or [])
+                wps = winning_pattern_share(ps, disabled=disabled)
+                if wps is not None:
+                    shares.append(wps)
+            if shares:
+                avg = sum(shares) / len(shares)
+                if avg < goal and len(shares) >= 3:
+                    out.append(
+                        {
+                            "code": "skim_winning_pattern_share_low",
+                            "severity": "high",
+                            "component": "skim_swarm",
+                            "avg_share": round(avg, 4),
+                            "target": goal,
+                            "recommendation": (
+                                f"Avg winning-pattern share {avg:.2%} below target {goal:.0%} — "
+                                "review pattern disables and per-symbol adaptive params."
+                            ),
+                            "si_action": "skim_pattern_review",
+                        }
+                    )
+        except Exception:
+            pass
+
+    return out
+
+
+def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
+    from utils.integrity_diagnostics import run_integrity_scan
+
+    scan = scan or run_integrity_scan(log=True)
+    opportunities = scan_opportunities()
+    all_findings = list(scan.get("findings") or []) + opportunities
+
+    items: list[dict[str, Any]] = []
+    auto_applied: list[dict[str, Any]] = []
+    for f in all_findings:
+        item = upsert_from_finding(f, scan=scan)
+        items.append(item)
+        reg = load_fix_registry().get("fixes") or {}
+        meta = reg.get(str(f.get("code") or ""), {}) if isinstance(reg, dict) else {}
+        if isinstance(meta, dict) and item.get("disposition") == DISPOSITION_AUTO_APPLIED:
+            tun = meta.get("auto_tunable") or {}
+            if isinstance(tun, dict) and tun:
+                res = _apply_auto_tunable(str(f.get("code")), {k: float(v) for k, v in tun.items()})
+                if res:
+                    auto_applied.append(res)
+                    item["disposition"] = DISPOSITION_AUTO_APPLIED
+                    item["auto_correct"] = res
+
+    pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
+    pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
+
+    summary = {
+        "timestamp_utc": _now_iso(),
+        "findings_processed": len(all_findings),
+        "items_upserted": len(items),
+        "auto_applied": auto_applied,
+        "pending_agent_review": len(pending_agent),
+        "pending_human_go": len(pending_human),
+        "pending_agent": pending_agent,
+        "pending_human": pending_human,
+    }
+    snap = _data_dir() / "si_recommendation_summary.json"
+    snap.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return summary
+
+
+def list_pending(*, disposition: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    queue = load_queue()
+    out: list[dict[str, Any]] = []
+    for item in queue.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("status") != STATUS_OPEN:
+            continue
+        if disposition and item.get("disposition") != disposition:
+            continue
+        out.append(item)
+    out.sort(key=lambda x: str(x.get("updated_utc") or ""), reverse=True)
+    return out[:limit]
+
+
+def set_agent_assessment(
+    item_id: str,
+    *,
+    worth_implementing: bool,
+    rationale: str,
+    proposed_implementation: str = "",
+    reviewer: str = "cursor_agent",
+) -> dict[str, Any]:
+    queue = load_queue()
+    for i, item in enumerate(queue.get("items") or []):
+        if item.get("id") != item_id:
+            continue
+        item["agent_assessment"] = {
+            "worth_implementing": bool(worth_implementing),
+            "rationale": rationale[:4000],
+            "proposed_implementation": proposed_implementation[:8000],
+            "reviewer": reviewer,
+            "assessed_utc": _now_iso(),
+        }
+        if worth_implementing:
+            item["disposition"] = DISPOSITION_PENDING_HUMAN
+        else:
+            item["disposition"] = DISPOSITION_DISMISSED
+            item["status"] = STATUS_CLOSED
+            item["closed_reason"] = "agent_dismissed"
+        item["updated_utc"] = _now_iso()
+        queue["items"][i] = item
+        save_queue(queue)
+        _append_log({"event": "agent_assessment", "item_id": item_id, "worth": worth_implementing})
+        return item
+    raise KeyError(f"item_not_found:{item_id}")
+
+
+def set_human_go(item_id: str, *, approved: bool, note: str = "") -> dict[str, Any]:
+    queue = load_queue()
+    for i, item in enumerate(queue.get("items") or []):
+        if item.get("id") != item_id:
+            continue
+        item["human_go"] = {
+            "approved": bool(approved),
+            "note": note[:2000],
+            "decided_utc": _now_iso(),
+        }
+        if approved:
+            item["disposition"] = DISPOSITION_PENDING_HUMAN
+            item["status"] = STATUS_OPEN
+            item["implementation_ready"] = True
+        else:
+            item["status"] = STATUS_CLOSED
+            item["disposition"] = DISPOSITION_DISMISSED
+            item["closed_reason"] = "human_rejected"
+        item["updated_utc"] = _now_iso()
+        queue["items"][i] = item
+        save_queue(queue)
+        _append_log({"event": "human_go", "item_id": item_id, "approved": approved})
+        return item
+    raise KeyError(f"item_not_found:{item_id}")
+
+
+def mark_implemented(item_id: str, *, note: str = "") -> dict[str, Any]:
+    queue = load_queue()
+    for i, item in enumerate(queue.get("items") or []):
+        if item.get("id") != item_id:
+            continue
+        item["status"] = STATUS_IMPLEMENTED
+        item["disposition"] = DISPOSITION_AUTO_RESOLVED
+        item["implemented_utc"] = _now_iso()
+        item["implementation_note"] = note[:2000]
+        item["updated_utc"] = _now_iso()
+        queue["items"][i] = item
+        save_queue(queue)
+        _append_log({"event": "implemented", "item_id": item_id})
+        return item
+    raise KeyError(f"item_not_found:{item_id}")
+
+
+def status_dict() -> dict[str, Any]:
+    queue = load_queue()
+    pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
+    pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
+    return {
+        "queue_size": len(queue.get("items") or []),
+        "pending_agent_review": pending_agent,
+        "pending_human_go": pending_human,
+        "fix_registry_path": str(fix_registry_path()),
+        "summary_path": str(_data_dir() / "si_recommendation_summary.json"),
+    }

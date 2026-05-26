@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "description": "Known anomaly codes, mitigations, and whether agent review is required for code-level fixes.",
+  "fixes": {
+    "duplicate_entry_accumulation": {
+      "title": "Unified agent stacks entries on same symbol",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "already_holding",
+        "chunked_exit"
+      ],
+      "auto_tunable": {
+        "confidence_threshold": 0.03
+      },
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "critical"
+    },
+    "exit_notional_blocked": {
+      "title": "Exit blocked by order notional cap",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "chunked_exit"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "critical"
+    },
+    "duplicate_entry_prevented": {
+      "title": "Already-holding gate blocking repeat entries",
+      "kind": "monitor",
+      "mitigation_markers": [
+        "already_holding"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "info"
+    },
+    "skim_qty_invalid_exits": {
+      "title": "Skim exit qty exceeds entry max_shares cap",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "chunked_exit"
+      ],
+      "auto_tunable": {
+        "cooldown_mult": 0.05
+      },
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "high"
+    },
+    "skim_negative_session": {
+      "title": "Skim session PnL negative with high churn",
+      "kind": "tunable",
+      "mitigation_markers": [],
+      "auto_tunable": {
+        "cooldown_mult": 0.15,
+        "score_bias": -0.03
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "skim_high_pattern_disables": {
+      "title": "High pattern_disabled block rate (expected)",
+      "kind": "monitor",
+      "mitigation_markers": [],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "info"
+    },
+    "low_unified_execution_rate": {
+      "title": "Unified agent execution rate below target",
+      "kind": "tunable",
+      "mitigation_markers": [],
+      "auto_tunable": {
+        "confidence_threshold": -0.02
+      },
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "skim_winning_pattern_share_low": {
+      "title": "Skim winning-pattern share below Phase-1 target",
+      "kind": "policy",
+      "mitigation_markers": [],
+      "auto_tunable": {
+        "cooldown_mult": 0.1
+      },
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "weekly_llm_budget_tight": {
+      "title": "Weekly LLM budget nearly exhausted",
+      "kind": "ops",
+      "mitigation_markers": [],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "drift_rollback_recovery_eligible": {
+      "title": "Drift rollback \u2014 metrics support auto-recovery",
+      "kind": "policy",
+      "mitigation_markers": [
+        "policy_recovery"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "drift_rollback_high_win_rate": {
+      "title": "Drift rollback with high ledger win rate",
+      "kind": "policy",
+      "mitigation_markers": [],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "evolution_stale": {
+      "title": "Recursive evolution not running",
+      "kind": "ops",
+      "mitigation_markers": [
+        "recursive_evolution_"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "high"
+    },
+    "cron_heartbeat_fail": {
+      "title": "Classic cron heartbeat stale",
+      "kind": "ops",
+      "mitigation_markers": [],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "medium"
+    },
+    "test_fix": {
+      "title": "Test fix",
+      "kind": "code_guard",
+      "mitigation_markers": [],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "medium",
+      "recommendation": "Do the thing.",
+      "registered_at_utc": "2026-05-26T19:47:01.115574+00:00"
+    }
+  }
+}

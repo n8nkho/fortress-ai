@@ -1509,6 +1509,81 @@ def api_self_improvement_monitor():
     return jsonify({"ok": True, "action": r})
 
 
+@app.route("/api/si/recommendations")
+def api_si_recommendations():
+    from utils.si_recommendation_queue import list_pending, status_dict
+
+    return jsonify(
+        {
+            **status_dict(),
+            "all_open": list_pending(limit=100),
+        }
+    )
+
+
+@app.route("/api/si/recommendations/process", methods=["POST"])
+def api_si_recommendations_process():
+    from utils.si_recommendation_queue import process_scan_to_queue
+
+    try:
+        summary = process_scan_to_queue()
+        return jsonify({"ok": True, "summary": summary})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/si/recommendations/<item_id>/agent-assess", methods=["POST"])
+def api_si_recommendations_agent_assess(item_id: str):
+    from utils.si_recommendation_queue import set_agent_assessment
+
+    body = request.get_json(silent=True) or {}
+    try:
+        item = set_agent_assessment(
+            item_id,
+            worth_implementing=bool(body.get("worth_implementing")),
+            rationale=str(body.get("rationale") or ""),
+            proposed_implementation=str(body.get("proposed_implementation") or ""),
+            reviewer=str(body.get("reviewer") or "dashboard"),
+        )
+        return jsonify({"ok": True, "item": item})
+    except KeyError:
+        return jsonify({"ok": False, "error": "item_not_found"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/si/recommendations/<item_id>/human-go", methods=["POST"])
+def api_si_recommendations_human_go(item_id: str):
+    from utils.si_recommendation_queue import set_human_go
+
+    body = request.get_json(silent=True) or {}
+    try:
+        item = set_human_go(
+            item_id,
+            approved=bool(body.get("approved", True)),
+            note=str(body.get("note") or ""),
+        )
+        return jsonify({"ok": True, "item": item})
+    except KeyError:
+        return jsonify({"ok": False, "error": "item_not_found"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/si/recommendations/<item_id>/implemented", methods=["POST"])
+def api_si_recommendations_implemented(item_id: str):
+    from utils.si_recommendation_queue import mark_implemented
+
+    body = request.get_json(silent=True) or {}
+    try:
+        item = mark_implemented(item_id, note=str(body.get("note") or ""))
+        return jsonify({"ok": True, "item": item})
+    except KeyError:
+        return jsonify({"ok": False, "error": "item_not_found"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
 @app.route("/api/prompt_evolution/status")
 def api_prompt_evolution_status():
     from agents.prompt_evolution import get_prompt_evolution
