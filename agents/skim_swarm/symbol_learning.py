@@ -549,6 +549,16 @@ def record_decision(
         else:
             block = act_result.get("block_reason") or (reasoning if action == "wait" else None)
             if block and action == "wait" and not executed:
+                side = str(features.get("side") or "flat").lower()
+                if str(block).startswith("swarm_halted") and side in ("long", "short"):
+                    from utils.swarm_wave_si import record_halt_exit_trap
+
+                    record_halt_exit_trap(
+                        component="skim_swarm",
+                        symbol=symbol,
+                        features=features,
+                        decision=decision,
+                    )
                 record_block_event(learned, str(block))
                 adapt_from_block_streaks(learned, learned["params"], si_notes)
                 append_adaptation_log(learned, si_notes)

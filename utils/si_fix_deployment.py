@@ -24,6 +24,15 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
     "skim_qty_invalid_exits": [
         _ROOT / "agents" / "skim_swarm" / "act.py",
     ],
+    "halt_blocked_exit": [
+        _ROOT / "agents" / "skim_swarm" / "signal.py",
+        _ROOT / "agents" / "infra_swarm" / "signal.py",
+    ],
+    "swarm_universe_drift": [
+        _ROOT / "agents" / "skim_swarm_agent.py",
+        _ROOT / "agents" / "infra_swarm_agent.py",
+        _ROOT / "utils" / "swarm_runtime.py",
+    ],
 }
 
 

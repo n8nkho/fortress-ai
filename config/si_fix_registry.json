@@ -72,6 +72,53 @@
       "effort": "low",
       "impact": "info"
     },
+    "halt_blocked_exit": {
+      "title": "Swarm halt blocks exit/stop/target for open positions",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "halt_allows_exits"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "critical"
+    },
+    "swarm_universe_drift": {
+      "title": "Running swarm universe stale vs env config",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "universe_refresh"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "high"
+    },
+    "infra_negative_session": {
+      "title": "Infra swarm negative session with poor win rate",
+      "kind": "tunable",
+      "mitigation_markers": [],
+      "auto_tunable": {
+        "cooldown_mult": 0.12,
+        "score_bias": -0.04
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "infra_halted_with_open_book": {
+      "title": "Infra halted while managing open positions",
+      "kind": "monitor",
+      "mitigation_markers": [
+        "halt_allows_exits"
+      ],
+      "auto_tunable": {
+        "cooldown_mult": 0.08
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
     "low_unified_execution_rate": {
       "title": "Unified agent execution rate below target",
       "kind": "tunable",
@@ -152,7 +199,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-05-26T19:47:01.115574+00:00"
+      "registered_at_utc": "2026-05-27T15:58:54.618478-04:00"
     }
   }
 }

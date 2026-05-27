@@ -32,8 +32,6 @@ def fetch_positions_map() -> tuple[float | None, dict[str, dict[str, Any]]]:
         for p in tc.get_all_positions():
             raw = str(getattr(p, "symbol", "")).upper()
             sym = normalize_symbol(raw)
-            if sym not in uni and raw not in uni:
-                continue
             qty = float(getattr(p, "qty", 0) or 0)
             if qty == 0:
                 continue

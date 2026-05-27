@@ -177,10 +177,6 @@ def decide(
         "confidence": abs(score),
     }
 
-    if swarm_halted:
-        out["reasoning"] = "swarm_halted"
-        return out
-
     if is_force_flatten_window() or phase == "force_flatten":
         if side != "flat":
             out["action"] = "flatten"
@@ -254,6 +250,11 @@ def decide(
         return out
 
     if side != "flat":
+        return out
+
+    # halt_allows_exits: swarm_halted gates new entries only
+    if swarm_halted:
+        out["reasoning"] = "swarm_halted"
         return out
 
     if open_positions >= max_open:

@@ -186,22 +186,127 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
     return findings
 
 
+def _summarize_swim_wave_blocks(rows: list[dict[str, Any]]) -> tuple[Counter[str], float | None]:
+    """Extract block reasons and latest day PnL from skim/infra wave journals."""
+    blocks: Counter[str] = Counter()
+    day_pnl: float | None = None
+    for r in rows[-RECENT_DECISION_WINDOW:]:
+        try:
+            day_pnl = float(r.get("day_realized_pnl"))
+        except (TypeError, ValueError):
+            pass
+        for row in r.get("results") or []:
+            act = row.get("act") if isinstance(row.get("act"), dict) else {}
+            dec = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+            br = str(act.get("block_reason") or dec.get("reasoning") or "")
+            if br:
+                blocks[br.split(":")[0]] += 1
+    return blocks, day_pnl
+
+
+def scan_swarm_halt_exit_trap(*, rows: list[dict[str, Any]], component: str) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    try:
+        from utils.si_fix_deployment import is_deployed
+
+        if is_deployed("halt_blocked_exit"):
+            rows = _rows_after_deploy(rows, "halt_blocked_exit")
+    except Exception:
+        pass
+    for r in rows[-RECENT_DECISION_WINDOW:]:
+        for row in r.get("results") or []:
+            features = row.get("features") if isinstance(row.get("features"), dict) else {}
+            decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+            side = str(features.get("side") or "flat").lower()
+            if side not in ("long", "short"):
+                continue
+            if str(decision.get("reasoning") or "") != "swarm_halted":
+                continue
+            if str(decision.get("action") or "") != "wait":
+                continue
+            unreal = features.get("unrealized_usd")
+            target = decision.get("target_usd")
+            try:
+                u = float(unreal) if unreal is not None else None
+                t = float(target) if target is not None else None
+            except (TypeError, ValueError):
+                u, t = None, None
+            findings.append(
+                {
+                    "code": "halt_blocked_exit",
+                    "severity": "critical",
+                    "component": component,
+                    "symbol": str(row.get("symbol") or "").upper(),
+                    "unrealized_usd": u,
+                    "target_usd": t,
+                    "recommendation": (
+                        "swarm_halted must not short-circuit exit/stop/target logic for open positions."
+                    ),
+                    "si_action": "halt_allows_exits",
+                }
+            )
+    return findings
+
+
+def scan_swarm_universe_drift(*, component: str, metric_path: Path) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    if not metric_path.exists():
+        return findings
+    try:
+        metric = json.loads(metric_path.read_text(encoding="utf-8"))
+    except Exception:
+        return findings
+    cached = metric.get("universe") if isinstance(metric.get("universe"), list) else []
+    if not cached:
+        return findings
+    try:
+        if component == "skim_swarm":
+            from utils.skim_swarm_config import universe as universe_fn
+        elif component == "infra_swarm":
+            from utils.infra_swarm_config import universe as universe_fn
+        else:
+            return findings
+        fresh = list(universe_fn() or [])
+    except Exception:
+        return findings
+    if fresh == cached:
+        return findings
+    removed = [s for s in cached if s not in fresh]
+    if not removed:
+        return findings
+    try:
+        from utils.si_fix_deployment import is_deployed
+
+        if is_deployed("swarm_universe_drift"):
+            return findings
+    except Exception:
+        pass
+    findings.append(
+        {
+            "code": "swarm_universe_drift",
+            "severity": "high",
+            "component": component,
+            "cached_universe": cached,
+            "env_universe": fresh,
+            "removed_still_active": removed,
+            "recommendation": (
+                "Running swarm cached boot universe differs from env — refresh each wave and "
+                "union open positions for exits."
+            ),
+            "si_action": "refresh_universe",
+        }
+    )
+    return findings
+
+
 def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     skim_dir = _data_dir() / "skim_swarm"
     rows = rows if rows is not None else _read_jsonl_tail(skim_dir / "decisions.jsonl")
     findings: list[dict[str, Any]] = []
-    blocks: Counter[str] = Counter()
-    session_pnl = 0.0
+    blocks, day_pnl = _summarize_swim_wave_blocks(rows)
 
-    for r in rows:
-        act = r.get("act") if isinstance(r.get("act"), dict) else {}
-        br = str(act.get("block_reason") or "")
-        if br:
-            blocks[br] += 1
-        try:
-            session_pnl += float(r.get("session_realized_pnl_usd") or 0)
-        except (TypeError, ValueError):
-            pass
+    findings.extend(scan_swarm_halt_exit_trap(rows=rows, component="skim_swarm"))
+    findings.extend(scan_swarm_universe_drift(component="skim_swarm", metric_path=skim_dir / "latest_metric.json"))
 
     qty_invalid = int(blocks.get("qty_invalid") or 0)
     if qty_invalid >= 5:
@@ -219,13 +324,13 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
             }
         )
 
-    if session_pnl < -5.0 and len(rows) >= 50:
+    if day_pnl is not None and day_pnl < -5.0 and len(rows) >= 20:
         findings.append(
             {
                 "code": "skim_negative_session",
                 "severity": "medium",
                 "component": "skim_swarm",
-                "session_pnl_sample_usd": round(session_pnl, 2),
+                "session_pnl_sample_usd": round(day_pnl, 2),
                 "recommendation": (
                     "Increase cooldown_mult and tighten pattern gates when session PnL negative "
                     "with high churn."
@@ -244,6 +349,50 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
                 "count_sampled": pattern_disabled,
                 "recommendation": "Historical seed disables working — expect lower trade count.",
                 "si_action": "monitor",
+            }
+        )
+
+    return findings
+
+
+def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    infra_dir = _data_dir() / "infra_swarm"
+    rows = rows if rows is not None else _read_jsonl_tail(infra_dir / "decisions.jsonl")
+    findings: list[dict[str, Any]] = []
+    blocks, day_pnl = _summarize_swim_wave_blocks(rows)
+
+    findings.extend(scan_swarm_halt_exit_trap(rows=rows, component="infra_swarm"))
+    findings.extend(scan_swarm_universe_drift(component="infra_swarm", metric_path=infra_dir / "latest_metric.json"))
+
+    halt_blocks = int(blocks.get("swarm_halted") or 0)
+    if halt_blocks >= 50:
+        open_waves = [r for r in rows[-RECENT_DECISION_WINDOW:] if int(r.get("open_positions") or 0) > 0]
+        if open_waves and all(r.get("swarm_halted") for r in open_waves[-5:]):
+            findings.append(
+                {
+                    "code": "infra_halted_with_open_book",
+                    "severity": "medium",
+                    "component": "infra_swarm",
+                    "halt_block_samples": halt_blocks,
+                    "recommendation": (
+                        "Infra halted on layer/daily cap — ensure exits still execute; "
+                        "tighten entry gates after negative session."
+                    ),
+                    "si_action": "tighten_infra_adaptive",
+                }
+            )
+
+    if day_pnl is not None and day_pnl < -3.0 and len(rows) >= 10:
+        findings.append(
+            {
+                "code": "infra_negative_session",
+                "severity": "medium",
+                "component": "infra_swarm",
+                "session_pnl_sample_usd": round(day_pnl, 2),
+                "recommendation": (
+                    "Raise enter thresholds and pause losing SRP patterns after negative infra session."
+                ),
+                "si_action": "tighten_infra_adaptive",
             }
         )
 
@@ -276,7 +425,8 @@ def scan_positions_from_decisions(*, rows: list[dict[str, Any]] | None = None) -
 def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     unified = scan_unified_agent()
     skim = scan_skim_swarm()
-    findings = unified + skim
+    infra = scan_infra_swarm()
+    findings = unified + skim + infra
     ts = now_iso()
     out = {
         "timestamp": ts,
@@ -324,9 +474,12 @@ def skim_adaptive_actions(scan: dict[str, Any] | None = None) -> dict[str, float
     actions: dict[str, float] = {}
     for f in scan.get("findings") or []:
         code = str(f.get("code") or "")
-        if code == "skim_negative_session":
-            actions["cooldown_mult"] = 0.15
-            actions["score_bias"] = -0.03
+        if code in ("skim_negative_session", "infra_negative_session"):
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.15)
+            actions["score_bias"] = min(actions.get("score_bias", 0), -0.03)
         elif code == "skim_qty_invalid_exits":
-            actions["cooldown_mult"] = 0.05
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.05)
+        elif code in ("infra_halted_with_open_book", "infra_negative_session"):
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.12)
+            actions["score_bias"] = min(actions.get("score_bias", 0), -0.04)
     return actions

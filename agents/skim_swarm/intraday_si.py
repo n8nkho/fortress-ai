@@ -116,6 +116,8 @@ def _block_reason_key(raw: str | None) -> str:
         return "pattern_disabled"
     if s.startswith("stop_loss"):
         return "stop_loss"
+    if s.startswith("swarm_halted"):
+        return "swarm_halted"
     if "skim_target_hit" in s or s.startswith("skim_target"):
         return "target_hit"
     return s.split(":")[0].split()[0][:32]
@@ -184,6 +186,10 @@ def adapt_from_block_streaks(learned: dict[str, Any], params: dict[str, Any], no
             4,
         )
         notes.append("block_pattern_disabled_tighten_entries")
+
+    halt_n = int(streaks.get("swarm_halted") or 0)
+    if halt_n >= 2:
+        notes.append("anomaly:swarm_halted_block_while_open")
 
 
 def adapt_session_overlay(learned: dict[str, Any], notes: list[str]) -> None:

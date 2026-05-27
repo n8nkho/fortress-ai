@@ -56,6 +56,8 @@ from utils.infra_swarm_config import (
     swarm_data_dir,
     universe,
 )
+from utils.swarm_runtime import refresh_universe_if_changed, wave_symbols
+from utils.swarm_wave_si import run_wave_health
 from utils.us_equity_hours import is_us_equity_rth_et
 
 logger = logging.getLogger("infra_swarm_agent")
@@ -156,6 +158,11 @@ def run_loop(iterations: int | None = None) -> None:
             swarm["halt_reason"] = halt_reason
             save_swarm_state(swarm)
 
+        fresh, drift_event = refresh_universe_if_changed(syms, universe)
+        if drift_event:
+            print(json.dumps(drift_event, default=str), flush=True)
+            syms = fresh
+        syms = wave_symbols(syms, positions, context=[anchor, "SPY"])
         context_syms = list(dict.fromkeys(syms + [anchor, "SPY"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)
@@ -216,6 +223,15 @@ def run_loop(iterations: int | None = None) -> None:
             "results": results,
         }
         append_jsonl(_decisions_path(), wave)
+        run_wave_health(
+            component="infra_swarm",
+            wave=n,
+            swarm_halted=bool(swarm.get("halted")),
+            results=results,
+            positions=positions,
+            cached_universe=syms,
+            universe_fn=universe,
+        )
         metric = {
             "ts": wave["ts"],
             "open_positions": open_n,
