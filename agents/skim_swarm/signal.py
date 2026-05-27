@@ -46,7 +46,7 @@ def adaptive_target_usd(features: dict[str, Any]) -> float:
     pct_tgt = last * min_target_pct()
     atr_tgt = atr_k() * atr if atr > 0 else 0
     base = max(min_target_usd(), pct_tgt, atr_tgt)
-    base *= float(params.get("target_mult") or 1.0)
+    base *= float(params.get("target_mult_effective") or params.get("target_mult") or 1.0)
     if features.get("thin_etf"):
         base *= 1.35
     vix = features.get("vix_last")
@@ -81,8 +81,9 @@ def compute_score(features: dict[str, Any]) -> float:
     return max(-1.0, min(1.0, score))
 
 
-def stop_loss_usd(target: float) -> float:
-    raw = max(target * stop_target_mult(), min_stop_usd())
+def stop_loss_usd(target: float, *, stop_target_mult_effective: float | None = None) -> float:
+    mult = stop_target_mult_effective if stop_target_mult_effective is not None else stop_target_mult()
+    raw = max(target * mult, min_stop_usd())
     return -min(raw, max_stop_usd())
 
 
@@ -192,6 +193,7 @@ def decide(
         return out
 
     params_early = get_params(sym)
+    stop_mult = float(params_early.get("stop_target_mult_effective") or stop_target_mult())
     if side == "flat" and params_early.get("pause_entries"):
         out["reasoning"] = "pause_entries"
         return out
@@ -215,7 +217,7 @@ def decide(
         u = _f(unreal)
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
-        stop_usd = stop_loss_usd(target)
+        stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
         if u >= target:
             out["action"] = "exit_position"
             out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
@@ -235,7 +237,7 @@ def decide(
         u = _f(unreal)
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
-        stop_usd = stop_loss_usd(target)
+        stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
         if u >= target:
             out["action"] = "exit_position"
             out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
@@ -258,7 +260,7 @@ def decide(
         out["reasoning"] = "max_open_positions"
         return out
 
-    spread_limit = max_spread_bps() * (1.4 if sym in thin_etf_symbols() else 1.0)
+    spread_limit = max_spread_bps() * float(params_early.get("spread_bps_mult") or 1.0) * (1.4 if sym in thin_etf_symbols() else 1.0)
     feat_spread = features.get("spread_bps")
     if feat_spread is not None and _f(feat_spread) > spread_limit:
         out["reasoning"] = f"spread_too_wide:{_f(feat_spread):.1f}>{spread_limit:.1f}"

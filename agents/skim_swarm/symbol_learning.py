@@ -9,6 +9,18 @@ from typing import Any
 
 from agents.skim_swarm.adaptive_policy import apply_adaptations, reset_session_adaptive_state
 from agents.skim_swarm.eod import session_date_et
+from agents.skim_swarm.intraday_si import (
+    adapt_from_block_streaks,
+    adapt_last_exit_micro,
+    adapt_session_overlay,
+    append_adaptation_log,
+    ensure_intraday_state,
+    estimate_shadow_pnl,
+    merge_overlay_into_params,
+    maybe_promote_shadow_variant,
+    record_block_event,
+    record_shadow_exit,
+)
 from agents.skim_swarm.symbol_causation import (
     build_entry_context,
     causation_blocks_entry,
@@ -16,7 +28,17 @@ from agents.skim_swarm.symbol_causation import (
     ensure_causation,
     record_causation_exit,
 )
-from utils.skim_swarm_config import improve_interval_exits, improve_min_exits, runtime_overrides, side_pause_min_exits, swarm_data_dir, thin_etf_symbols
+from utils.skim_swarm_config import (
+    continuous_si_enabled,
+    improve_every_exit,
+    improve_interval_exits,
+    improve_min_exits,
+    runtime_overrides,
+    side_pause_min_exits,
+    stop_target_mult,
+    swarm_data_dir,
+    thin_etf_symbols,
+)
 
 _learned_lock = threading.RLock()
 
@@ -64,7 +86,7 @@ _DEFAULT_SESSION_STATS = {
 }
 
 _DEFAULT_LEARNED = {
-    "version": 4,
+    "version": 5,
     "session_date_et": None,
     "params": {
         **_DEFAULT_PARAMS,
@@ -73,6 +95,24 @@ _DEFAULT_LEARNED = {
     "session_stats": dict(_DEFAULT_SESSION_STATS),
     "lifetime_stats": dict(_DEFAULT_SESSION_STATS),
     "pattern_stats": {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS},
+    "session_overlay": {
+        "enter_long_delta_boost": 0.0,
+        "enter_short_delta_boost": 0.0,
+        "target_mult_overlay": 1.0,
+        "stop_mult_overlay": 1.0,
+        "spread_bps_mult": 1.0,
+    },
+    "block_streaks": {},
+    "recent_exit_streak": {"stop_loss": 0, "target_hit": 0, "last_pattern": None},
+    "shadow": {
+        "variant": "tighter_stop",
+        "target_mult_delta": -0.08,
+        "live_pnl_usd": 0.0,
+        "shadow_pnl_usd": 0.0,
+        "live_exits": 0,
+        "shadow_exits": 0,
+    },
+    "adaptation_log": [],
     "causation": {
         "lifetime_exits": 0,
         "keys": {},
@@ -113,6 +153,29 @@ def experience_path(symbol: str) -> Path:
 
 def _empty_pattern_stats() -> dict[str, dict[str, Any]]:
     return {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS}
+
+
+def _migrate_v5(data: dict[str, Any]) -> dict[str, Any]:
+    out = json.loads(json.dumps(_DEFAULT_LEARNED))
+    for key in ("session_date_et", "params", "session_stats", "lifetime_stats", "pattern_stats", "causation"):
+        if key in data:
+            out[key] = data[key]
+    for key in (
+        "last_entry_pattern",
+        "last_entry_side",
+        "last_entry_spy_r5m",
+        "last_entry_context",
+        "last_improvement_utc",
+        "notes",
+        "historical_verify",
+        "historical_seed_disables",
+        "company_beta",
+        "symbol",
+    ):
+        if key in data:
+            out[key] = data[key]
+    ensure_intraday_state(out)
+    return out
 
 
 def _migrate_v2(data: dict[str, Any]) -> dict[str, Any]:
@@ -195,6 +258,8 @@ def load_learned(symbol: str) -> dict[str, Any]:
     elif int(data.get("version") or 0) < 4:
         data["version"] = 4
         ensure_causation(data)
+    if int(data.get("version") or 0) < 5:
+        data = _migrate_v5(data)
 
     if data.get("session_date_et") != session:
         data = _reset_session(data)
@@ -206,6 +271,7 @@ def load_learned(symbol: str) -> dict[str, Any]:
     data.setdefault("session_stats", dict(_DEFAULT_SESSION_STATS))
     data.setdefault("pattern_stats", _empty_pattern_stats())
     ensure_causation(data)
+    ensure_intraday_state(data)
     data["symbol"] = symbol.upper()
     return data
 
@@ -213,7 +279,8 @@ def load_learned(symbol: str) -> dict[str, Any]:
 def save_learned(symbol: str, data: dict[str, Any]) -> None:
     data["symbol"] = symbol.upper()
     data["session_date_et"] = session_date_et()
-    data["version"] = 4
+    ensure_intraday_state(data)
+    data["version"] = 5
     data["updated_utc"] = datetime.now(timezone.utc).isoformat()
     learned_path(symbol).write_text(json.dumps(data, indent=2), encoding="utf-8")
 
@@ -241,9 +308,12 @@ def improve_from_history(symbol: str, *, force: bool = False) -> dict[str, Any] 
         learned = load_learned(symbol)
         stats = learned["session_stats"]
         exits = int(stats.get("exits") or 0)
-        if exits < min_ex:
+        if continuous_si_enabled() and improve_every_exit():
+            if exits < 1:
+                return None
+        elif exits < min_ex:
             return None
-        if not force and (exits - min_ex) % interval != 0:
+        elif not force and (exits - min_ex) % interval != 0:
             return None
 
         wins = int(stats.get("wins") or 0)
@@ -365,6 +435,7 @@ def record_decision(
         )
 
         improvement = None
+        si_notes: list[str] = []
         if executed and action in ("enter_long", "enter_short"):
             stats["entries"] = int(stats.get("entries") or 0) + 1
             pattern = _entry_pattern_from_reasoning(str(reasoning or ""))
@@ -396,6 +467,7 @@ def record_decision(
             side = str(learned.get("last_entry_side") or features.get("side") or "")
             pattern = learned.get("last_entry_pattern")
             causation_update = None
+            exit_reasoning = str(reasoning or "")
             if pnl is not None:
                 try:
                     pv = float(pnl)
@@ -429,9 +501,24 @@ def record_decision(
                     causation_update = record_causation_exit(
                         learned,
                         entry_context=learned.get("last_entry_context"),
-                        exit_reasoning=str(reasoning or ""),
+                        exit_reasoning=exit_reasoning,
                         pnl_usd=pv,
                     )
+                    adapt_last_exit_micro(
+                        learned,
+                        learned["params"],
+                        exit_reasoning=exit_reasoning,
+                        pnl_usd=pv,
+                        pattern=pattern,
+                        notes=si_notes,
+                    )
+                    record_shadow_exit(
+                        learned,
+                        pnl_usd=pv,
+                        shadow_pnl_usd=estimate_shadow_pnl(pv, exit_reasoning),
+                    )
+                    maybe_promote_shadow_variant(learned, learned["params"], si_notes)
+                    adapt_session_overlay(learned, si_notes)
                     append_experience(
                         symbol,
                         {
@@ -447,15 +534,24 @@ def record_decision(
                     )
                 except (TypeError, ValueError):
                     pass
+            append_adaptation_log(learned, si_notes)
             learned["last_entry_pattern"] = None
             learned["last_entry_side"] = None
             learned["last_entry_spy_r5m"] = None
             learned["last_entry_context"] = None
             save_learned(symbol, learned)
-            improvement = improve_from_history(symbol)
+            if continuous_si_enabled() and improve_every_exit():
+                improvement = improve_from_history(symbol, force=True)
+            else:
+                improvement = improve_from_history(symbol)
             if improvement and causation_update:
                 improvement["causation"] = causation_update
         else:
+            block = act_result.get("block_reason") or (reasoning if action == "wait" else None)
+            if block and action == "wait" and not executed:
+                record_block_event(learned, str(block))
+                adapt_from_block_streaks(learned, learned["params"], si_notes)
+                append_adaptation_log(learned, si_notes)
             save_learned(symbol, learned)
 
         return improvement
@@ -561,16 +657,21 @@ def _review_param_overrides(symbol: str) -> dict[str, Any]:
 
 def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
     L = load_learned(symbol)
+    ensure_intraday_state(L)
     P = dict(L.get("params") or {})
     P.update(_review_param_overrides(symbol))
     thin = symbol in thin_etf_symbols()
     base_long = 0.24 if thin else 0.22
     base_short = -0.24 if thin else -0.22
     pd = P.get("pattern_deltas") or {}
+    overlay = merge_overlay_into_params(P, L)
     return {
-        "enter_long": base_long + float(P.get("enter_long_delta") or 0),
-        "enter_short": base_short + float(P.get("enter_short_delta") or 0),
+        "enter_long": base_long + float(P.get("enter_long_delta") or 0) + float(overlay.get("enter_long_delta_boost") or 0),
+        "enter_short": base_short + float(P.get("enter_short_delta") or 0) + float(overlay.get("enter_short_delta_boost") or 0),
         "target_mult": float(P.get("target_mult") or 1.0),
+        "target_mult_effective": float(overlay.get("target_mult_effective") or P.get("target_mult") or 1.0),
+        "stop_target_mult_effective": float(overlay.get("stop_target_mult_effective") or stop_target_mult()),
+        "spread_bps_mult": float(overlay.get("spread_bps_mult") or 1.0),
         "cooldown_mult": float(P.get("cooldown_mult") or 1.0),
         "score_bias": float(P.get("score_bias") or 0.0),
         "short_spy_filter": float(P.get("short_spy_filter") or 0.0),

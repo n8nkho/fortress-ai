@@ -3,14 +3,24 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import patch
 
 from agents.skim_swarm.coordinator import EntrySlotGuard
 from agents.skim_swarm.act import act, cooldown_until_seconds
 from agents.skim_swarm.company_context import format_context_blurb
 from agents.skim_swarm.features import build_symbol_features
+from agents.skim_swarm.intraday_si import log_shadow_decision, shadow_target_mult
 from agents.skim_swarm.signal import decide
 from agents.skim_swarm.state import load_symbol_state, save_symbol_state
-from agents.skim_swarm.symbol_learning import default_cooldown_sec, get_causation, load_learned, record_decision
+from agents.skim_swarm.symbol_learning import (
+    default_cooldown_sec,
+    get_causation,
+    get_params,
+    load_learned,
+    record_decision,
+)
+import agents.skim_swarm.symbol_learning as sym_learn
+from utils.skim_swarm_config import shadow_lane_enabled
 
 
 def run_symbol_cycle(
@@ -47,6 +57,33 @@ def run_symbol_cycle(
         open_positions=open_count,
         max_open=max_open,
     )
+
+    if shadow_lane_enabled():
+        params = learned.get("params") or {}
+        sh_tm = shadow_target_mult(params, learned)
+        shadow_params = {
+            **get_params(sym),
+            "target_mult": sh_tm,
+            "target_mult_effective": sh_tm * float((learned.get("session_overlay") or {}).get("target_mult_overlay") or 1.0),
+        }
+        with patch.object(sym_learn, "get_params", return_value=shadow_params):
+            shadow_decision = decide(
+                features,
+                dict(st),
+                swarm_halted=halted,
+                open_positions=open_count,
+                max_open=max_open,
+            )
+        log_shadow_decision(
+            sym,
+            {
+                "live_action": decision.get("action"),
+                "shadow_action": shadow_decision.get("action"),
+                "live_reasoning": decision.get("reasoning"),
+                "shadow_reasoning": shadow_decision.get("reasoning"),
+                "shadow_target_mult": sh_tm,
+            },
+        )
 
     act_result: dict[str, Any]
     action = decision.get("action")

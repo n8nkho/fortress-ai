@@ -222,6 +222,10 @@ def _adapt_to_winning_pattern_share(
     params: dict[str, Any], learned: dict[str, Any], notes: list[str]
 ) -> None:
     """Disable losing patterns until share of winning patterns meets goal."""
+    from agents.skim_swarm.intraday_si import session_expectancy_ok
+
+    if not session_expectancy_ok(learned.get("session_stats") or {}):
+        return
     goal = target_winning_pattern_share()
     pstats = learned.get("pattern_stats") or {}
     disabled = set(params.get("disable_patterns") or [])
@@ -362,6 +366,10 @@ def apply_adaptations(
     _adapt_targets_and_cooldown(params, stats, notes)
     _adapt_short_spy_filter(symbol, params, stats, experience_path_fn, notes)
     _adapt_integrity_recommendations(params, notes)
+    from agents.skim_swarm.intraday_si import adapt_from_block_streaks, adapt_session_overlay
+
+    adapt_from_block_streaks(learned, params, notes)
+    adapt_session_overlay(learned, notes)
 
     return notes
 
@@ -390,6 +398,9 @@ def _adapt_integrity_recommendations(params: dict[str, Any], notes: list[str]) -
 
 def reset_session_adaptive_state(learned: dict[str, Any]) -> None:
     """New ET session: reset side pauses; keep lifetime toxic symbol/causation blocks."""
+    from agents.skim_swarm.intraday_si import reset_intraday_session_state
+
+    reset_intraday_session_state(learned)
     params = learned.setdefault("params", {})
     params["pause_long"] = False
     params["pause_short"] = False

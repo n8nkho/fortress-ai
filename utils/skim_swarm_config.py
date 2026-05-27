@@ -361,6 +361,43 @@ def pattern_disable_min_exits() -> int:
         return 3
 
 
+def _flag_on(name: str, default: str = "1") -> bool:
+    return str(os.environ.get(name, default) or default).strip().lower() in ("1", "true", "yes", "on")
+
+
+def continuous_si_enabled() -> bool:
+    return _flag_on("FORTRESS_SKIM_CONTINUOUS_SI", "1")
+
+
+def improve_every_exit() -> bool:
+    return _flag_on("FORTRESS_SKIM_IMPROVE_EVERY_EXIT", "1")
+
+
+def block_streak_threshold() -> int:
+    try:
+        return max(2, int(os.environ.get("FORTRESS_SKIM_BLOCK_STREAK_THRESHOLD", "3") or 3))
+    except ValueError:
+        return 3
+
+
+def session_expectancy_min_usd() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_SESSION_EXPECTANCY_MIN_USD", "-0.05") or -0.05)
+    except ValueError:
+        return -0.05
+
+
+def shadow_lane_enabled() -> bool:
+    return _flag_on("FORTRESS_SKIM_SHADOW_LANE", "1")
+
+
+def shadow_promote_min_exits() -> int:
+    try:
+        return max(4, int(os.environ.get("FORTRESS_SKIM_SHADOW_PROMOTE_MIN_EXITS", "8") or 8))
+    except ValueError:
+        return 8
+
+
 def autoresearch_min_winning_symbols() -> int | None:
     """Phase 2 gate — Karpathy-style autoresearch after N symbols sustain target_winning_pattern_share.
 

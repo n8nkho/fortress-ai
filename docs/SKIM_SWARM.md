@@ -6,7 +6,19 @@ Always-on intraday service (`fortress-ai-skim-swarm`) trading up to **1 share** 
 
 `SPY, NVDA, MSFT, GOOG, AMZN, AAPL, SOXX, NASA, BRK.B, AGIX, AVGO, LLY, V, MA, PLTR, CRWD`
 
-Each symbol is a **self-improving agent**: after every 10 closed trades (then every 5) it adjusts entry thresholds, pattern disables, side pauses, and targets from **pattern-level P&amp;L** (`data/skim_swarm/learned/`). Company/ETF context is cached under `data/skim_swarm/company_context/` (yfinance + static summaries).
+Each symbol is a **self-improving agent**: during RTH it continuously adapts from its own exits, blocks, and session P&amp;L (`data/skim_swarm/learned/{SYMBOL}.json`). Company/ETF context is cached under `data/skim_swarm/company_context/` (yfinance + static summaries).
+
+### Continuous intraday SI (per symbol)
+
+When `FORTRESS_SKIM_CONTINUOUS_SI=1` (default), each ticker maintains its own **session overlay** (entry delta boosts, stop/target mults, spread tolerance) that hot-reloads every wave via `get_params()`. Learning runs on:
+
+- **Every exit** — micro-adapt stops/cooldowns; full `apply_adaptations` when `FORTRESS_SKIM_IMPROVE_EVERY_EXIT=1`
+- **Block streaks** — repeated `no_entry` / spread / pattern blocks nudge that symbol's overlay
+- **Shadow lane** — counterfactual tighter-stop PnL logged to `experience/{SYMBOL}_shadow.jsonl`; promotes when shadow beats live
+
+Session dollar expectancy is prioritized over winning-pattern share when the session is losing (`FORTRESS_SKIM_SESSION_EXPECTANCY_MIN_USD`).
+
+Legacy batch tuning still applies when continuous SI is off: after every 10 closed trades (then every 5).
 
 ### Phase 1 — pattern curation (now)
 
