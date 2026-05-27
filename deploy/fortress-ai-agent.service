@@ -16,6 +16,8 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/home/ubuntu/fortress-ai
 Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
 EnvironmentFile=-/home/ubuntu/fortress-ai/.env
 # .env is read by Python (load_fortress_dotenv); do not commit secrets.
 # Prefer Linux venv; fall back to system Python (see scripts/ensure_linux_venv.sh).

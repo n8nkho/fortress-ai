@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "canonical_timezone": "America/New_York",
+  "display_name": "US Eastern (New York)",
+  "policy": "All system timestamps, cron schedules, logs, dashboards, and operator-facing times use America/New_York only. Do not use UTC or host-local VM time for scheduling or reporting.",
+  "env_var": "FORTRESS_SYSTEM_TZ",
+  "cron_var": "CRON_TZ",
+  "iana": "America/New_York",
+  "aliases_forbidden": ["UTC", "GMT", "host local", "system default"]
+}

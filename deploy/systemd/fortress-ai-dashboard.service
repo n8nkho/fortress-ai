@@ -9,6 +9,8 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/home/ubuntu/fortress-ai
 Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
 Environment=FORTRESS_AI_DASHBOARD_HOST=0.0.0.0
 Environment=FORTRESS_AI_DASHBOARD_PORT=8050
 EnvironmentFile=-/home/ubuntu/fortress-ai/.env

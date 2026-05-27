@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from utils.system_time import ensure_system_tz, now, now_iso, parse_iso, system_tz_name
+
+ensure_system_tz()
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -47,6 +51,7 @@ def load_deployed() -> dict[str, Any]:
 
 def save_deployed(doc: dict[str, Any]) -> None:
     deployed_path().parent.mkdir(parents=True, exist_ok=True)
+    doc.setdefault("system_tz", system_tz_name())
     deployed_path().write_text(json.dumps(doc, indent=2), encoding="utf-8")
 
 
@@ -75,15 +80,21 @@ def code_guard_present_in_repo(code: str) -> bool:
 
 def _estimate_deploy_time(code: str) -> str:
     paths = _GUARD_SOURCES.get(code) or []
+    tz = now().tzinfo
     mtimes: list[datetime] = []
     for path in paths:
         if path.is_file():
             try:
-                mtimes.append(datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc))
+                mtimes.append(datetime.fromtimestamp(path.stat().st_mtime, tz=tz))
             except OSError:
                 pass
-    when = min(mtimes) if mtimes else datetime.now(timezone.utc)
+    when = min(mtimes) if mtimes else now()
     return when.isoformat()
+
+
+def _deployed_at(entry: dict[str, Any]) -> str | None:
+    raw = entry.get("deployed_at") or entry.get("deployed_at_utc")
+    return str(raw) if raw else None
 
 
 def sync_deployed_from_registry() -> list[str]:
@@ -94,7 +105,7 @@ def sync_deployed_from_registry() -> list[str]:
     fixes = doc.setdefault("fixes", {})
     recorded: list[str] = []
     reg = load_fix_registry().get("fixes") or {}
-    now = datetime.now(timezone.utc).isoformat()
+    now_ts = now_iso()
     for code in reg if isinstance(reg, dict) else {}:
         meta = reg.get(code)
         if not isinstance(meta, dict) or meta.get("kind") != "code_guard":
@@ -102,22 +113,32 @@ def sync_deployed_from_registry() -> list[str]:
         if not code_guard_present_in_repo(code):
             continue
         entry = fixes.get(code) if isinstance(fixes.get(code), dict) else {}
-        if not entry.get("deployed_at_utc"):
-            entry["deployed_at_utc"] = _estimate_deploy_time(code)
+        if not _deployed_at(entry):
+            ts = _estimate_deploy_time(code)
+            entry["deployed_at"] = ts
+            entry["deployed_at_utc"] = ts
             entry["verified"] = True
             fixes[code] = entry
             recorded.append(code)
         else:
-            entry["verified"] = True
+            entry.setdefault("deployed_at", _deployed_at(entry))
+            entry.setdefault("deployed_at_utc", entry.get("deployed_at"))
             fixes[code] = entry
-    doc["updated_utc"] = now
+    doc["updated_at"] = now_ts
+    doc["system_tz"] = system_tz_name()
     save_deployed(doc)
     return recorded
 
 
 def is_deployed(code: str) -> bool:
-    doc = load_deployed()
-    entry = (doc.get("fixes") or {}).get(code)
-    if isinstance(entry, dict) and entry.get("deployed_at_utc"):
+    entry = (load_deployed().get("fixes") or {}).get(code)
+    if isinstance(entry, dict) and _deployed_at(entry):
         return True
     return code_guard_present_in_repo(code)
+
+
+def deployed_at(code: str) -> datetime | None:
+    entry = (load_deployed().get("fixes") or {}).get(code)
+    if not isinstance(entry, dict):
+        return None
+    return parse_iso(_deployed_at(entry))

@@ -16,6 +16,8 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/home/ubuntu/fortress-ai
 Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
 EnvironmentFile=-/home/ubuntu/fortress-ai/.env
 ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/agents/skim_swarm_agent.py
 Restart=on-failure

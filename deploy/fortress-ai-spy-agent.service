@@ -16,6 +16,8 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/home/ubuntu/fortress-ai
 Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
 ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/agents/spy_intraday_agent.py
 Restart=on-failure
 RestartSec=30

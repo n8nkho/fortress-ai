@@ -8,9 +8,13 @@ from __future__ import annotations
 import json
 import os
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from utils.system_time import ensure_system_tz, now_iso, parse_iso, system_tz_name
+
+ensure_system_tz()
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -18,16 +22,7 @@ RECENT_DECISION_WINDOW = 12
 
 
 def _parse_row_ts(raw: Any) -> datetime | None:
-    if not raw:
-        return None
-    try:
-        s = str(raw).replace("Z", "+00:00")
-        dt = datetime.fromisoformat(s)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
-    except Exception:
-        return None
+    return parse_iso(str(raw) if raw is not None else None)
 
 
 def _rows_after_deploy(rows: list[dict[str, Any]], code: str) -> list[dict[str, Any]]:
@@ -36,7 +31,7 @@ def _rows_after_deploy(rows: list[dict[str, Any]], code: str) -> list[dict[str, 
         from utils.si_fix_deployment import load_deployed
 
         entry = (load_deployed().get("fixes") or {}).get(code) or {}
-        deployed_at = _parse_row_ts(entry.get("deployed_at_utc"))
+        deployed_at = _parse_row_ts(entry.get("deployed_at") or entry.get("deployed_at_utc"))
     except Exception:
         deployed_at = None
     if deployed_at is None:
@@ -282,8 +277,11 @@ def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     unified = scan_unified_agent()
     skim = scan_skim_swarm()
     findings = unified + skim
+    ts = now_iso()
     out = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp": ts,
+        "system_tz": system_tz_name(),
+        "timestamp_utc": ts,
         "findings": findings,
         "counts": {
             "critical": sum(1 for f in findings if f.get("severity") == "critical"),
@@ -293,7 +291,7 @@ def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     }
     if log and findings:
         for f in findings:
-            _append_recommendation_log({**f, "scan_ts": out["timestamp_utc"]})
+            _append_recommendation_log({**f, "scan_ts": ts})
     snap = _data_dir() / "integrity_scan_latest.json"
     snap.parent.mkdir(parents=True, exist_ok=True)
     snap.write_text(json.dumps(out, indent=2), encoding="utf-8")

@@ -9,6 +9,8 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
+export TZ="${FORTRESS_SYSTEM_TZ:-America/New_York}"
+export FORTRESS_SYSTEM_TZ="${FORTRESS_SYSTEM_TZ:-America/New_York}"
 
 PY=""
 for cand in "${REPO_ROOT}/venv/bin/python3" "${REPO_ROOT}/.venv/bin/python3"; do

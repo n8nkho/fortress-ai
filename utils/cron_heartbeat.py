@@ -10,17 +10,20 @@ import argparse
 import json
 import os
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from utils.system_time import ensure_system_tz, now, now_iso, parse_iso, system_tz_name
+
+ensure_system_tz()
 
 _ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_STORE = _ROOT / "data" / "cron_heartbeats.json"
 _FAILURE_LOG = _ROOT / "logs" / "cron_job_failures.log"
 
 
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def _ts_now() -> str:
+    return now_iso()
 
 
 def read_store(path: Path | None = None) -> dict[str, Any]:
@@ -53,7 +56,7 @@ def record_success(job: str, *, path: Path | None = None) -> dict[str, Any]:
         prev = {}
     prev.update(
         {
-            "last_success_at": _utc_now(),
+            "last_success_at": _ts_now(),
             "last_exit_code": 0,
             "last_failure_at": prev.get("last_failure_at"),
             "last_failure_detail": prev.get("last_failure_detail"),
@@ -61,7 +64,8 @@ def record_success(job: str, *, path: Path | None = None) -> dict[str, Any]:
     )
     jobs[job] = prev
     doc["jobs"] = jobs
-    doc["updated_at"] = _utc_now()
+    doc["updated_at"] = _ts_now()
+    doc["system_tz"] = system_tz_name()
     write_store(doc, path)
     return prev
 
@@ -76,17 +80,18 @@ def record_failure(job: str, exit_code: int, detail: str | None = None, *, path:
         prev = {}
     prev.update(
         {
-            "last_failure_at": _utc_now(),
+            "last_failure_at": _ts_now(),
             "last_exit_code": int(exit_code),
             "last_failure_detail": (detail or "")[:2000],
         }
     )
     jobs[job] = prev
     doc["jobs"] = jobs
-    doc["updated_at"] = _utc_now()
+    doc["updated_at"] = _ts_now()
+    doc["system_tz"] = system_tz_name()
     write_store(doc, path)
     _FAILURE_LOG.parent.mkdir(parents=True, exist_ok=True)
-    line = f"{_utc_now()} job={job} rc={exit_code} detail={detail or ''}\n"
+    line = f"{_ts_now()} job={job} rc={exit_code} detail={detail or ''}\n"
     try:
         with open(_FAILURE_LOG, "a", encoding="utf-8") as fh:
             fh.write(line)
@@ -105,7 +110,7 @@ def evaluate_heartbeat_health(
     store = read_store(store_path).get("jobs") or {}
     if not isinstance(store, dict):
         store = {}
-    now = datetime.now(timezone.utc)
+    now_dt = now()
     alerts: list[dict[str, Any]] = []
     ok_jobs = 0
     for row in manifest:
@@ -121,7 +126,7 @@ def evaluate_heartbeat_health(
             raw = ent.get("last_success_at")
             if raw:
                 try:
-                    last_ok = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                    last_ok = parse_iso(str(raw))
                 except Exception:
                     last_ok = None
         if last_ok is None:
@@ -139,7 +144,7 @@ def evaluate_heartbeat_health(
                 }
             )
             continue
-        age_min = (now - last_ok).total_seconds() / 60.0
+        age_min = (now_dt - last_ok).total_seconds() / 60.0
         if age_min > max_age_min:
             alerts.append(
                 {
@@ -164,6 +169,7 @@ def evaluate_heartbeat_health(
         "ok_jobs": ok_jobs,
         "alerts": alerts,
         "manifest_jobs": len(manifest),
+        "system_tz": system_tz_name(),
     }
 
 

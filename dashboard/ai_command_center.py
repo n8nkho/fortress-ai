@@ -27,6 +27,10 @@ try:
 except Exception:
     pass
 
+from utils.system_time import ensure_system_tz, now, now_iso, parse_iso, system_tz_name
+
+ensure_system_tz()
+
 from flask import Flask, Response, jsonify, render_template, request
 
 logger = logging.getLogger("dashboard.ai_command_center")
@@ -259,11 +263,11 @@ def _tail_jsonl(path: Path, max_lines: int = 80) -> list[dict]:
 
 
 def _today_llm_cost_usd() -> float:
-    """Sum ledger entries for current UTC date."""
+    """Sum ledger entries for current US/Eastern date."""
     p = _data_dir() / "ai_llm_cost_ledger.jsonl"
     if not p.exists():
         return 0.0
-    today = datetime.now(timezone.utc).date().isoformat()
+    today = now().date().isoformat()
     total = 0.0
     try:
         with open(p, encoding="utf-8") as f:
@@ -287,7 +291,7 @@ def _calls_today_from_ledger() -> int:
     p = _data_dir() / "ai_llm_cost_ledger.jsonl"
     if not p.exists():
         return 0
-    today = datetime.now(timezone.utc).date().isoformat()
+    today = now().date().isoformat()
     n = 0
     try:
         with open(p, encoding="utf-8") as f:
@@ -311,11 +315,10 @@ def _parse_iso_age_seconds(iso_ts: str | None) -> float | None:
     if not iso_ts:
         return None
     try:
-        s = str(iso_ts).replace("Z", "+00:00")
-        dt = datetime.fromisoformat(s)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return max(0.0, (datetime.now(timezone.utc) - dt).total_seconds())
+        dt = parse_iso(str(iso_ts))
+        if dt is None:
+            return None
+        return max(0.0, (now() - dt).total_seconds())
     except Exception:
         return None
 
@@ -458,7 +461,7 @@ def _comparison_payload() -> dict[str, Any]:
     classic_ledger = classic_realized_summary()
     classic_win_rate = classic_ledger.get("win_rate")
     classic_pnls: list[float] = []
-    today_u = datetime.now(timezone.utc).date().isoformat()
+    today_u = now().date().isoformat()
     cycles_today = sum(1 for r in decisions_recent if str(r.get("ts") or "").startswith(today_u))
     executed_today = sum(
         1
@@ -496,15 +499,15 @@ def _comparison_payload() -> dict[str, Any]:
     overlap_syms = sorted(ai_syms & classic_syms)[:16]
 
     ai_portfolio = _alpaca_snapshot()
-    now = time.time()
+    cache_now = time.time()
     classic_portfolio: dict[str, Any]
-    if now - float(_CLASSIC_PORTFOLIO_CACHE["t"]) < _classic_portfolio_cache_ttl_sec() and _CLASSIC_PORTFOLIO_CACHE.get(
+    if cache_now - float(_CLASSIC_PORTFOLIO_CACHE["t"]) < _classic_portfolio_cache_ttl_sec() and _CLASSIC_PORTFOLIO_CACHE.get(
         "payload"
     ):
         classic_portfolio = _CLASSIC_PORTFOLIO_CACHE["payload"]
     else:
         classic_portfolio = classic_alpaca_snapshot()
-        _CLASSIC_PORTFOLIO_CACHE["t"] = now
+        _CLASSIC_PORTFOLIO_CACHE["t"] = cache_now
         _CLASSIC_PORTFOLIO_CACHE["payload"] = classic_portfolio
 
     ai_ledger = ai_realized_summary(dd, ai_portfolio)
@@ -610,7 +613,7 @@ def _chart_llm_daily(days: int = 14) -> dict[str, Any]:
                         continue
         except Exception:
             pass
-    end = datetime.now(timezone.utc).date()
+    end = now().date()
     labels: list[str] = []
     values: list[float] = []
     for i in range(days - 1, -1, -1):
@@ -856,8 +859,11 @@ def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
         logger.exception("belief_dashboard_snapshot failed")
         belief_memory = {"error": "belief_snapshot_unavailable"}
 
+    ts = now_iso()
     payload: dict[str, Any] = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp": ts,
+        "system_tz": system_tz_name(),
+        "timestamp_utc": ts,
         "instance": os.environ.get("FORTRESS_INSTANCE_NAME", "Fortress-AI"),
         "ui_status": status,
         "dry_run": str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes"),
@@ -1111,9 +1117,12 @@ def api_comparison():
 
 @app.route("/api/export/bundle")
 def api_export_bundle():
+    ts = now_iso()
     bundle = _json_sanitize_for_api(
         {
-            "exported_at_utc": datetime.now(timezone.utc).isoformat(),
+            "exported_at": ts,
+            "system_tz": system_tz_name(),
+            "exported_at_utc": ts,
             "current_state": build_current_state(),
             "comparison": _comparison_payload(),
         }
@@ -1136,7 +1145,8 @@ def stream_decisions():
         while True:
             try:
                 snap = {
-                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "ts": now_iso(),
+                    "system_tz": system_tz_name(),
                     "state": _json_sanitize_for_api(build_current_state()),
                 }
                 blob = json.dumps(snap, default=str)

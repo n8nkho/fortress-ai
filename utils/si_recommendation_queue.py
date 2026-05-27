@@ -12,9 +12,12 @@ from __future__ import annotations
 import json
 import os
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from utils.system_time import ensure_system_tz, now_iso, system_tz_name
+
+ensure_system_tz()
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -84,7 +87,7 @@ def _append_log(record: dict[str, Any]) -> None:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return now_iso()
 
 
 def _finding_key(code: str, component: str = "") -> str:
@@ -452,8 +455,11 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
     pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
     pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
 
+    ts = _now_iso()
     summary = {
-        "timestamp_utc": _now_iso(),
+        "timestamp": ts,
+        "system_tz": system_tz_name(),
+        "timestamp_utc": ts,
         "findings_processed": len(all_findings),
         "items_upserted": len(items),
         "auto_applied": auto_applied,
