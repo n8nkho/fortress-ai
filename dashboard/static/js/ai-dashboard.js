@@ -80,12 +80,14 @@ document.addEventListener("alpine:init", () => {
     tradingDiagnostics: null,
     skim: { universe: [], dry_run: null, pnl: null },
     skimPollTimer: null,
+    infra: { universe: [], dry_run: null, pnl: null, anchor: "SMH" },
 
     init() {
       this.loadSkimFallbackUniverse();
       this.recomputeSkimSort();
       this.expertMode = localStorage.getItem("fai_expert") === "1";
       this.fetchSkimStatus();
+      this.fetchInfraStatus();
       this.refresh();
       this.loadCharts();
       this.fetchComparison();
@@ -118,6 +120,7 @@ document.addEventListener("alpine:init", () => {
         this.refresh();
         this.fetchComparison();
         this.fetchSkimStatus();
+        this.fetchInfraStatus();
       } else {
         this.stopPolling();
         this.disconnectSSE();
@@ -132,7 +135,10 @@ document.addEventListener("alpine:init", () => {
       this.chartPollTimer = setInterval(() => this.loadCharts(), 60000);
       this.mediumPollTimer = setInterval(() => this.refreshMediumTier(), 60000);
       this.slowPollTimer = setInterval(() => this.refreshSlowTier(), 300000);
-      this.skimPollTimer = setInterval(() => this.fetchSkimStatus(), 45000);
+      this.skimPollTimer = setInterval(() => {
+        this.fetchSkimStatus();
+        this.fetchInfraStatus();
+      }, 45000);
     },
 
     stopPolling() {
@@ -276,6 +282,34 @@ document.addEventListener("alpine:init", () => {
         this.skim = this.skim || { error: "unavailable" };
         this.recomputeSkimSort();
       }
+    },
+
+    async fetchInfraStatus() {
+      try {
+        const r = await fetch("/api/infra/status");
+        if (!r.ok) throw new Error(await r.text());
+        this.infra = await r.json();
+      } catch (_) {
+        this.infra = this.infra || { error: "unavailable" };
+      }
+    },
+
+    infraRows() {
+      const universe = this.infra?.universe || [];
+      const states = this.infra?.symbol_states || [];
+      const bySym = {};
+      for (const s of states) bySym[s.symbol] = s;
+      return universe.map((sym) => {
+        const st = bySym[sym] || {};
+        return {
+          symbol: sym,
+          layer: st.layer || "—",
+          side: st.side || "flat",
+          realized_usd: st.realized_usd,
+          wins: st.wins,
+          losses: st.losses,
+        };
+      });
     },
 
     skimPnlFmt(v) {

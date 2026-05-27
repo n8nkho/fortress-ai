@@ -1,0 +1,65 @@
+<section id="fai-infra-swarm" class="fai-panel rounded-xl border-2 border-violet-400/40 bg-violet-950/30 p-4 mb-4 shadow-[0_0_24px_rgba(167,139,250,0.12)]">
+  <div class="flex flex-wrap items-start justify-between gap-2 mb-1">
+    <h2 class="text-base font-bold text-violet-200">Infra swarm (AI stack SRP)</h2>
+    <button type="button"
+      class="px-2.5 py-1 rounded-lg border border-violet-500/45 bg-violet-900/40 text-[11px] text-violet-100 hover:bg-violet-800/50"
+      @click="fetchInfraStatus()"
+      title="Refresh infra status">
+      Refresh
+    </button>
+  </div>
+  <p class="text-[11px] text-violet-100/80 mb-2">
+    Build <span class="fai-text-mono text-amber-200">{{ ui_build }}</span> ·
+    systemd <span class="fai-text-mono">{{ infra_preview.service }}</span> ·
+    anchor <span class="fai-text-mono text-cyan-200" x-text="infra?.anchor || infra_preview.anchor"></span> ·
+    <span class="font-semibold" x-text="(infra?.universe || infra_preview.universe || []).length"></span> adaptive agents
+  </p>
+  <p class="text-[11px] text-slate-400 mb-3 fai-text-mono break-words" x-text="(infra?.universe || infra_preview.universe || []).join(', ')"></p>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+    <div class="rounded-lg border border-violet-500/25 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Daily realized</p>
+      <p class="text-sm font-semibold fai-text-mono" :class="skimPnlClass(infra?.pnl?.daily?.realized_usd)" x-text="skimPnlFmt(infra?.pnl?.daily?.realized_usd)"></p>
+    </div>
+    <div class="rounded-lg border border-violet-500/25 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Open</p>
+      <p class="text-sm font-semibold fai-text-mono text-slate-200" x-text="infra?.latest_metric?.open_positions ?? '—'"></p>
+    </div>
+    <div class="rounded-lg border border-fuchsia-500/20 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Stack signal</p>
+      <p class="text-sm font-semibold fai-text-mono text-violet-200" x-text="infra?.stack_signal?.stack_stress ?? '—'"></p>
+    </div>
+    <div class="rounded-lg border border-fuchsia-500/20 bg-black/25 px-3 py-2">
+      <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">dry_run</p>
+      <p class="text-sm font-semibold fai-text-mono text-amber-200" x-text="infra?.dry_run"></p>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto max-h-48 fai-scroll border border-violet-500/15 rounded-lg">
+    <table class="w-full text-[11px] text-left text-slate-300">
+      <thead class="text-slate-500 sticky top-0 bg-violet-950/95">
+        <tr>
+          <th class="py-1.5 pl-2">Symbol</th>
+          <th class="pr-2">Layer</th>
+          <th class="pr-2">Side</th>
+          <th class="pr-2">Realized</th>
+          <th class="pr-2">W/L</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="row in infraRows()" :key="row.symbol">
+          <tr class="border-t border-white/5 hover:bg-violet-950/30">
+            <td class="py-1 pl-2 text-violet-200 font-medium" x-text="row.symbol"></td>
+            <td class="pr-2 fai-text-mono text-cyan-300/80" x-text="row.layer"></td>
+            <td class="pr-2" x-text="row.side"></td>
+            <td class="pr-2 fai-text-mono" :class="skimPnlClass(row.realized_usd)" x-text="row.realized_usd != null ? skimPnlFmt(row.realized_usd) : '—'"></td>
+            <td class="pr-2 fai-text-mono text-slate-400" x-text="(row.wins ?? '—') + '/' + (row.losses ?? '—')"></td>
+          </tr>
+        </template>
+        <template x-if="!infraRows().length">
+          <tr><td colspan="5" class="py-3 text-center text-slate-500">Loading infra universe…</td></tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</section>

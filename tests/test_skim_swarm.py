@@ -10,15 +10,16 @@ from utils.skim_swarm_config import normalize_symbol, universe
 class TestSkimSwarm(unittest.TestCase):
     def test_universe_includes_new_tickers(self):
         u = universe()
-        for sym in ("SPY", "NVDA", "AAPL", "NASA", "BRK.B", "AGIX", "PLTR", "CRWD"):
+        for sym in ("SPY", "MSFT", "AAPL", "NASA", "BRK.B", "AGIX", "PLTR", "CRWD"):
             self.assertIn(sym, u)
+        self.assertNotIn("NVDA", u)
 
     def test_brkb_alias(self):
         self.assertEqual(normalize_symbol("BRKB"), "BRK.B")
 
     def test_decide_enter_long_on_score(self):
         features = {
-            "symbol": "NVDA",
+            "symbol": "AAPL",
             "last": 100.0,
             "r1m": -0.0005,
             "r5m": 0.002,

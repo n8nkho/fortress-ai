@@ -4,7 +4,9 @@ Always-on intraday service (`fortress-ai-skim-swarm`) trading up to **1 share** 
 
 ## Universe (default)
 
-`SPY, NVDA, MSFT, GOOG, AMZN, AAPL, SOXX, NASA, BRK.B, AGIX, AVGO, LLY, V, MA, PLTR, CRWD`
+`SPY, MSFT, GOOG, AMZN, AAPL, NASA, BRK.B, AGIX, LLY, V, MA, PLTR, CRWD`
+
+AI infrastructure names (NVDA, AVGO, SOXX, etc.) live in **infra swarm** — see `docs/INFRA_SWARM.md`.
 
 Each symbol is a **self-improving agent**: during RTH it continuously adapts from its own exits, blocks, and session P&amp;L (`data/skim_swarm/learned/{SYMBOL}.json`). Company/ETF context is cached under `data/skim_swarm/company_context/` (yfinance + static summaries).
 

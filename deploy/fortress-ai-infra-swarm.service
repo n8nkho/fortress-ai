@@ -1,0 +1,26 @@
+# Fortress AI — AI infrastructure layer propagation swarm (SRP, adaptive universe).
+# Install: sudo cp deploy/fortress-ai-infra-swarm.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-infra-swarm
+
+[Unit]
+Description=Fortress AI infra swarm (AI infrastructure layer propagation)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
+EnvironmentFile=-/home/ubuntu/fortress-ai/.env
+ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/agents/infra_swarm_agent.py
+Restart=on-failure
+RestartSec=20
+KillSignal=SIGINT
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

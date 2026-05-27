@@ -927,6 +927,7 @@ def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
 @app.route("/")
 def index():
     skim_preview: dict = {"universe": [], "dry_run": True, "service": "fortress-ai-skim-swarm"}
+    infra_preview: dict = {"universe": [], "dry_run": True, "service": "fortress-ai-infra-swarm", "anchor": "SMH"}
     try:
         from utils.skim_swarm_config import dry_run as skim_dry_run, universe as skim_universe
 
@@ -937,10 +938,22 @@ def index():
         }
     except Exception:
         logger.exception("skim_preview for index failed")
+    try:
+        from utils.infra_swarm_config import anchor_symbol, dry_run as infra_dry_run, universe as infra_universe
+
+        infra_preview = {
+            "universe": infra_universe(),
+            "dry_run": infra_dry_run(),
+            "service": "fortress-ai-infra-swarm",
+            "anchor": anchor_symbol(),
+        }
+    except Exception:
+        logger.exception("infra_preview for index failed")
     return render_template(
         "ai_dashboard.html",
         ui_build=_DASHBOARD_UI_BUILD,
         skim_preview=skim_preview,
+        infra_preview=infra_preview,
     )
 
 
@@ -1310,6 +1323,108 @@ def api_skim_status():
         {
             "instance": instance_name(),
             "universe": universe(),
+            "dry_run": dry_run(),
+            "latest_metric": latest,
+            "last_wave": last_wave,
+            "symbol_states": symbols,
+            "symbol_quotes": symbol_quotes,
+            "swarm_state": swarm_st,
+            "pnl": pnl,
+            "data_dir": str(dd),
+        }
+    )
+
+
+@app.route("/api/infra/status")
+def api_infra_status():
+    """Infra swarm adaptive universe snapshot."""
+    from agents.infra_swarm.pnl import compute_pnl_summary, learned_symbol_snapshot
+    from agents.infra_swarm.symbol_learning import learned_path
+    from utils.infra_swarm_config import anchor_symbol, dry_run, instance_name, layer_for_symbol, swarm_data_dir, universe
+
+    dd = swarm_data_dir()
+    latest = None
+    p = dd / "latest_metric.json"
+    if p.exists():
+        try:
+            latest = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    last_wave = _tail_spy_decision(dd / "decisions.jsonl")
+    symbols: list[dict] = []
+    state_dir = dd / "state"
+    ctx_dir = dd / "company_context"
+    if state_dir.is_dir():
+        for f in sorted(state_dir.glob("*.json")):
+            try:
+                st = json.loads(f.read_text(encoding="utf-8"))
+                sym = st.get("symbol") or f.stem.replace("_", ".")
+                row = {
+                    "symbol": sym,
+                    "layer": layer_for_symbol(sym),
+                    "side": st.get("side"),
+                    "last_action": st.get("last_action"),
+                    "last_block_reason": st.get("last_block_reason"),
+                }
+                lp = learned_path(sym)
+                if lp.exists():
+                    try:
+                        L = json.loads(lp.read_text(encoding="utf-8"))
+                        snap = learned_symbol_snapshot(L)
+                        row["learned"] = snap
+                        row["realized_usd"] = snap.get("realized_usd")
+                        row["wins"] = snap.get("wins")
+                        row["losses"] = snap.get("losses")
+                        row["exits"] = snap.get("exits")
+                    except Exception:
+                        pass
+                cp = ctx_dir / f"{str(sym or '').replace('.', '_')}.json"
+                if cp.exists():
+                    try:
+                        C = json.loads(cp.read_text(encoding="utf-8"))
+                        row["company"] = {"name": C.get("name"), "sector": C.get("sector")}
+                    except Exception:
+                        pass
+                symbols.append(row)
+            except Exception:
+                continue
+    swarm_st = {}
+    sp = dd / "swarm_state.json"
+    if sp.exists():
+        try:
+            swarm_st = json.loads(sp.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    adaptive_univ = {}
+    ap = dd / "adaptive_universe.json"
+    if ap.exists():
+        try:
+            adaptive_univ = json.loads(ap.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    pnl = {}
+    symbol_quotes: dict = {}
+    try:
+        pnl = compute_pnl_summary()
+    except Exception:
+        logger.exception("infra pnl summary failed")
+    try:
+        from agents.infra_swarm.quotes import build_symbol_quotes
+
+        symbol_quotes = build_symbol_quotes(universe())
+    except Exception:
+        logger.exception("infra symbol quotes failed")
+    stack_signal = {
+        "stack_stress": (adaptive_univ.get("layer_counts") or {}),
+        "layer_counts": adaptive_univ.get("layer_counts"),
+    }
+    return jsonify(
+        {
+            "instance": instance_name(),
+            "anchor": anchor_symbol(),
+            "universe": universe(),
+            "adaptive_universe": adaptive_univ,
+            "stack_signal": stack_signal,
             "dry_run": dry_run(),
             "latest_metric": latest,
             "last_wave": last_wave,

@@ -14,8 +14,8 @@ _SYMBOL_ALIASES: dict[str, str] = {
 }
 
 _DEFAULT_UNIVERSE = (
-    "SPY,NVDA,MSFT,GOOG,AMZN,AAPL,SOXX,NASA,"
-    "BRK.B,AGIX,AVGO,LLY,V,MA,PLTR,CRWD"
+    "SPY,MSFT,GOOG,AMZN,AAPL,NASA,"
+    "BRK.B,AGIX,LLY,V,MA,PLTR,CRWD"
 )
 
 
@@ -150,7 +150,7 @@ def slow_lane_interval_sec() -> float:
 
 def high_vol_symbols() -> set[str]:
     """High-beta / wide-stop names — slower cadence and stricter entry gates."""
-    raw = (os.environ.get("FORTRESS_SKIM_HIGH_VOL_SYMBOLS") or "LLY,CRWD,AVGO").strip()
+    raw = (os.environ.get("FORTRESS_SKIM_HIGH_VOL_SYMBOLS") or "LLY,CRWD").strip()
     return {normalize_symbol(x) for x in raw.split(",") if x.strip()}
 
 
@@ -202,12 +202,12 @@ def max_spread_bps() -> float:
 
 def thin_etf_symbols() -> set[str]:
     """Wider gates / slower cadence."""
-    raw = (os.environ.get("FORTRESS_SKIM_THIN_ETFS") or "NASA,AGIX,SOXX").strip()
+    raw = (os.environ.get("FORTRESS_SKIM_THIN_ETFS") or "NASA,AGIX").strip()
     return {normalize_symbol(x) for x in raw.split(",") if x.strip()}
 
 
 def semi_symbols() -> set[str]:
-    return {normalize_symbol(x) for x in ("NVDA,MSFT,AVGO,AAPL,AMD,SOXX").split(",")}
+    return {normalize_symbol(x) for x in ("MSFT,AAPL,AMD").split(",")}
 
 
 def mega_cap_tech_symbols() -> set[str]:
