@@ -36,7 +36,8 @@ class TestSkimTuning(unittest.TestCase):
         self.assertTrue(guard.try_reserve())
 
     def test_stop_loss_capped(self):
-        self.assertEqual(stop_loss_usd(0.10), -0.10)
+        # Default FORTRESS_SKIM_STOP_TARGET_MULT=0.70 — tighter stops vs targets.
+        self.assertEqual(stop_loss_usd(0.10), -0.08)
         self.assertEqual(stop_loss_usd(1.0), -0.30)
 
     def test_trailing_giveback_only_when_profitable(self):

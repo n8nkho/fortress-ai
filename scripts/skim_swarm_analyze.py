@@ -210,7 +210,7 @@ def auto_tune(report: dict) -> dict:
         "note": "Per-symbol params adapt via symbol_learning on each exit; no auto-denylist.",
     }
     overrides["symbol_insights"] = symbol_insights
-    overrides.pop("denylist_symbols", None)
+    # Keep operator/review denylist — do not strip loss-containment symbols.
 
     overrides["updated_utc"] = datetime.now(timezone.utc).isoformat()
     overrides["last_report"] = report

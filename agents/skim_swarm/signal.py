@@ -14,6 +14,8 @@ from agents.skim_swarm.company_context import context_score_adjustment
 from agents.skim_swarm.symbol_learning import entry_blocked_by_causation, get_params
 from utils.skim_swarm_config import (
     atr_k,
+    high_vol_symbols,
+    high_vol_target_cap_usd,
     max_spread_bps,
     max_stop_usd,
     mega_cap_tech_symbols,
@@ -53,6 +55,8 @@ def adaptive_target_usd(features: dict[str, Any]) -> float:
     beta = features.get("company_beta")
     if beta is not None and _f(beta) > 1.25:
         base *= 1.08
+    if sym in high_vol_symbols():
+        base = min(base, high_vol_target_cap_usd())
     return round(base, 4)
 
 
@@ -271,6 +275,9 @@ def decide(
     pd = params.get("pattern_deltas") or {}
     enter_long = float(params["enter_long"])
     enter_short = float(params["enter_short"])
+    if sym in high_vol_symbols():
+        enter_long += 0.05
+        enter_short -= 0.05
     r1 = _f(features.get("r1m"))
     r5 = _f(features.get("r5m"))
     spy_r5 = _f(features.get("spy_r5m"))

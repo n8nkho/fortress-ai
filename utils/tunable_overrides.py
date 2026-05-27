@@ -51,7 +51,9 @@ def get_confidence_threshold() -> float:
     if o is None:
         return max(0.6, min(0.95, base))
     try:
-        return max(0.6, min(0.95, float(o)))
+        val = float(o)
+        # Self-improvement may not loosen below the env-configured floor.
+        return max(0.6, min(0.95, max(base, val)))
     except (TypeError, ValueError):
         return max(0.6, min(0.95, base))
 

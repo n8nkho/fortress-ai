@@ -71,6 +71,7 @@ _DEFAULT_LEARNED = {
         "pattern_deltas": dict(_DEFAULT_PARAMS["pattern_deltas"]),
     },
     "session_stats": dict(_DEFAULT_SESSION_STATS),
+    "lifetime_stats": dict(_DEFAULT_SESSION_STATS),
     "pattern_stats": {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS},
     "causation": {
         "lifetime_exits": 0,
@@ -150,8 +151,24 @@ def _fresh_learned(symbol: str) -> dict[str, Any]:
     return out
 
 
+def _merge_session_into_lifetime(learned: dict[str, Any]) -> None:
+    """Roll prior session counters into lifetime_stats before daily reset."""
+    ss = learned.get("session_stats") or {}
+    if int(ss.get("exits") or 0) <= 0:
+        return
+    lt = learned.setdefault("lifetime_stats", dict(_DEFAULT_SESSION_STATS))
+    for key, val in ss.items():
+        if key.endswith("_pnl_usd") or key == "sum_pnl_usd":
+            lt[key] = round(float(lt.get(key) or 0) + float(val or 0), 6)
+        elif key == "improvement_cycles":
+            continue
+        else:
+            lt[key] = int(lt.get(key) or 0) + int(val or 0)
+
+
 def _reset_session(learned: dict[str, Any]) -> dict[str, Any]:
-    """New ET session: reset daily counters; keep strategy params + causation history."""
+    """New ET session: reset daily counters; keep strategy params + lifetime + causation blocks."""
+    _merge_session_into_lifetime(learned)
     learned["session_date_et"] = session_date_et()
     learned["session_stats"] = dict(_DEFAULT_SESSION_STATS)
     learned["pattern_stats"] = _empty_pattern_stats()
@@ -483,7 +500,12 @@ def _historical_recommended(learned: dict[str, Any]) -> dict[str, Any]:
 
 
 def refresh_historical_seeds(learned: dict[str, Any]) -> bool:
-    """Reset seed params from latest historical_verify; live session may add disables later."""
+    """Reset seed params from historical_verify unless live lifetime record is toxic."""
+    lt = learned.get("lifetime_stats") or {}
+    lt_exits = int(lt.get("exits") or 0)
+    lt_pnl = float(lt.get("sum_pnl_usd") or 0)
+    if lt_exits >= 10 and lt_pnl < 0:
+        return False
     rec = _historical_recommended(learned)
     if not rec:
         return False
@@ -524,9 +546,23 @@ def _disable_patterns_from_learned(learned: dict[str, Any]) -> list[str]:
     return list(rec.get("disable_patterns") or [])
 
 
+def _review_param_overrides(symbol: str) -> dict[str, Any]:
+    ov = runtime_overrides()
+    review = ov.get("review_actions") if isinstance(ov.get("review_actions"), dict) else {}
+    pause_syms = {str(s).upper() for s in (review.get("pause_symbols") or [])}
+    out: dict[str, Any] = {}
+    if symbol.upper() in pause_syms:
+        out["pause_entries"] = True
+    param_ov = (review.get("param_overrides") or {}).get(symbol.upper())
+    if isinstance(param_ov, dict):
+        out.update(param_ov)
+    return out
+
+
 def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
     L = load_learned(symbol)
-    P = L.get("params") or {}
+    P = dict(L.get("params") or {})
+    P.update(_review_param_overrides(symbol))
     thin = symbol in thin_etf_symbols()
     base_long = 0.24 if thin else 0.22
     base_short = -0.24 if thin else -0.22

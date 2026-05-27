@@ -59,9 +59,15 @@ class TestSkimAdaptivePolicy(unittest.TestCase):
         self.assertTrue(learned["params"]["pause_entries"])
         self.assertTrue(any("auto_pause_entries" in n for n in notes))
 
-    def test_session_reset_clears_pauses(self):
+    def test_session_reset_preserves_lifetime_pause_and_causation(self):
         learned = {
-            "params": {"pause_long": True, "pause_short": True, "pause_entries": True},
+            "params": {"pause_long": True, "pause_short": True, "pause_entries": False},
+            "lifetime_stats": {
+                "exits": 20,
+                "wins": 6,
+                "losses": 14,
+                "sum_pnl_usd": -8.0,
+            },
             "causation": {
                 "keys": {"k1": {"eliminated": True}},
                 "eliminated_keys": ["k1"],
@@ -71,8 +77,8 @@ class TestSkimAdaptivePolicy(unittest.TestCase):
         reset_session_adaptive_state(learned)
         self.assertFalse(learned["params"]["pause_long"])
         self.assertFalse(learned["params"]["pause_short"])
-        self.assertFalse(learned["params"]["pause_entries"])
-        self.assertEqual(learned["causation"]["eliminated_keys"], [])
+        self.assertTrue(learned["params"]["pause_entries"])
+        self.assertEqual(learned["causation"]["eliminated_keys"], ["k1"])
 
     def test_auto_disable_toxic_pattern(self):
         learned = {

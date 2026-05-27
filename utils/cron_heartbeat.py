@@ -6,6 +6,13 @@ Used by scripts/cron_run.sh after orchestrator invocations.
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import argparse
 import json
 import os

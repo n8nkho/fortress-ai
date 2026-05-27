@@ -73,7 +73,7 @@ class TestSkimCausation(unittest.TestCase):
                 with patch("agents.skim_swarm.symbol_learning.session_date_et", return_value="2026-05-23"):
                     L2 = load_learned("CRWD")
                     self.assertEqual(int(L2["session_stats"]["exits"]), 0)
-                    self.assertEqual(len(L2["causation"]["eliminated_keys"]), 0)
+                    self.assertGreater(len(L2["causation"]["eliminated_keys"]), 0)
                     self.assertGreater(len(L2["causation"]["keys"]), 0)
 
     def test_entry_blocked_by_causation_integration(self):

@@ -13,6 +13,8 @@ from typing import Any
 from agents.skim_swarm.symbol_causation import ensure_causation
 from utils.skim_swarm_config import (
     improve_min_exits,
+    lifetime_pause_min_exits,
+    lifetime_pause_min_pnl_usd,
     pattern_disable_min_exits,
     side_pause_min_exits,
     side_pause_min_pnl_usd,
@@ -268,8 +270,9 @@ def _adapt_targets_and_cooldown(params: dict[str, Any], stats: dict[str, Any], n
         cm *= 1.08
         notes.append(f"shrink_targets win_rate={win_rate:.2f}")
     elif win_rate >= 0.52 and sum_pnl < 0 and exits >= 6:
-        tm *= 1.06
-        notes.append(f"widen_targets_rr_fix wr={win_rate:.2f} pnl={sum_pnl:.2f}")
+        tm *= 0.92
+        cm *= 1.06
+        notes.append(f"tighten_stops_rr_fix wr={win_rate:.2f} pnl={sum_pnl:.2f}")
     elif win_rate > 0.58 and sum_pnl > 0.20:
         tm *= 1.04
         cm *= 0.96
@@ -386,14 +389,22 @@ def _adapt_integrity_recommendations(params: dict[str, Any], notes: list[str]) -
 
 
 def reset_session_adaptive_state(learned: dict[str, Any]) -> None:
-    """New ET session: clear session-scoped pauses so Tuesday can reverse; keep causation history."""
+    """New ET session: reset side pauses; keep lifetime toxic symbol/causation blocks."""
     params = learned.setdefault("params", {})
     params["pause_long"] = False
     params["pause_short"] = False
-    params["pause_entries"] = False
 
-    causation = ensure_causation(learned)
-    causation["eliminated_keys"] = []
-    for row in (causation.get("keys") or {}).values():
-        if isinstance(row, dict):
-            row["eliminated"] = False
+    lt = learned.get("lifetime_stats") or {}
+    lt_exits = int(lt.get("exits") or 0)
+    lt_pnl = float(lt.get("sum_pnl_usd") or 0)
+    lt_wins = int(lt.get("wins") or 0)
+    lt_losses = int(lt.get("losses") or 0)
+    lt_wr = lt_wins / max(lt_wins + lt_losses, 1)
+    if (
+        lt_exits >= lifetime_pause_min_exits()
+        and lt_pnl <= lifetime_pause_min_pnl_usd()
+        and lt_wr < symbol_pause_win_rate()
+    ):
+        params["pause_entries"] = True
+    elif lt_pnl > lifetime_pause_min_pnl_usd() * 0.5 and lt_wr >= symbol_pause_win_rate():
+        params["pause_entries"] = False

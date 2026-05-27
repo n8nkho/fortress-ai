@@ -32,12 +32,16 @@ def runtime_overrides() -> dict[str, Any]:
 
 
 def runtime_denylist() -> frozenset[str]:
-    """Manual operator denylist only (env or runtime_overrides.json). Never auto-populated."""
-    raw = runtime_overrides().get("denylist_symbols") or []
+    """Manual/review denylist (env, runtime_overrides.json). Never auto-populated."""
+    ov = runtime_overrides()
+    raw = ov.get("denylist_symbols") or []
     file_deny = frozenset(normalize_symbol(str(x)) for x in raw if str(x).strip())
+    review = ov.get("review_actions") if isinstance(ov.get("review_actions"), dict) else {}
+    pause_raw = review.get("pause_symbols") or ov.get("pause_symbols") or []
+    pause_deny = frozenset(normalize_symbol(str(x)) for x in pause_raw if str(x).strip())
     env_raw = (os.environ.get("FORTRESS_SKIM_DENYLIST") or "").strip()
     env_deny = frozenset(normalize_symbol(x) for x in env_raw.split(",") if x.strip())
-    return file_deny | env_deny
+    return file_deny | pause_deny | env_deny
 
 
 def _swarm_data_dir_path() -> Path:
@@ -177,9 +181,9 @@ def min_stop_usd() -> float:
 
 def stop_target_mult() -> float:
     try:
-        return max(0.5, float(os.environ.get("FORTRESS_SKIM_STOP_TARGET_MULT", "1.0") or 1.0))
+        return max(0.5, float(os.environ.get("FORTRESS_SKIM_STOP_TARGET_MULT", "0.70") or 0.70))
     except ValueError:
-        return 1.0
+        return 0.70
 
 
 def daily_stop_usd() -> float:
@@ -270,16 +274,16 @@ def side_pause_share() -> float:
 
 def symbol_pause_min_exits() -> int:
     try:
-        return max(4, int(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_MIN_EXITS", "8") or 8))
+        return max(3, int(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_MIN_EXITS", "4") or 4))
     except ValueError:
-        return 8
+        return 4
 
 
 def symbol_pause_min_pnl_usd() -> float:
     try:
-        return float(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_MIN_PNL_USD", "-2.0") or -2.0)
+        return float(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_MIN_PNL_USD", "-1.0") or -1.0)
     except ValueError:
-        return -2.0
+        return -1.0
 
 
 def symbol_pause_win_rate() -> float:
@@ -287,6 +291,21 @@ def symbol_pause_win_rate() -> float:
         return float(os.environ.get("FORTRESS_SKIM_SYMBOL_PAUSE_WIN_RATE", "0.38") or 0.38)
     except ValueError:
         return 0.38
+
+
+def lifetime_pause_min_pnl_usd() -> float:
+    """Pause symbol across sessions when cumulative PnL breaches this floor."""
+    try:
+        return float(os.environ.get("FORTRESS_SKIM_LIFETIME_PAUSE_MIN_PNL_USD", "-3.0") or -3.0)
+    except ValueError:
+        return -3.0
+
+
+def lifetime_pause_min_exits() -> int:
+    try:
+        return max(3, int(os.environ.get("FORTRESS_SKIM_LIFETIME_PAUSE_MIN_EXITS", "6") or 6))
+    except ValueError:
+        return 6
 
 
 def causation_min_samples() -> int:
