@@ -57,6 +57,7 @@ from utils.infra_swarm_config import (
     universe,
 )
 from utils.swarm_runtime import refresh_universe_if_changed, wave_symbols
+from utils.swarm_session_si import effective_max_open, session_cycle_interval_mult
 from utils.swarm_wave_si import run_wave_health
 from utils.us_equity_hours import is_us_equity_rth_et
 
@@ -167,7 +168,7 @@ def run_loop(iterations: int | None = None) -> None:
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)
         company_ctx = load_all_contexts(syms)
-        max_open = max_open_positions() if max_open_ok(open_n) else 0
+        max_open = effective_max_open("infra_swarm") if max_open_ok(open_n) else 0
         entry_guard = EntrySlotGuard(open_n, max_open) if max_open > 0 else None
 
         results: list[dict] = []
@@ -205,7 +206,7 @@ def run_loop(iterations: int | None = None) -> None:
         if exit_pnl:
             swarm = apply_daily_pnl(swarm, exit_pnl)
             save_swarm_state(swarm)
-        sleep_sec = _next_sleep_sec(results, cycle_sec)
+        sleep_sec = _next_sleep_sec(results, cycle_sec) * session_cycle_interval_mult("infra_swarm")
 
         wave = {
             "ts": datetime.now(timezone.utc).isoformat(),
@@ -231,6 +232,7 @@ def run_loop(iterations: int | None = None) -> None:
             positions=positions,
             cached_universe=syms,
             universe_fn=universe,
+            day_realized_pnl=swarm.get("day_realized_pnl"),
         )
         metric = {
             "ts": wave["ts"],

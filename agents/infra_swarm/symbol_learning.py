@@ -683,9 +683,22 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
     base_short = -base_long
     pd = P.get("pattern_deltas") or {}
     overlay = merge_overlay_into_params(P, L)
+    try:
+        from utils.swarm_session_si import session_entry_boosts
+
+        swarm_boost = session_entry_boosts("infra_swarm")
+    except Exception:
+        swarm_boost = {}
+    pause_swarm = bool(swarm_boost.get("pause_entries"))
     return {
-        "enter_long": base_long + float(P.get("enter_long_delta") or 0) + float(overlay.get("enter_long_delta_boost") or 0),
-        "enter_short": base_short + float(P.get("enter_short_delta") or 0) + float(overlay.get("enter_short_delta_boost") or 0),
+        "enter_long": base_long
+        + float(P.get("enter_long_delta") or 0)
+        + float(overlay.get("enter_long_delta_boost") or 0)
+        + float(swarm_boost.get("enter_long_delta_boost") or 0),
+        "enter_short": base_short
+        + float(P.get("enter_short_delta") or 0)
+        + float(overlay.get("enter_short_delta_boost") or 0)
+        + float(swarm_boost.get("enter_short_delta_boost") or 0),
         "target_mult": float(P.get("target_mult") or 1.0),
         "target_mult_effective": float(overlay.get("target_mult_effective") or P.get("target_mult") or 1.0),
         "stop_target_mult_effective": float(overlay.get("stop_target_mult_effective") or stop_target_mult()),
@@ -695,7 +708,7 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
         "short_spy_filter": float(P.get("short_spy_filter") or 0.0),
         "pause_long": bool(P.get("pause_long")),
         "pause_short": bool(P.get("pause_short")),
-        "pause_entries": bool(P.get("pause_entries")),
+        "pause_entries": bool(P.get("pause_entries")) or pause_swarm,
         "pattern_deltas": {p: float(pd.get(p) or 0.0) for p in _PATTERNS},
         "disable_patterns": _disable_patterns_from_learned(L),
         "layer": layer,

@@ -27,6 +27,7 @@ from utils.skim_swarm_config import (
     stop_target_mult,
     thin_etf_symbols,
 )
+from utils.skim_clip_ladder import authorize_add_clip, clip_ladder_enabled, clip_size, effective_max_shares
 
 
 def _f(v: Any, default: float = 0.0) -> float:
@@ -208,6 +209,7 @@ def decide(
 
     unreal = features.get("unrealized_usd")
     peak = _f(symbol_state.get("peak_unrealized"), 0)
+    pos_qty = max(0, int(features.get("position_qty") or 0))
 
     if side == "long" and unreal is not None:
         u = _f(unreal)
@@ -215,8 +217,13 @@ def decide(
         peak = _f(symbol_state.get("peak_unrealized"))
         stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
         if u >= target:
-            out["action"] = "exit_position"
-            out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
+            if clip_ladder_enabled() and pos_qty > clip_size():
+                out["action"] = "exit_partial"
+                out["exit_qty"] = clip_size()
+                out["reasoning"] = f"skim_target_partial:{u:.3f}>={target:.3f} leave={pos_qty - clip_size()}"
+            else:
+                out["action"] = "exit_position"
+                out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
             return out
         if u > 0 and peak >= target * 0.6 and u < peak * 0.55:
             out["action"] = "exit_position"
@@ -226,6 +233,28 @@ def decide(
             out["action"] = "exit_position"
             out["reasoning"] = f"stop_loss:{u:.3f}"
             return out
+        if (
+            not swarm_halted
+            and clip_ladder_enabled()
+            and pos_qty < effective_max_shares(sym)
+        ):
+            params_hold = get_params(sym)
+            enter_long = float(params_hold["enter_long"])
+            ok, clip_reason = authorize_add_clip(
+                sym,
+                side="long",
+                pos_qty=pos_qty,
+                unrealized=u,
+                score=score,
+                enter_threshold=enter_long,
+            )
+            if ok and score >= enter_long:
+                out["action"] = "add_clip_long"
+                out["reasoning"] = f"clip_add_long score={score:.2f} qty={pos_qty}"
+                return out
+            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off"):
+                out["reasoning"] = f"hold_long:{u:.3f}:{clip_reason}"
+                return out
         out["reasoning"] = f"hold_long:{u:.3f}"
         return out
 
@@ -235,8 +264,13 @@ def decide(
         peak = _f(symbol_state.get("peak_unrealized"))
         stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
         if u >= target:
-            out["action"] = "exit_position"
-            out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
+            if clip_ladder_enabled() and pos_qty > clip_size():
+                out["action"] = "exit_partial"
+                out["exit_qty"] = clip_size()
+                out["reasoning"] = f"skim_target_partial:{u:.3f}>={target:.3f} leave={pos_qty - clip_size()}"
+            else:
+                out["action"] = "exit_position"
+                out["reasoning"] = f"skim_target_hit:{u:.3f}>={target:.3f}"
             return out
         if u > 0 and peak >= target * 0.6 and u < peak * 0.55:
             out["action"] = "exit_position"
@@ -246,6 +280,28 @@ def decide(
             out["action"] = "exit_position"
             out["reasoning"] = f"stop_loss:{u:.3f}"
             return out
+        if (
+            not swarm_halted
+            and clip_ladder_enabled()
+            and pos_qty < effective_max_shares(sym)
+        ):
+            params_hold = get_params(sym)
+            enter_short = float(params_hold["enter_short"])
+            ok, clip_reason = authorize_add_clip(
+                sym,
+                side="short",
+                pos_qty=pos_qty,
+                unrealized=u,
+                score=score,
+                enter_threshold=enter_short,
+            )
+            if ok and score <= enter_short:
+                out["action"] = "add_clip_short"
+                out["reasoning"] = f"clip_add_short score={score:.2f} qty={pos_qty}"
+                return out
+            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off"):
+                out["reasoning"] = f"hold_short:{u:.3f}:{clip_reason}"
+                return out
         out["reasoning"] = f"hold_short:{u:.3f}"
         return out
 

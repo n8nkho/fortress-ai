@@ -51,6 +51,14 @@ def semi_long_stack(positions: dict[str, dict[str, Any]]) -> int:
 def should_halt_new_entries(swarm: dict[str, Any], positions: dict[str, dict[str, Any]]) -> tuple[bool, str | None]:
     if swarm.get("halted"):
         return True, str(swarm.get("halt_reason") or "halted")
+    try:
+        from utils.swarm_session_si import session_halt_new_entries
+
+        si_halt, si_reason = session_halt_new_entries("skim_swarm")
+        if si_halt:
+            return True, si_reason
+    except Exception:
+        pass
     pnl = session_daily_realized_usd()
     if pnl <= daily_stop_usd():
         return True, f"daily_stop:{pnl}"
@@ -71,4 +79,10 @@ def apply_daily_pnl(swarm: dict[str, Any], delta: float) -> dict[str, Any]:
 
 
 def max_open_ok(open_n: int) -> bool:
-    return open_n < max_open_positions()
+    try:
+        from utils.swarm_session_si import effective_max_open
+
+        cap = effective_max_open("skim_swarm")
+    except Exception:
+        cap = max_open_positions()
+    return open_n < cap

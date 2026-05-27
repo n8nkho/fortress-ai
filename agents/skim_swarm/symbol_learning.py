@@ -436,24 +436,25 @@ def record_decision(
 
         improvement = None
         si_notes: list[str] = []
-        if executed and action in ("enter_long", "enter_short"):
+        if executed and action in ("enter_long", "enter_short", "add_clip_long", "add_clip_short"):
             stats["entries"] = int(stats.get("entries") or 0) + 1
             pattern = _entry_pattern_from_reasoning(str(reasoning or ""))
-            side = "long" if action == "enter_long" else "short"
-            learned["last_entry_pattern"] = pattern
-            learned["last_entry_side"] = side
-            learned["last_entry_spy_r5m"] = features.get("spy_r5m")
-            learned["last_entry_context"] = build_entry_context(
-                pattern=pattern,
-                side=side,
-                features=features,
-                score=decision.get("score"),
-                target_usd=decision.get("target_usd"),
-            )
+            side = "long" if action in ("enter_long", "add_clip_long") else "short"
+            if action in ("enter_long", "enter_short"):
+                learned["last_entry_pattern"] = pattern
+                learned["last_entry_side"] = side
+                learned["last_entry_spy_r5m"] = features.get("spy_r5m")
+                learned["last_entry_context"] = build_entry_context(
+                    pattern=pattern,
+                    side=side,
+                    features=features,
+                    score=decision.get("score"),
+                    target_usd=decision.get("target_usd"),
+                )
             append_experience(
                 symbol,
                 {
-                    "event": "entry",
+                    "event": "entry" if action in ("enter_long", "enter_short") else "add_clip",
                     "pattern": pattern,
                     "side": side,
                     "spy_r5m": features.get("spy_r5m"),
@@ -461,7 +462,7 @@ def record_decision(
                     "causation_key": (learned.get("last_entry_context") or {}).get("causation_key"),
                 },
             )
-        if executed and action in ("exit_position", "flatten"):
+        if executed and action in ("exit_position", "flatten", "exit_partial"):
             stats["exits"] = int(stats.get("exits") or 0) + 1
             pnl = features.get("unrealized_usd")
             side = str(learned.get("last_entry_side") or features.get("side") or "")
@@ -471,6 +472,10 @@ def record_decision(
             if pnl is not None:
                 try:
                     pv = float(pnl)
+                    if action == "exit_partial":
+                        exit_qty = max(1, int(decision.get("exit_qty") or 1))
+                        pos_qty = max(1, int(features.get("position_qty") or exit_qty))
+                        pv = pv / pos_qty * exit_qty
                     stats["sum_pnl_usd"] = round(float(stats.get("sum_pnl_usd") or 0) + pv, 4)
                     if pv >= 0:
                         stats["wins"] = int(stats.get("wins") or 0) + 1
@@ -675,9 +680,22 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
     base_short = -0.24 if thin else -0.22
     pd = P.get("pattern_deltas") or {}
     overlay = merge_overlay_into_params(P, L)
+    try:
+        from utils.swarm_session_si import session_entry_boosts
+
+        swarm_boost = session_entry_boosts("skim_swarm")
+    except Exception:
+        swarm_boost = {}
+    pause_swarm = bool(swarm_boost.get("pause_entries"))
     return {
-        "enter_long": base_long + float(P.get("enter_long_delta") or 0) + float(overlay.get("enter_long_delta_boost") or 0),
-        "enter_short": base_short + float(P.get("enter_short_delta") or 0) + float(overlay.get("enter_short_delta_boost") or 0),
+        "enter_long": base_long
+        + float(P.get("enter_long_delta") or 0)
+        + float(overlay.get("enter_long_delta_boost") or 0)
+        + float(swarm_boost.get("enter_long_delta_boost") or 0),
+        "enter_short": base_short
+        + float(P.get("enter_short_delta") or 0)
+        + float(overlay.get("enter_short_delta_boost") or 0)
+        + float(swarm_boost.get("enter_short_delta_boost") or 0),
         "target_mult": float(P.get("target_mult") or 1.0),
         "target_mult_effective": float(overlay.get("target_mult_effective") or P.get("target_mult") or 1.0),
         "stop_target_mult_effective": float(overlay.get("stop_target_mult_effective") or stop_target_mult()),
@@ -687,7 +705,7 @@ def get_params(symbol: str) -> dict[str, float | dict[str, float]]:
         "short_spy_filter": float(P.get("short_spy_filter") or 0.0),
         "pause_long": bool(P.get("pause_long")),
         "pause_short": bool(P.get("pause_short")),
-        "pause_entries": bool(P.get("pause_entries")),
+        "pause_entries": bool(P.get("pause_entries")) or pause_swarm,
         "pattern_deltas": {p: float(pd.get(p) or 0.0) for p in _PATTERNS},
         "disable_patterns": _disable_patterns_from_learned(L),
     }

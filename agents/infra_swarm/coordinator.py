@@ -62,13 +62,27 @@ def stack_aligned_long_layers(positions: dict[str, dict[str, Any]]) -> int:
 def should_halt_new_entries(swarm: dict[str, Any], positions: dict[str, dict[str, Any]]) -> tuple[bool, str | None]:
     if swarm.get("halted"):
         return True, str(swarm.get("halt_reason") or "halted")
+    try:
+        from utils.swarm_session_si import session_halt_new_entries
+
+        si_halt, si_reason = session_halt_new_entries("infra_swarm")
+        if si_halt:
+            return True, si_reason
+    except Exception:
+        pass
     pnl = session_daily_realized_usd()
     if pnl <= daily_stop_usd():
         return True, f"daily_stop:{pnl}"
     if stack_aligned_long_layers(positions) >= stack_halt_layers():
         return True, "stack_long_unwind"
     l1 = layer_long_counts(positions).get("L1", 0)
-    if l1 >= max_l1_gross_long():
+    try:
+        from utils.swarm_session_si import effective_max_l1_gross
+
+        l1_cap = effective_max_l1_gross("infra_swarm")
+    except Exception:
+        l1_cap = max_l1_gross_long()
+    if l1 >= l1_cap:
         return True, "l1_gross_cap"
     return False, None
 
@@ -80,8 +94,15 @@ def layer_entry_blocked(symbol: str, positions: dict[str, dict[str, Any]], *, si
     counts = layer_long_counts(positions)
     if counts.get(layer, 0) >= max_stack_long_per_layer():
         return True, f"layer_cap:{layer}"
-    if layer == "L1" and counts.get("L1", 0) >= max_l1_gross_long():
-        return True, "l1_gross_cap"
+    if layer == "L1":
+        try:
+            from utils.swarm_session_si import effective_max_l1_gross
+
+            l1_cap = effective_max_l1_gross("infra_swarm")
+        except Exception:
+            l1_cap = max_l1_gross_long()
+        if counts.get("L1", 0) >= l1_cap:
+            return True, "l1_gross_cap"
     return False, None
 
 
@@ -96,4 +117,10 @@ def apply_daily_pnl(swarm: dict[str, Any], delta: float) -> dict[str, Any]:
 
 
 def max_open_ok(open_n: int) -> bool:
-    return open_n < max_open_positions()
+    try:
+        from utils.swarm_session_si import effective_max_open
+
+        cap = effective_max_open("infra_swarm")
+    except Exception:
+        cap = max_open_positions()
+    return open_n < cap

@@ -43,6 +43,7 @@ def run_symbol_cycle(
 
     ctx = company_context or {}
     features = build_symbol_features(sym, bars, shared, position=pos, company_context=ctx)
+    features["position_qty"] = int(pos.get("qty") or 0)
     learned = load_learned(sym)
     halted = bool(swarm.get("halted"))
     halt_reason = swarm.get("halt_reason")
@@ -119,15 +120,30 @@ def run_symbol_cycle(
     st["last_block_reason"] = act_result.get("block_reason") or decision.get("reasoning")
     if act_result.get("executed"):
         action = decision.get("action")
+        now_iso = datetime.now(timezone.utc).isoformat()
         if action in ("enter_long", "enter_short"):
             st["side"] = "long" if action == "enter_long" else "short"
             st["entry_price"] = features.get("last")
-            st["entry_ts"] = datetime.now(timezone.utc).isoformat()
+            st["entry_ts"] = now_iso
+            st["last_clip_ts"] = now_iso
             st["peak_unrealized"] = 0.0
+        elif action in ("add_clip_long", "add_clip_short"):
+            st["last_clip_ts"] = now_iso
+        elif action == "exit_partial":
+            st["last_exit_ts"] = now_iso
+            if int(pos.get("qty") or 0) <= int(decision.get("exit_qty") or 1):
+                st["side"] = "flat"
+                st["entry_price"] = None
+                st["entry_ts"] = None
+                st["peak_unrealized"] = 0.0
+                st["cooldown_until_utc"] = cooldown_until_seconds(default_cooldown_sec(sym))
+            else:
+                st["peak_unrealized"] = 0.0
         elif action in ("exit_position", "flatten"):
             st["side"] = "flat"
             st["entry_price"] = None
             st["entry_ts"] = None
+            st["last_exit_ts"] = now_iso
             st["peak_unrealized"] = 0.0
             st["cooldown_until_utc"] = cooldown_until_seconds(default_cooldown_sec(sym))
     save_symbol_state(st)

@@ -157,6 +157,7 @@ def run_wave_health(
     positions: dict[str, dict[str, Any]],
     cached_universe: list[str],
     universe_fn,
+    day_realized_pnl: float | None = None,
 ) -> dict[str, Any]:
     """Analyze wave, persist health snapshot, trigger integrity scan on critical findings."""
     fresh, drift_event = refresh_universe_if_changed(cached_universe, universe_fn)
@@ -191,10 +192,18 @@ def run_wave_health(
         except Exception:
             pass
 
+    try:
+        from utils.swarm_session_si import adapt_swarm_session
+
+        session_policy = adapt_swarm_session(component, day_realized_pnl=day_realized_pnl)
+    except Exception:
+        session_policy = None
+
     return {
         "findings": findings,
         "universe_drift": drift_event,
         "fresh_universe": fresh,
+        "session_policy": session_policy,
     }
 
 

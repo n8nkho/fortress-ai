@@ -1,4 +1,4 @@
-"""Execute skim actions — max 1 share per symbol on entry; exits sized to position."""
+"""Execute skim actions — clip-sized entries; exits sized to position or partial clip."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -9,6 +9,7 @@ import yfinance as yf
 from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
 from utils.order_chunking import chunk_qtys, max_order_notional_usd
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
+from utils.skim_clip_ladder import clip_size, effective_max_shares
 from utils.skim_swarm_config import dry_run, max_shares, normalize_symbol
 
 
@@ -158,18 +159,56 @@ def act(
         result.update(_submit_exit(side, pos_qty))
         return result
 
+    if action == "exit_partial":
+        if pos_qty <= 0:
+            result["detail"] = "no_position"
+            result["block_reason"] = "no_position"
+            return result
+        try:
+            exit_qty = int(decision.get("exit_qty") or clip_size())
+        except (TypeError, ValueError):
+            exit_qty = clip_size()
+        exit_qty = max(1, min(exit_qty, pos_qty))
+        side = "SELL" if pos_side == "long" else "BUY"
+        result.update(_submit_exit(side, exit_qty))
+        return result
+
     if action == "enter_long":
-        if pos_side != "flat":
-            result["detail"] = f"not_flat:{pos_side}"
-            result["block_reason"] = "not_flat"
+        if pos_side == "flat":
+            result.update(_submit_one("BUY", qty_cap, is_exit=False))
+            return result
+        result["detail"] = f"not_flat:{pos_side}"
+        result["block_reason"] = "not_flat"
+        return result
+
+    if action == "enter_short":
+        if pos_side == "flat":
+            result.update(_submit_one("SELL", qty_cap, is_exit=False))
+            return result
+        result["detail"] = f"not_flat:{pos_side}"
+        result["block_reason"] = "not_flat"
+        return result
+
+    if action == "add_clip_long":
+        if pos_side != "long":
+            result["detail"] = f"not_long:{pos_side}"
+            result["block_reason"] = "not_long"
+            return result
+        if pos_qty >= effective_max_shares(symbol):
+            result["detail"] = "max_shares"
+            result["block_reason"] = "max_shares"
             return result
         result.update(_submit_one("BUY", qty_cap, is_exit=False))
         return result
 
-    if action == "enter_short":
-        if pos_side != "flat":
-            result["detail"] = f"not_flat:{pos_side}"
-            result["block_reason"] = "not_flat"
+    if action == "add_clip_short":
+        if pos_side != "short":
+            result["detail"] = f"not_short:{pos_side}"
+            result["block_reason"] = "not_short"
+            return result
+        if pos_qty >= effective_max_shares(symbol):
+            result["detail"] = "max_shares"
+            result["block_reason"] = "max_shares"
             return result
         result.update(_submit_one("SELL", qty_cap, is_exit=False))
         return result

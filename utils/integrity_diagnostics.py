@@ -299,6 +299,52 @@ def scan_swarm_universe_drift(*, component: str, metric_path: Path) -> list[dict
     return findings
 
 
+def scan_swarm_session_policy(*, component: str) -> list[dict[str, Any]]:
+    """Surface swarm-level negative edge / over-churn when session SI has tightened."""
+    findings: list[dict[str, Any]] = []
+    try:
+        from utils.swarm_session_si import load_session_policy, swarm_session_si_enabled
+
+        if not swarm_session_si_enabled(component):
+            return findings
+        pol = load_session_policy(component)
+        mode = str(pol.get("mode") or "normal")
+        if mode == "normal":
+            return findings
+        negative_edge = bool(pol.get("negative_edge"))
+        over_churn = bool(pol.get("over_churn"))
+        if negative_edge and over_churn:
+            code = "swarm_negative_edge_over_churn"
+        elif negative_edge:
+            code = "swarm_negative_edge"
+        elif over_churn:
+            code = "swarm_over_churn"
+        else:
+            code = f"swarm_session_{mode}"
+        severity = "high" if mode in ("critical", "churn") else "medium"
+        findings.append(
+            {
+                "code": code,
+                "severity": severity,
+                "component": component,
+                "mode": mode,
+                "session_exits": pol.get("session_exits"),
+                "session_win_rate": pol.get("session_win_rate"),
+                "session_expectancy_usd": pol.get("session_expectancy_usd"),
+                "session_pnl_usd": pol.get("session_pnl_usd"),
+                "max_open_effective": pol.get("max_open_effective"),
+                "recommendation": (
+                    "Session-wide negative edge or over-churn detected — swarm SI tightened "
+                    "entry gates, reduced open slots, and slowed cycle interval."
+                ),
+                "si_action": "swarm_session_adapt",
+            }
+        )
+    except Exception:
+        pass
+    return findings
+
+
 def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     skim_dir = _data_dir() / "skim_swarm"
     rows = rows if rows is not None else _read_jsonl_tail(skim_dir / "decisions.jsonl")
@@ -307,6 +353,7 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
 
     findings.extend(scan_swarm_halt_exit_trap(rows=rows, component="skim_swarm"))
     findings.extend(scan_swarm_universe_drift(component="skim_swarm", metric_path=skim_dir / "latest_metric.json"))
+    findings.extend(scan_swarm_session_policy(component="skim_swarm"))
 
     qty_invalid = int(blocks.get("qty_invalid") or 0)
     if qty_invalid >= 5:
@@ -363,6 +410,7 @@ def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[s
 
     findings.extend(scan_swarm_halt_exit_trap(rows=rows, component="infra_swarm"))
     findings.extend(scan_swarm_universe_drift(component="infra_swarm", metric_path=infra_dir / "latest_metric.json"))
+    findings.extend(scan_swarm_session_policy(component="infra_swarm"))
 
     halt_blocks = int(blocks.get("swarm_halted") or 0)
     if halt_blocks >= 50:
@@ -481,5 +529,8 @@ def skim_adaptive_actions(scan: dict[str, Any] | None = None) -> dict[str, float
             actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.05)
         elif code in ("infra_halted_with_open_book", "infra_negative_session"):
             actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.12)
+            actions["score_bias"] = min(actions.get("score_bias", 0), -0.04)
+        elif code in ("swarm_negative_edge", "swarm_over_churn", "swarm_negative_edge_over_churn"):
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.18)
             actions["score_bias"] = min(actions.get("score_bias", 0), -0.04)
     return actions
