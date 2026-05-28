@@ -8,6 +8,7 @@ import pandas as pd
 import yfinance as yf
 
 from utils.skim_swarm_config import bar_cache_ttl_sec, bar_feed, bar_provider, normalize_symbol, thin_etf_symbols
+from utils.movement_anticipation import enrich_features_with_anticipation
 
 _YF_TICKER: dict[str, str] = {
     "BRK.B": "BRK-B",
@@ -229,3 +230,5 @@ def build_symbol_features(
         "thin_etf": thin,
         "spread_bps": spread_bps,
     }
+    enrich_features_with_anticipation(out, component="skim_swarm")
+    return out

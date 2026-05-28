@@ -1,0 +1,16 @@
+# Fortress-ai production cron snippets — times are US/Eastern (CRON_TZ=America/New_York).
+# Full VM crontab: trading-bot/scripts/install_production_crontab.sh (merges both repos).
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+REPO=/home/ubuntu/fortress-ai
+
+# Domain ingest (RTH)
+*/30 9-16 * * 1-5 cd $REPO && bash scripts/cron_run.sh sec_ingest python3 -m agents.domain_ingest.ingest_runner --source sec_edgar >> $REPO/logs/cron_master.log 2>&1
+
+# Off-hours ingest
+0 */1 * * * cd $REPO && bash scripts/cron_run.sh ingest_all python3 -m agents.domain_ingest.ingest_runner >> $REPO/logs/cron_master.log 2>&1
+0 17 * * 5 cd $REPO && bash scripts/cron_run.sh cot_ingest python3 -m agents.domain_ingest.ingest_runner --source cot_report >> $REPO/logs/cron_master.log 2>&1
+
+# EOD research cycle — hypothesis promote/kill + scenario stress apply (Mon–Fri 6:00 PM ET)
+0 18 * * 1-5 cd $REPO && flock -n /tmp/fortress-research-cycle.lock bash scripts/eod_research_cycle.sh >> $REPO/logs/research_cycle.log 2>&1

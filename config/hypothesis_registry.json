@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "description": "Falsifiable hypotheses for research cycle — promote/kill based on replay + adversarial stress.",
+  "hypotheses": [
+    {
+      "id": "block_countertrend_entries",
+      "title": "Block entries against 1m continuation bias",
+      "kind": "anticipation_gate",
+      "status": "shadow",
+      "tests": {
+        "min_blocked_loser_pnl_usd": 0.35,
+        "max_blocked_winner_pnl_usd": 0.25,
+        "adversarial_min_improvement_usd": 0.10
+      }
+    },
+    {
+      "id": "chop_no_edge",
+      "title": "Pause new entries in chop regime (low r5/r1, neutral RSI)",
+      "kind": "anticipation_gate",
+      "status": "shadow",
+      "tests": {
+        "min_blocked_loser_pnl_usd": 0.20,
+        "max_blocked_winner_pnl_usd": 0.30,
+        "adversarial_min_improvement_usd": 0.05
+      }
+    },
+    {
+      "id": "risk_off_pause_longs",
+      "title": "Block new longs when VIX elevated and SPY r5m negative",
+      "kind": "anticipation_gate",
+      "status": "shadow",
+      "tests": {
+        "min_blocked_loser_pnl_usd": 0.25,
+        "max_blocked_winner_pnl_usd": 0.20,
+        "adversarial_min_improvement_usd": 0.08
+      }
+    },
+    {
+      "id": "scenario_stress_overlay",
+      "title": "Apply scenario-stress winning overlay when holdout improves",
+      "kind": "param_overlay",
+      "status": "shadow",
+      "tests": {
+        "require_scenario_apply_recommended": true,
+        "adversarial_min_improvement_usd": 0.05
+      }
+    },
+    {
+      "id": "adversarial_tighten_entries",
+      "title": "Tighten entry thresholds when adversarial replay still positive",
+      "kind": "param_overlay",
+      "status": "shadow",
+      "tests": {
+        "adversarial_min_improvement_usd": 0.15,
+        "min_expectancy_usd": -0.02
+      }
+    }
+  ]
+}

@@ -17,6 +17,7 @@ from utils.infra_swarm_config import (
     layer_symbols,
     normalize_symbol,
 )
+from utils.movement_anticipation import enrich_features_with_anticipation
 
 logger = logging.getLogger("infra_swarm.features")
 
@@ -263,3 +264,6 @@ def build_symbol_features(
         "unrealized_pct": unrealized_pct,
         "spread_bps": spread_bps,
     }
+    out["anchor_r5m"] = shared.get("anchor_r5m")
+    enrich_features_with_anticipation(out, component="infra_swarm")
+    return out

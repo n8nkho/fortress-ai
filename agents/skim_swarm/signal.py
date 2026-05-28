@@ -12,6 +12,11 @@ from agents.skim_swarm.eod import (
 )
 from agents.skim_swarm.company_context import context_score_adjustment
 from agents.skim_swarm.symbol_learning import entry_blocked_by_causation, get_params
+from utils.movement_anticipation import (
+    anticipation_score_adjustment,
+    enrich_features_with_anticipation,
+    entry_blocked_by_anticipation,
+)
 from utils.skim_swarm_config import (
     atr_k,
     high_vol_symbols,
@@ -79,6 +84,8 @@ def compute_score(features: dict[str, Any]) -> float:
     ctx = features.get("company_context") if isinstance(features.get("company_context"), dict) else {}
     score += context_score_adjustment(ctx, features)
     score += float(params.get("score_bias") or 0)
+    ant = features.get("movement_anticipation")
+    score += anticipation_score_adjustment(ant if isinstance(ant, dict) else None)
     return max(-1.0, min(1.0, score))
 
 
@@ -142,6 +149,13 @@ def _try_entry(
     if action == "enter_short" and _short_blocked_by_symbol_spy_filter(params, spy_r5):
         out["reasoning"] = f"symbol_short_spy_filter score={score:.2f}"
         return out
+    ant = features.get("movement_anticipation")
+    blocked_ant, ant_reason = entry_blocked_by_anticipation(
+        side, ant if isinstance(ant, dict) else None
+    )
+    if blocked_ant:
+        out["reasoning"] = ant_reason or "anticipation_blocked"
+        return out
     blocked, reason = entry_blocked_by_causation(
         sym, pattern=pattern, side=side, features=features, score=score
     )
@@ -165,6 +179,7 @@ def decide(
     side = str(features.get("side") or symbol_state.get("side") or "flat")
     score = compute_score(features)
     target = adaptive_target_usd(features)
+    ant = features.get("movement_anticipation") if isinstance(features.get("movement_anticipation"), dict) else None
     phase = describe_eod_phase()
     last = _f(features.get("last"))
 
@@ -177,6 +192,13 @@ def decide(
         "reasoning": "no_edge",
         "confidence": abs(score),
     }
+    if ant and ant.get("enabled"):
+        out["movement_anticipation"] = {
+            "regime": ant.get("regime"),
+            "bias": ant.get("bias"),
+            "confidence": ant.get("confidence"),
+            "hypothesis_id": ant.get("hypothesis_id"),
+        }
 
     if is_force_flatten_window() or phase == "force_flatten":
         if side != "flat":
