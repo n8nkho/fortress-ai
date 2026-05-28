@@ -22,7 +22,7 @@ class TestSwarmSessionSI(unittest.TestCase):
         os.environ["FORTRESS_SKIM_MAX_OPEN_POSITIONS"] = "6"
 
     def _write_learned(self, component: str, symbol: str, *, exits: int, wins: int, losses: int, pnl: float):
-        learned = Path(self._td.name) / f"{component}_swarm" / "learned"
+        learned = Path(self._td.name) / "skim_swarm" / "learned"
         learned.mkdir(parents=True, exist_ok=True)
         doc = {
             "session_date_et": "2026-05-27",

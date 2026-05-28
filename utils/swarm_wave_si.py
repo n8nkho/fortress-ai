@@ -18,7 +18,8 @@ def _data_dir() -> Path:
 
 
 def _swarm_health_path(component: str) -> Path:
-    return _data_dir() / f"{component}_swarm" / "swarm_health.json"
+    name = component if component.endswith("_swarm") else f"{component}_swarm"
+    return _data_dir() / name / "swarm_health.json"
 
 
 def load_swarm_health(component: str) -> dict[str, Any]:

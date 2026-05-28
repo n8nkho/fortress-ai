@@ -15,7 +15,8 @@ def _data_dir() -> Path:
 
 
 def _swarm_dir(component: str) -> Path:
-    return _data_dir() / f"{component}_swarm"
+    name = component if component.endswith("_swarm") else f"{component}_swarm"
+    return _data_dir() / name
 
 
 def session_policy_path(component: str) -> Path:
