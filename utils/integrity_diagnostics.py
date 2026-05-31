@@ -570,4 +570,27 @@ def skim_adaptive_actions(scan: dict[str, Any] | None = None) -> dict[str, float
         elif code in ("swarm_negative_edge", "swarm_over_churn", "swarm_negative_edge_over_churn"):
             actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.18)
             actions["score_bias"] = min(actions.get("score_bias", 0), -0.04)
+        elif code == "swarm_inverted_payoff":
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.14)
+            actions["score_bias"] = min(actions.get("score_bias", 0), -0.035)
+    return actions
+
+
+def infra_adaptive_actions(scan: dict[str, Any] | None = None) -> dict[str, float]:
+    """Bounded param nudges for infra adaptive_policy from integrity findings."""
+    scan = scan or run_integrity_scan(log=False)
+    actions: dict[str, float] = {}
+    for f in scan.get("findings") or []:
+        code = str(f.get("code") or "")
+        comp = str(f.get("component") or "")
+        if comp and comp != "infra_swarm":
+            continue
+        if code in ("infra_negative_session", "swarm_negative_edge", "swarm_over_churn", "swarm_negative_edge_over_churn"):
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.18)
+            actions["score_bias"] = min(actions.get("score_bias", 0), -0.04)
+        elif code == "swarm_inverted_payoff":
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.14)
+            actions["score_bias"] = min(actions.get("score_bias", 0), -0.035)
+        elif code == "infra_halted_with_open_book":
+            actions["cooldown_mult"] = max(actions.get("cooldown_mult", 0), 0.12)
     return actions

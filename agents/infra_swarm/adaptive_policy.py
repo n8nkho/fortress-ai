@@ -384,9 +384,9 @@ def apply_adaptations(
 def _adapt_integrity_recommendations(params: dict[str, Any], notes: list[str]) -> None:
     """Apply bounded nudges from cross-symbol integrity scan (recursive SI hook)."""
     try:
-        from utils.integrity_diagnostics import skim_adaptive_actions
+        from utils.integrity_diagnostics import infra_adaptive_actions
 
-        actions = skim_adaptive_actions()
+        actions = infra_adaptive_actions()
     except Exception:
         return
     if not actions:

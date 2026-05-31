@@ -25,6 +25,18 @@
       "schedule": "0 18 * * 1-5 America/New_York",
       "script_path": "scripts/eod_research_cycle.sh",
       "expected_interval_minutes": 1440
+    },
+    {
+      "job_name": "rth_intraday_si",
+      "schedule": "30 9,10,11,12,13,14,15 * * 1-5 America/New_York",
+      "script_path": "scripts/cron_run.sh rth_intraday_si python3 scripts/rth_intraday_si.py",
+      "expected_interval_minutes": 35
+    },
+    {
+      "job_name": "rth_intraday_si_close",
+      "schedule": "0 16 * * 1-5 America/New_York",
+      "script_path": "scripts/cron_run.sh rth_intraday_si python3 scripts/rth_intraday_si.py",
+      "expected_interval_minutes": 1440
     }
   ]
 }

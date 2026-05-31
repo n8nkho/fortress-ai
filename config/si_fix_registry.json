@@ -264,7 +264,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-05-31T14:22:30.090853-04:00"
+      "registered_at_utc": "2026-05-31T14:31:10.358249-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -296,12 +296,16 @@
     },
     "swarm_inverted_payoff": {
       "title": "Session payoff ratio inverted (avg loss > avg win)",
-      "kind": "policy",
+      "kind": "tunable",
       "mitigation_markers": [
-        "edge_quality_adapt"
+        "edge_quality_adapt",
+        "edge_autofix"
       ],
-      "auto_tunable": {},
-      "agent_review_if_unmitigated": true,
+      "auto_tunable": {
+        "cooldown_mult": 0.14,
+        "score_bias": -0.035
+      },
+      "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "high"
     }

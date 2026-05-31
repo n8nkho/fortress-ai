@@ -1,0 +1,26 @@
+# RTH intraday autonomous SI — anomaly scan + edge autofix every 30 minutes.
+# Install:
+#   sudo cp deploy/fortress-ai-rth-intraday-si.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now fortress-ai-rth-intraday-si.service
+
+[Unit]
+Description=Fortress AI RTH intraday autonomous SI (30m loop)
+After=network-online.target fortress-ai-skim-swarm.service fortress-ai-infra-swarm.service
+Wants=fortress-ai-skim-swarm.service fortress-ai-infra-swarm.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
+EnvironmentFile=-/home/ubuntu/fortress-ai/.env
+ExecStart=/bin/bash /home/ubuntu/fortress-ai/scripts/rth_intraday_si_loop.sh
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

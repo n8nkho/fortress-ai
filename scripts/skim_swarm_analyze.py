@@ -18,14 +18,24 @@ load_fortress_dotenv(_ROOT)
 
 from agents.skim_swarm.eod import session_date_et
 from agents.skim_swarm.pnl import session_daily_realized_usd
-from utils.skim_swarm_config import swarm_data_dir
+from utils.skim_swarm_config import swarm_data_dir as _default_swarm_data_dir
 
 
-def _session_symbol_pnl() -> dict[str, tuple[float, int]]:
+def _resolve_data_dir(component: str | None = None) -> Path:
+    if component == "infra_swarm":
+        from utils.infra_swarm_config import swarm_data_dir
+
+        return swarm_data_dir()
+    if component == "skim_swarm" or component is None:
+        return _default_swarm_data_dir()
+    return _default_swarm_data_dir()
+
+
+def _session_symbol_pnl(data_dir: Path | None = None) -> dict[str, tuple[float, int]]:
     """Per-symbol realized P&L for the current ET session from decisions.jsonl."""
     session = session_date_et()
     per_sym: dict[str, tuple[float, int]] = defaultdict(lambda: (0.0, 0))
-    p = swarm_data_dir() / "decisions.jsonl"
+    p = (data_dir or _default_swarm_data_dir()) / "decisions.jsonl"
     if not p.exists():
         return per_sym
     from agents.skim_swarm.pnl import _wave_session_date
@@ -54,9 +64,10 @@ def _session_symbol_pnl() -> dict[str, tuple[float, int]]:
     return per_sym
 
 
-def analyze(minutes: int = 30) -> dict:
+def analyze(minutes: int = 30, *, component: str | None = None) -> dict:
+    data_dir = _resolve_data_dir(component)
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
-    p = swarm_data_dir() / "decisions.jsonl"
+    p = data_dir / "decisions.jsonl"
     if not p.exists():
         return {"ok": False, "error": "no decisions log"}
 
@@ -133,10 +144,10 @@ def analyze(minutes: int = 30) -> dict:
         (pnl, window_sym_exits[sym], sym) for sym, pnl in window_sym_pnl.items() if window_sym_exits[sym]
     ]
     session_per_sym = [
-        (pnl, ex, sym) for sym, (pnl, ex) in _session_symbol_pnl().items() if ex
+        (pnl, ex, sym) for sym, (pnl, ex) in _session_symbol_pnl(data_dir).items() if ex
     ]
 
-    swarm_path = swarm_data_dir() / "swarm_state.json"
+    swarm_path = data_dir / "swarm_state.json"
     swarm = {}
     if swarm_path.exists():
         try:
@@ -174,9 +185,9 @@ def analyze(minutes: int = 30) -> dict:
     return report
 
 
-def auto_tune(report: dict) -> dict:
+def auto_tune(report: dict, *, component: str | None = None) -> dict:
     """Swarm-level churn controls only — per-symbol strategy adapts in symbol_learning."""
-    overrides_path = swarm_data_dir() / "runtime_overrides.json"
+    overrides_path = _resolve_data_dir(component) / "runtime_overrides.json"
     overrides: dict = {}
     if overrides_path.exists():
         try:
@@ -221,17 +232,18 @@ def auto_tune(report: dict) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Skim swarm performance analysis")
     ap.add_argument("--minutes", type=int, default=30)
+    ap.add_argument("--component", default="skim_swarm", help="skim_swarm | infra_swarm")
     ap.add_argument("--auto-tune", action="store_true")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    report = analyze(minutes=args.minutes)
-    out_path = swarm_data_dir() / "tune_report.json"
+    report = analyze(minutes=args.minutes, component=args.component)
+    out_path = _resolve_data_dir(args.component) / "tune_report.json"
     out_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     tune = None
     if args.auto_tune and report.get("ok"):
-        tune = auto_tune(report)
+        tune = auto_tune(report, component=args.component)
 
     if args.json:
         print(json.dumps({"report": report, "auto_tune": tune}, indent=2))

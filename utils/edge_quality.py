@@ -56,6 +56,7 @@ def rr_admission_ok(
     target_usd: float,
     stop_usd: float,
     win_rate: float | None = None,
+    component: str = "skim_swarm",
 ) -> tuple[bool, str | None, dict[str, Any]]:
     """Reward:risk must clear breakeven payoff for estimated WR."""
     if not rr_gate_enabled():
@@ -66,7 +67,9 @@ def rr_admission_ok(
         return False, "edge_rr_invalid", {"target_usd": tgt, "stop_usd": stp}
     rr = tgt / stp
     wr = float(win_rate) if win_rate is not None else 0.45
-    need = breakeven_payoff(wr) * rr_safety_margin()
+    from utils.edge_autofix import session_rr_margin_boost
+
+    need = breakeven_payoff(wr) * (rr_safety_margin() + session_rr_margin_boost(component))
     ok = rr >= need
     meta = {
         "rr": round(rr, 3),
@@ -174,7 +177,9 @@ def evaluate_entry_edge_gates(
     except Exception:
         pass
 
-    ok, reason, m = rr_admission_ok(target_usd=target_usd, stop_usd=stop_usd, win_rate=wr)
+    ok, reason, m = rr_admission_ok(
+        target_usd=target_usd, stop_usd=stop_usd, win_rate=wr, component=component
+    )
     meta["rr"] = m
     if not ok:
         return False, reason, meta

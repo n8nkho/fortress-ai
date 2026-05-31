@@ -196,7 +196,7 @@ class TestSkimTuning(unittest.TestCase):
                 json.dumps({"symbol": "SOXX", "session_stats": {"sum_pnl_usd": -99.0, "exits": 50}}),
                 encoding="utf-8",
             )
-            with patch("scripts.skim_swarm_analyze.swarm_data_dir", return_value=data_dir):
+            with patch("scripts.skim_swarm_analyze._resolve_data_dir", return_value=data_dir):
                 with patch("scripts.skim_swarm_analyze.session_daily_realized_usd", return_value=0.2):
                     report = analyze(minutes=30)
             self.assertAlmostEqual(report["window_realized_pnl_usd"], 0.2)
