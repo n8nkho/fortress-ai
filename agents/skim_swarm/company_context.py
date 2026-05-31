@@ -25,8 +25,8 @@ _STATIC: dict[str, dict[str, Any]] = {
         "name": "iShares Semiconductor ETF",
         "type": "etf",
         "sector": "Semiconductors",
-        "summary": "Semi sector basket; leadership signal for NVDA/AVGO/MSFT.",
-        "peers": ["NVDA", "AVGO"],
+        "summary": "Semi sector basket; semiconductor leadership reference for skim relative-strength.",
+        "peers": ["MSFT"],
     },
     "NASA": {
         "name": "Tema Space Innovators ETF",
@@ -40,7 +40,7 @@ _STATIC: dict[str, dict[str, Any]] = {
         "type": "etf",
         "sector": "AI / tech thematic",
         "summary": "AI-themed ETF; correlate with mega-cap tech and SOXX.",
-        "peers": ["NVDA", "MSFT", "GOOG"],
+        "peers": ["MSFT", "GOOG"],
     },
     "AAPL": {
         "name": "Apple Inc",
@@ -50,21 +50,13 @@ _STATIC: dict[str, dict[str, Any]] = {
         "summary": "Mega-cap consumer tech; iPhone, services, buybacks; tends to follow QQQ/SPY with lower beta.",
         "peers": ["MSFT", "GOOG", "AMZN"],
     },
-    "NVDA": {
-        "name": "NVIDIA Corporation",
-        "type": "equity",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "summary": "AI/GPU leader; high intraday volatility; strong SOXX correlation.",
-        "peers": ["SOXX", "AVGO", "MSFT"],
-    },
     "MSFT": {
         "name": "Microsoft Corporation",
         "type": "equity",
         "sector": "Technology",
         "industry": "Software",
         "summary": "Cloud and enterprise software mega-cap; smoother trends than pure semi.",
-        "peers": ["AAPL", "GOOG", "NVDA"],
+        "peers": ["AAPL", "GOOG"],
     },
     "GOOG": {
         "name": "Alphabet Inc (Class C)",
@@ -81,14 +73,6 @@ _STATIC: dict[str, dict[str, Any]] = {
         "industry": "Internet Retail",
         "summary": "E-commerce and AWS; consumer + cloud mix; event-driven moves.",
         "peers": ["MSFT", "GOOG"],
-    },
-    "AVGO": {
-        "name": "Broadcom Inc",
-        "type": "equity",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "summary": "Networking and custom silicon; semi leader with dividend profile.",
-        "peers": ["NVDA", "SOXX"],
     },
     "BRK.B": {
         "name": "Berkshire Hathaway",
@@ -128,7 +112,7 @@ _STATIC: dict[str, dict[str, Any]] = {
         "sector": "Technology",
         "industry": "Software",
         "summary": "High-beta software; sentiment-driven, wider intraday ranges.",
-        "peers": ["NVDA", "CRWD"],
+        "peers": ["CRWD"],
     },
     "CRWD": {
         "name": "CrowdStrike Holdings",
