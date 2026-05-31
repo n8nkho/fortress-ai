@@ -47,7 +47,7 @@ def run_symbol_cycle(
     learned = load_learned(sym)
     halted = bool(swarm.get("halted"))
     halt_reason = swarm.get("halt_reason")
-    if halt_reason and "semi_long" in str(halt_reason) and features.get("symbol") in {"NVDA", "MSFT", "AVGO"}:
+    if halt_reason and "semi_long" in str(halt_reason) and features.get("symbol") == "MSFT":
         if (features.get("side") or "flat") == "flat":
             halted = True
 

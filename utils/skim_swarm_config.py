@@ -211,11 +211,12 @@ def thin_etf_symbols() -> set[str]:
 
 
 def semi_symbols() -> set[str]:
-    return {normalize_symbol(x) for x in ("MSFT,AAPL,AMD").split(",")}
+    # Skim-owned names only — AMD/NVDA belong to the infra swarm (clear separation).
+    return {normalize_symbol(x) for x in ("MSFT,AAPL").split(",")}
 
 
 def mega_cap_tech_symbols() -> set[str]:
-    return {normalize_symbol(x) for x in ("AAPL,MSFT,GOOG,AMZN,NVDA").split(",")}
+    return {normalize_symbol(x) for x in ("AAPL,MSFT,GOOG,AMZN").split(",")}
 
 
 def instance_name() -> str:

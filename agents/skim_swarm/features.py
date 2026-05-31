@@ -179,7 +179,8 @@ def build_symbol_features(
         residual = r5 - spy_r5
     soxx_r5 = shared.get("soxx_r5m")
     semi_lead = None
-    if sym in {"NVDA", "MSFT", "AVGO"} and soxx_r5 is not None and r5 is not None:
+    # Only MSFT is a skim-owned semi-correlated name; NVDA/AVGO belong to infra.
+    if sym == "MSFT" and soxx_r5 is not None and r5 is not None:
         semi_lead = r5 - soxx_r5
     pos = position or {}
     side = pos.get("side") or "flat"
