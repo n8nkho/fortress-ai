@@ -447,6 +447,43 @@ def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[s
     return findings
 
 
+def scan_edge_scorecard(*, component: str) -> list[dict[str, Any]]:
+    """Flag inverted payoff ratio (avg win < avg loss) from edge scorecard."""
+    findings: list[dict[str, Any]] = []
+    try:
+        from utils.edge_scorecard import load_scorecard
+
+        sc = load_scorecard(component)
+        if not sc.get("ok"):
+            return findings
+        exits = int(sc.get("exits") or 0)
+        if exits < 6:
+            return findings
+        pay = sc.get("payoff_ratio")
+        pf = sc.get("profit_factor")
+        exp = sc.get("expectancy_usd")
+        if pay is not None and float(pay) < 0.95:
+            findings.append(
+                {
+                    "code": "swarm_inverted_payoff",
+                    "severity": "high",
+                    "component": component,
+                    "payoff_ratio": pay,
+                    "profit_factor": pf,
+                    "expectancy_usd": exp,
+                    "session_date": sc.get("session_date"),
+                    "recommendation": (
+                        "Average loss exceeds average win — enable RR/cost gates and bracket exits; "
+                        "reduce entry frequency until payoff ratio > 1."
+                    ),
+                    "si_action": "edge_quality_adapt",
+                }
+            )
+    except Exception:
+        pass
+    return findings
+
+
 def scan_positions_from_decisions(*, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """Detect oversized single-symbol exposure from latest observation snapshot in log."""
     rows = rows if rows is not None else _read_jsonl_tail(_data_dir() / "ai_decisions.jsonl", max_lines=80)
@@ -474,7 +511,7 @@ def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     unified = scan_unified_agent()
     skim = scan_skim_swarm()
     infra = scan_infra_swarm()
-    findings = unified + skim + infra
+    findings = unified + skim + infra + scan_edge_scorecard(component="skim_swarm") + scan_edge_scorecard(component="infra_swarm")
     ts = now_iso()
     out = {
         "timestamp": ts,

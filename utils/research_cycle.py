@@ -252,9 +252,16 @@ def run_research_cycle(
     entries = load_entry_snapshots(decisions_path, max_sessions=max_sessions)
 
     baseline_adv = score_overlay_adversarial(trades, _default_overlay())
+    from utils.edge_scorecard import compute_scorecard_from_decisions, save_scorecard
+
+    scorecard = compute_scorecard_from_decisions(decisions_path)
+    if scorecard.get("ok"):
+        save_scorecard(component, scorecard)
+
     results: dict[str, Any] = {
         "scenario_stress": {"trade_count": len(trades), "sessions": sessions},
         "adversarial_baseline_pnl": baseline_adv.sum_pnl_usd,
+        "edge_scorecard": scorecard,
     }
 
     newly_promoted: list[str] = []

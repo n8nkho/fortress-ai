@@ -264,7 +264,46 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-05-31T12:54:13.700362-04:00"
+      "registered_at_utc": "2026-05-31T14:22:30.090853-04:00"
+    },
+    "edge_rr_cost_gates": {
+      "title": "RR and cost-aware entry gates",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "edge_rr_gate",
+        "edge_cost_gate",
+        "edge_expectancy_gate"
+      ],
+      "auto_tunable": {
+        "rr_safety_margin": 0.05
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "broker_bracket_exits": {
+      "title": "Broker bracket OCO exits on swarm entry",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "bracket_market",
+        "bracket_limit",
+        "order_type"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "swarm_inverted_payoff": {
+      "title": "Session payoff ratio inverted (avg loss > avg win)",
+      "kind": "policy",
+      "mitigation_markers": [
+        "edge_quality_adapt"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "high"
     }
   }
 }

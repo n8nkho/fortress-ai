@@ -16,6 +16,7 @@ from utils.movement_anticipation import (
     anticipation_score_adjustment,
     entry_blocked_by_anticipation,
 )
+from utils.edge_quality import evaluate_entry_edge_gates, time_stop_triggered
 from utils.infra_swarm_config import (
     anchor_symbol,
     atr_k,
@@ -117,6 +118,8 @@ def _try_entry(
     action: str,
     reasoning: str,
     params: dict[str, Any],
+    target_usd: float,
+    stop_usd: float,
 ) -> dict[str, Any] | None:
     if pattern in (params.get("disable_patterns") or []):
         out["reasoning"] = f"pattern_disabled:{pattern}"
@@ -139,6 +142,19 @@ def _try_entry(
     )
     if blocked:
         out["reasoning"] = reason or f"causation_blocked:{pattern}"
+        return out
+    blocked_edge, edge_reason, edge_meta = evaluate_entry_edge_gates(
+        symbol=sym,
+        pattern=pattern,
+        side=side,
+        features=features,
+        target_usd=target_usd,
+        stop_usd=stop_usd,
+        component="infra_swarm",
+    )
+    if blocked_edge:
+        out["reasoning"] = edge_reason or "edge_gate_blocked"
+        out["edge_gate"] = edge_meta
         return out
     out["action"] = action
     out["reasoning"] = reasoning
@@ -168,6 +184,17 @@ def decide(
         "action": "wait",
         "score": round(score, 4),
         "target_usd": target,
+        "stop_usd": round(
+            abs(
+                stop_loss_usd(
+                    target,
+                    stop_target_mult_effective=float(
+                        get_params(sym).get("stop_target_mult_effective") or stop_target_mult()
+                    ),
+                )
+            ),
+            4,
+        ),
         "eod_phase": phase,
         "reasoning": "no_edge",
         "confidence": abs(score),
@@ -216,6 +243,10 @@ def decide(
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
         stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
+        if time_stop_triggered(symbol_state, unrealized=u, target_usd=target):
+            out["action"] = "exit_position"
+            out["reasoning"] = "time_stop"
+            return out
         if u >= target:
             out["action"] = "exit_position"
             out["reasoning"] = f"infra_target_hit:{u:.3f}>={target:.3f}"
@@ -261,6 +292,7 @@ def decide(
     pd = params.get("pattern_deltas") or {}
     enter_long = float(params["enter_long"])
     enter_short = float(params["enter_short"])
+    stop_usd_val = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
     if sym in high_vol_symbols():
         enter_long += 0.04
         enter_short -= 0.04
@@ -287,6 +319,8 @@ def decide(
                 action="enter_long",
                 reasoning=f"layer_catch_up_long score={score:.2f} lag={lag:.4f}",
                 params=params,
+                target_usd=target,
+                stop_usd=stop_usd_val,
             )
             if hit is not None:
                 return hit
@@ -305,6 +339,8 @@ def decide(
                 action="enter_short",
                 reasoning=f"layer_catch_up_short score={score:.2f}",
                 params=params,
+                target_usd=target,
+                stop_usd=stop_usd_val,
             )
             if hit is not None:
                 return hit
@@ -323,6 +359,8 @@ def decide(
                 action="enter_short",
                 reasoning=f"layer_rip_fade score={score:.2f} res={res_layer:.4f}",
                 params=params,
+                target_usd=target,
+                stop_usd=stop_usd_val,
             )
             if hit is not None:
                 return hit
@@ -341,6 +379,8 @@ def decide(
                 action="enter_long",
                 reasoning=f"equipment_capex_confirm score={score:.2f}",
                 params=params,
+                target_usd=target,
+                stop_usd=stop_usd_val,
             )
             if hit is not None:
                 return hit
@@ -359,6 +399,8 @@ def decide(
                 action="enter_long",
                 reasoning=f"power_parity score={score:.2f}",
                 params=params,
+                target_usd=target,
+                stop_usd=stop_usd_val,
             )
             if hit is not None:
                 return hit
@@ -377,6 +419,8 @@ def decide(
                 action="enter_long",
                 reasoning=f"stack_momentum_long score={score:.2f}",
                 params=params,
+                target_usd=target,
+                stop_usd=stop_usd_val,
             )
             if hit is not None:
                 return hit

@@ -177,6 +177,16 @@ def adapt_swarm_session(
     exp_floor = float(cfg.session_expectancy_min_usd())
     base_max_open = int(cfg.max_open_positions())
 
+    try:
+        from utils.edge_scorecard import load_scorecard
+
+        sc = load_scorecard(component)
+        pay = sc.get("payoff_ratio")
+        if sc.get("ok") and pay is not None and float(pay) < 0.9 and int(sc.get("exits") or 0) >= 8:
+            exp_floor = max(exp_floor, 0.0)
+    except Exception:
+        pass
+
     negative_edge = exits >= churn_min_exits and exp is not None and float(exp) < exp_floor
     over_churn = (
         exits >= churn_max

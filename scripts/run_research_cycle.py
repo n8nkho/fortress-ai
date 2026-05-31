@@ -19,17 +19,23 @@ from utils.research_cycle import run_research_cycle
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Fortress research cycle (hypothesis promote/kill)")
-    ap.add_argument("--component", default="skim_swarm", help="skim_swarm (default)")
+    ap.add_argument("--component", default="skim_swarm", help="skim_swarm | infra_swarm | all")
     ap.add_argument("--sessions", type=int, default=5, help="Recent ET sessions to analyze")
     ap.add_argument("--apply", action="store_true", help="Apply promoted scenario_stress overlays")
     ap.add_argument("--json", action="store_true", help="Print full JSON report")
     args = ap.parse_args()
 
-    report = run_research_cycle(
-        component=args.component,
-        max_sessions=max(1, args.sessions),
-        apply_promoted=args.apply,
-    )
+    components = ["skim_swarm", "infra_swarm"] if args.component == "all" else [args.component]
+    reports = []
+    for comp in components:
+        reports.append(
+            run_research_cycle(
+                component=comp,
+                max_sessions=max(1, args.sessions),
+                apply_promoted=args.apply,
+            )
+        )
+    report = reports[-1] if len(reports) == 1 else {"ok": all(r.get("ok") for r in reports), "reports": reports}
 
     if args.json:
         print(json.dumps(report, indent=2))

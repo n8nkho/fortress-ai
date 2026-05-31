@@ -17,6 +17,7 @@ from utils.movement_anticipation import (
     enrich_features_with_anticipation,
     entry_blocked_by_anticipation,
 )
+from utils.edge_quality import evaluate_entry_edge_gates, time_stop_triggered
 from utils.skim_swarm_config import (
     atr_k,
     high_vol_symbols,
@@ -135,6 +136,8 @@ def _try_entry(
     reasoning: str,
     params: dict[str, Any],
     spy_r5: float,
+    target_usd: float,
+    stop_usd: float,
 ) -> dict[str, Any] | None:
     """Apply per-symbol causation gate before returning an entry decision."""
     if pattern in (params.get("disable_patterns") or []):
@@ -162,6 +165,19 @@ def _try_entry(
     if blocked:
         out["reasoning"] = reason or f"causation_blocked:{pattern}"
         return out
+    blocked_edge, edge_reason, edge_meta = evaluate_entry_edge_gates(
+        symbol=sym,
+        pattern=pattern,
+        side=side,
+        features=features,
+        target_usd=target_usd,
+        stop_usd=stop_usd,
+        component="skim_swarm",
+    )
+    if blocked_edge:
+        out["reasoning"] = edge_reason or "edge_gate_blocked"
+        out["edge_gate"] = edge_meta
+        return out
     out["action"] = action
     out["reasoning"] = reasoning
     return out
@@ -188,6 +204,17 @@ def decide(
         "action": "wait",
         "score": round(score, 4),
         "target_usd": target,
+        "stop_usd": round(
+            abs(
+                stop_loss_usd(
+                    target,
+                    stop_target_mult_effective=float(
+                        get_params(sym).get("stop_target_mult_effective") or stop_target_mult()
+                    ),
+                )
+            ),
+            4,
+        ),
         "eod_phase": phase,
         "reasoning": "no_edge",
         "confidence": abs(score),
@@ -238,6 +265,10 @@ def decide(
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
         stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
+        if time_stop_triggered(symbol_state, unrealized=u, target_usd=target):
+            out["action"] = "exit_position"
+            out["reasoning"] = "time_stop"
+            return out
         if u >= target:
             if clip_ladder_enabled() and pos_qty > clip_size():
                 out["action"] = "exit_partial"
@@ -285,6 +316,10 @@ def decide(
         symbol_state["peak_unrealized"] = max(peak, u)
         peak = _f(symbol_state.get("peak_unrealized"))
         stop_usd = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
+        if time_stop_triggered(symbol_state, unrealized=u, target_usd=target):
+            out["action"] = "exit_position"
+            out["reasoning"] = "time_stop"
+            return out
         if u >= target:
             if clip_ladder_enabled() and pos_qty > clip_size():
                 out["action"] = "exit_partial"
@@ -356,6 +391,7 @@ def decide(
     pd = params.get("pattern_deltas") or {}
     enter_long = float(params["enter_long"])
     enter_short = float(params["enter_short"])
+    stop_usd_val = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
     if sym in high_vol_symbols():
         enter_long += 0.05
         enter_short -= 0.05
@@ -376,6 +412,8 @@ def decide(
             reasoning=f"rip_fade score={score:.2f}",
             params=params,
             spy_r5=spy_r5,
+            target_usd=target,
+            stop_usd=stop_usd_val,
         )
         if hit is not None:
             return hit
@@ -393,6 +431,8 @@ def decide(
             reasoning=f"pullback_uptrend score={score:.2f}",
             params=params,
             spy_r5=spy_r5,
+            target_usd=target,
+            stop_usd=stop_usd_val,
         )
         if hit is not None:
             return hit
@@ -410,6 +450,8 @@ def decide(
             reasoning=f"momentum_long score={score:.2f}",
             params=params,
             spy_r5=spy_r5,
+            target_usd=target,
+            stop_usd=stop_usd_val,
         )
         if hit is not None:
             return hit
@@ -427,6 +469,8 @@ def decide(
             reasoning=f"momentum_short score={score:.2f}",
             params=params,
             spy_r5=spy_r5,
+            target_usd=target,
+            stop_usd=stop_usd_val,
         )
         if hit is not None:
             return hit

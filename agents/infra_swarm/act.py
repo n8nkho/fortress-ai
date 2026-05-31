@@ -9,6 +9,8 @@ import yfinance as yf
 from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
 from utils.order_chunking import chunk_qtys, max_order_notional_usd
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
+from utils.alpaca_execution import cancel_open_orders, submit_entry_with_bracket
+from utils.edge_quality_config import edge_quality_enabled
 from utils.infra_swarm_config import dry_run, max_shares, normalize_symbol
 
 
@@ -116,6 +118,8 @@ def act(
             }
 
     def _submit_exit(side: str, total_qty: int) -> dict[str, Any]:
+        if edge_quality_enabled():
+            cancel_open_orders(sym)
         max_notional = max_order_notional_usd(side=side, portfolio_equity_usd=equity if equity > 0 else None)
         chunks = chunk_qtys(total_qty, px=float(px), max_notional_usd=max_notional)
         submitted: list[dict[str, Any]] = []
@@ -140,6 +144,37 @@ def act(
             "block_reason": "executed",
         }
 
+    def _submit_entry(side: str, qty: int) -> dict[str, Any]:
+        if edge_quality_enabled() and action in ("enter_long", "enter_short"):
+            tgt = float(decision.get("target_usd") or 0)
+            stp = float(decision.get("stop_usd") or 0)
+            if tgt > 0 and stp > 0:
+                gate_side = "BUY" if side == "BUY" else "SELL"
+                est = qty * px
+                gate = evaluate_pre_trade_submission(
+                    side=gate_side,
+                    symbol=sym,
+                    qty=float(qty),
+                    estimated_notional_usd=est,
+                    portfolio_equity_usd=equity if equity > 0 else None,
+                    order_class="equity",
+                    bid=px * 0.9985,
+                    ask=px * 1.0015,
+                    quote_age_seconds=30.0,
+                )
+                if not gate["allowed"]:
+                    msg = format_gate_block_message(gate)
+                    return {"executed": False, "detail": msg, "block_reason": msg.split(":")[0]}
+                return submit_entry_with_bracket(
+                    symbol=sym,
+                    side=gate_side,
+                    qty=qty,
+                    entry_price=px,
+                    target_usd=tgt,
+                    stop_usd=stp,
+                )
+        return _submit_one(side, qty, is_exit=False)
+
     if action == "flatten":
         if pos_qty <= 0:
             result["detail"] = "already_flat"
@@ -163,7 +198,7 @@ def act(
             result["detail"] = f"not_flat:{pos_side}"
             result["block_reason"] = "not_flat"
             return result
-        result.update(_submit_one("BUY", qty_cap, is_exit=False))
+        result.update(_submit_entry("BUY", qty_cap))
         return result
 
     if action == "enter_short":
@@ -171,7 +206,7 @@ def act(
             result["detail"] = f"not_flat:{pos_side}"
             result["block_reason"] = "not_flat"
             return result
-        result.update(_submit_one("SELL", qty_cap, is_exit=False))
+        result.update(_submit_entry("SELL", qty_cap))
         return result
 
     result["detail"] = "unknown_action"

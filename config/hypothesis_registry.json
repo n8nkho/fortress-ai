@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Falsifiable hypotheses for research cycle — promote/kill based on replay + adversarial stress.",
+  "description": "Falsifiable hypotheses for research cycle \u2014 promote/kill based on replay + adversarial stress.",
   "hypotheses": [
     {
       "id": "block_countertrend_entries",
@@ -10,7 +10,7 @@
       "tests": {
         "min_blocked_loser_pnl_usd": 0.35,
         "max_blocked_winner_pnl_usd": 0.25,
-        "adversarial_min_improvement_usd": 0.10
+        "adversarial_min_improvement_usd": 0.1
       }
     },
     {
@@ -19,8 +19,8 @@
       "kind": "anticipation_gate",
       "status": "shadow",
       "tests": {
-        "min_blocked_loser_pnl_usd": 0.20,
-        "max_blocked_winner_pnl_usd": 0.30,
+        "min_blocked_loser_pnl_usd": 0.2,
+        "max_blocked_winner_pnl_usd": 0.3,
         "adversarial_min_improvement_usd": 0.05
       }
     },
@@ -31,7 +31,7 @@
       "status": "shadow",
       "tests": {
         "min_blocked_loser_pnl_usd": 0.25,
-        "max_blocked_winner_pnl_usd": 0.20,
+        "max_blocked_winner_pnl_usd": 0.2,
         "adversarial_min_improvement_usd": 0.08
       }
     },
@@ -53,6 +53,26 @@
       "tests": {
         "adversarial_min_improvement_usd": 0.15,
         "min_expectancy_usd": -0.02
+      }
+    },
+    {
+      "id": "edge_rr_cost_gates",
+      "title": "RR and cost-aware entry admission before trade",
+      "kind": "param_overlay",
+      "status": "shadow",
+      "tests": {
+        "min_expectancy_usd": 0.0,
+        "adversarial_min_improvement_usd": 0.0
+      }
+    },
+    {
+      "id": "broker_bracket_exits",
+      "title": "Broker-native bracket OCO exits on entry",
+      "kind": "param_overlay",
+      "status": "shadow",
+      "tests": {
+        "min_expectancy_usd": -0.05,
+        "adversarial_min_improvement_usd": 0.0
       }
     }
   ]
