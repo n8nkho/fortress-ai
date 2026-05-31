@@ -164,7 +164,9 @@ def run_loop(iterations: int | None = None) -> None:
             print(json.dumps(drift_event, default=str), flush=True)
             syms = fresh
         owned = set(syms) | held_position_symbols(swarm_data_dir() / "state")
-        syms = wave_symbols(syms, positions, context=[anchor, "SPY"], owned_symbols=owned)
+        # SPY is a market-data reference only for infra — fetched for shared context
+        # below, but never added to the tradable wave (anchor stays tradable as before).
+        syms = wave_symbols(syms, positions, context=[anchor], owned_symbols=owned)
         context_syms = list(dict.fromkeys(syms + [anchor, "SPY"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)
