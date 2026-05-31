@@ -22,9 +22,16 @@ class TestSkimClipLadder(unittest.TestCase):
         os.environ["FORTRESS_SKIM_CLIP_SIZE"] = "1"
         os.environ["FORTRESS_SKIM_CLIP_MIN_GAP_SEC"] = "30"
         os.environ["FORTRESS_SKIM_CLIP_MIN_HOLD_SEC"] = "10"
-        self._session_patcher = patch("agents.skim_swarm.eod.session_date_et", return_value="2026-05-27")
-        self._session_patcher.start()
-        self.addCleanup(self._session_patcher.stop)
+        # session_date_et is bound into multiple modules at import time; patch each so
+        # load_learned / load_symbol_state do not reset stats on a different run date.
+        for target in (
+            "agents.skim_swarm.eod.session_date_et",
+            "agents.skim_swarm.symbol_learning.session_date_et",
+            "agents.skim_swarm.state.session_date_et",
+        ):
+            p = patch(target, return_value="2026-05-27")
+            p.start()
+            self.addCleanup(p.stop)
 
     def _write_learned(self, symbol: str, *, exits: int, wins: int, losses: int, pnl: float):
         learned_dir = Path(self._td.name) / "skim_swarm" / "learned"

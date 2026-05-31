@@ -14,7 +14,7 @@ _SYMBOL_ALIASES: dict[str, str] = {
 }
 
 _DEFAULT_UNIVERSE = (
-    "SPY,MSFT,GOOG,AMZN,AAPL,NASA,"
+    "SPY,MSFT,GOOG,AMZN,AAPL,"
     "BRK.B,AGIX,LLY,V,MA,PLTR,CRWD"
 )
 
@@ -206,7 +206,7 @@ def max_spread_bps() -> float:
 
 def thin_etf_symbols() -> set[str]:
     """Wider gates / slower cadence."""
-    raw = (os.environ.get("FORTRESS_SKIM_THIN_ETFS") or "NASA,AGIX").strip()
+    raw = (os.environ.get("FORTRESS_SKIM_THIN_ETFS") or "AGIX").strip()
     return {normalize_symbol(x) for x in raw.split(",") if x.strip()}
 
 

@@ -10,9 +10,11 @@ from utils.skim_swarm_config import normalize_symbol, universe
 class TestSkimSwarm(unittest.TestCase):
     def test_universe_includes_new_tickers(self):
         u = universe()
-        for sym in ("SPY", "MSFT", "AAPL", "NASA", "BRK.B", "AGIX", "PLTR", "CRWD"):
+        for sym in ("SPY", "MSFT", "AAPL", "BRK.B", "AGIX", "PLTR", "CRWD"):
             self.assertIn(sym, u)
         self.assertNotIn("NVDA", u)
+        # NASA removed — non-tradable asset (broker error 42210000)
+        self.assertNotIn("NASA", u)
 
     def test_brkb_alias(self):
         self.assertEqual(normalize_symbol("BRKB"), "BRK.B")

@@ -55,9 +55,11 @@ def detect_wave_anomalies(
     positions: dict[str, dict[str, Any]],
     cached_universe: list[str],
     fresh_universe: list[str],
+    owned_symbols: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     open_syms = set(open_position_symbols(positions))
+    owned_upper = {str(s).strip().upper() for s in owned_symbols} if owned_symbols is not None else None
 
     drift_added = [s for s in fresh_universe if s not in cached_universe]
     drift_removed = [s for s in cached_universe if s not in fresh_universe]
@@ -74,7 +76,19 @@ def detect_wave_anomalies(
             }
         )
 
-    orphans = [s for s in open_syms if s not in cached_universe]
+    # Orphans = positions THIS swarm owns that fell out of its universe. Foreign
+    # positions opened by a sibling swarm on the shared account are intentionally
+    # excluded (owned_symbols scope) so swarms do not liquidate each other.
+    orphans = [
+        s
+        for s in open_syms
+        if s not in cached_universe and (owned_upper is None or s in owned_upper)
+    ]
+    foreign = (
+        sorted(s for s in open_syms if owned_upper is not None and s not in owned_upper)
+        if owned_upper is not None
+        else []
+    )
     if orphans:
         findings.append(
             {
@@ -84,6 +98,17 @@ def detect_wave_anomalies(
                 "symbols": sorted(orphans),
                 "recommendation": "Include open broker positions in wave cycle for exit management.",
                 "si_action": "union_open_positions",
+            }
+        )
+    if foreign:
+        findings.append(
+            {
+                "code": "swarm_foreign_position_skipped",
+                "severity": "info",
+                "component": component,
+                "symbols": foreign,
+                "recommendation": "Position owned by sibling swarm on shared account; not managed here.",
+                "si_action": "scope_owned_positions",
             }
         )
 
@@ -159,6 +184,7 @@ def run_wave_health(
     cached_universe: list[str],
     universe_fn,
     day_realized_pnl: float | None = None,
+    owned_symbols: set[str] | None = None,
 ) -> dict[str, Any]:
     """Analyze wave, persist health snapshot, trigger integrity scan on critical findings."""
     fresh, drift_event = refresh_universe_if_changed(cached_universe, universe_fn)
@@ -170,6 +196,7 @@ def run_wave_health(
         positions=positions,
         cached_universe=cached_universe,
         fresh_universe=fresh,
+        owned_symbols=owned_symbols,
     )
 
     health = load_swarm_health(component)

@@ -94,6 +94,29 @@
       "effort": "low",
       "impact": "high"
     },
+    "swarm_cross_account_contamination": {
+      "title": "Sibling swarms on shared broker account liquidate each other's positions",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "scope_owned_positions",
+        "swarm_foreign_position_skipped"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "critical"
+    },
+    "skim_invalid_asset_orders": {
+      "title": "Skim universe contains non-tradable asset (repeated broker 42210000)",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "scope_owned_positions"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
+      "impact": "high"
+    },
     "infra_negative_session": {
       "title": "Infra swarm negative session with poor win rate",
       "kind": "tunable",
@@ -241,7 +264,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-05-27T16:32:47.910491-04:00"
+      "registered_at_utc": "2026-05-31T12:54:13.700362-04:00"
     }
   }
 }

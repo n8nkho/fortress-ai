@@ -56,7 +56,7 @@ from utils.infra_swarm_config import (
     swarm_data_dir,
     universe,
 )
-from utils.swarm_runtime import refresh_universe_if_changed, wave_symbols
+from utils.swarm_runtime import held_position_symbols, refresh_universe_if_changed, wave_symbols
 from utils.swarm_session_si import effective_max_open, session_cycle_interval_mult
 from utils.swarm_wave_si import run_wave_health
 from utils.us_equity_hours import is_us_equity_rth_et
@@ -163,7 +163,8 @@ def run_loop(iterations: int | None = None) -> None:
         if drift_event:
             print(json.dumps(drift_event, default=str), flush=True)
             syms = fresh
-        syms = wave_symbols(syms, positions, context=[anchor, "SPY"])
+        owned = set(syms) | held_position_symbols(swarm_data_dir() / "state")
+        syms = wave_symbols(syms, positions, context=[anchor, "SPY"], owned_symbols=owned)
         context_syms = list(dict.fromkeys(syms + [anchor, "SPY"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)
@@ -233,6 +234,7 @@ def run_loop(iterations: int | None = None) -> None:
             cached_universe=syms,
             universe_fn=universe,
             day_realized_pnl=swarm.get("day_realized_pnl"),
+            owned_symbols=owned,
         )
         metric = {
             "ts": wave["ts"],

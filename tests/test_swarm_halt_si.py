@@ -122,6 +122,47 @@ class TestSwarmRuntime(unittest.TestCase):
         self.assertIn("NVDA", syms)
         self.assertIn("SPY", syms)
 
+    def test_wave_symbols_scopes_owned_positions(self):
+        from utils.swarm_runtime import wave_symbols
+
+        positions = {
+            "MSFT": {"side": "long", "qty": 1},
+            "KLAC": {"side": "long", "qty": 1},
+        }
+        # Skim owns MSFT (its universe) but not KLAC (sibling infra's position)
+        syms = wave_symbols(
+            ["SPY", "MSFT"], positions, owned_symbols={"SPY", "MSFT"}
+        )
+        self.assertIn("MSFT", syms)
+        self.assertNotIn("KLAC", syms)
+
+    def test_wave_symbols_keeps_owned_delisted_orphan(self):
+        from utils.swarm_runtime import wave_symbols
+
+        # LLY dropped from universe but still held by this swarm -> still managed
+        syms = wave_symbols(
+            ["SPY"], {"LLY": {"side": "long", "qty": 1}}, owned_symbols={"SPY", "LLY"}
+        )
+        self.assertIn("LLY", syms)
+
+    def test_held_position_symbols_reads_state(self):
+        import json
+        import tempfile as _tf
+
+        from utils.swarm_runtime import held_position_symbols
+
+        with _tf.TemporaryDirectory() as td:
+            sd = Path(td)
+            (sd / "MSFT.json").write_text(
+                json.dumps({"symbol": "MSFT", "side": "long"}), encoding="utf-8"
+            )
+            (sd / "AAPL.json").write_text(
+                json.dumps({"symbol": "AAPL", "side": "flat"}), encoding="utf-8"
+            )
+            held = held_position_symbols(sd)
+            self.assertIn("MSFT", held)
+            self.assertNotIn("AAPL", held)
+
     def test_refresh_universe_if_changed(self):
         from utils.swarm_runtime import refresh_universe_if_changed
 
