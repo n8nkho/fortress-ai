@@ -20,6 +20,26 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 RECENT_DECISION_WINDOW = 12
 
+DUPLICATE_ENTRY_RECENT_HOURS = float(os.environ.get("FORTRESS_DUPLICATE_ENTRY_RECENT_HOURS", "48") or 48)
+
+
+def _rows_recent_hours(rows: list[dict[str, Any]], hours: float) -> list[dict[str, Any]]:
+    """Keep rows within the last N hours (ET-aware parse)."""
+    if hours <= 0 or not rows:
+        return rows
+    cutoff = parse_iso(now_iso())
+    if cutoff is None:
+        return rows[-RECENT_DECISION_WINDOW:]
+    from datetime import timedelta
+
+    min_ts = cutoff - timedelta(hours=hours)
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        ts = _parse_row_ts(r.get("ts"))
+        if ts and ts >= min_ts:
+            out.append(r)
+    return out if out else rows[-RECENT_DECISION_WINDOW:]
+
 
 def _parse_row_ts(raw: Any) -> datetime | None:
     return parse_iso(str(raw) if raw is not None else None)
@@ -89,6 +109,7 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
     already_holding_blocks = 0
 
     tail = _rows_after_deploy(rows, "duplicate_entry_accumulation")
+    tail = _rows_recent_hours(tail, DUPLICATE_ENTRY_RECENT_HOURS)
     exit_tail = _rows_after_deploy(rows, "exit_notional_blocked")
     for r in rows:
         d = r.get("decision") if isinstance(r.get("decision"), dict) else {}
@@ -101,7 +122,7 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
                 enter_by_sym[sym] += 1
         if "estimated_notional_exceeds_cap" in detail and action == "exit_position":
             exit_notional_blocks += 1
-        if act.get("block_reason") == "already_holding":
+        if act.get("block_reason") in ("already_holding", "enter_cooldown"):
             already_holding_blocks += 1
 
     for r in tail:

@@ -7,7 +7,9 @@
       "kind": "code_guard",
       "mitigation_markers": [
         "already_holding",
-        "chunked_exit"
+        "chunked_exit",
+        "enter_cooldown",
+        "entry_blocked_by_cooldown"
       ],
       "auto_tunable": {
         "confidence_threshold": 0.03
@@ -264,7 +266,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-05-31T14:31:10.358249-04:00"
+      "registered_at_utc": "2026-06-01T10:18:33.446341-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",

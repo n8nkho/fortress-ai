@@ -16,6 +16,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 _GUARD_SOURCES: dict[str, list[Path]] = {
     "duplicate_entry_accumulation": [
         _ROOT / "agents" / "unified_ai_agent.py",
+        _ROOT / "utils" / "unified_enter_guard.py",
     ],
     "exit_notional_blocked": [
         _ROOT / "agents" / "unified_ai_agent.py",

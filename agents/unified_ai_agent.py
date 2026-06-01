@@ -427,10 +427,17 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     positions = observation.get("positions") or []
     held_qty = held_qty_for_symbol(positions, sym)
 
-    if action == "enter_position" and held_qty > 0:
-        result["detail"] = f"already_holding:{sym}:{held_qty}"
-        result["block_reason"] = "already_holding"
-        return result
+    if action == "enter_position":
+        from utils.unified_enter_guard import entry_blocked_by_cooldown
+
+        blocked, block_reason = entry_blocked_by_cooldown(sym, held_qty=held_qty)
+        if blocked:
+            if block_reason == "already_holding":
+                result["detail"] = f"already_holding:{sym}:{held_qty}"
+            else:
+                result["detail"] = block_reason or f"enter_cooldown:{sym}"
+            result["block_reason"] = block_reason.split(":")[0] if block_reason else "enter_cooldown"
+            return result
 
     if action == "exit_position":
         if held_qty <= 0:
@@ -533,6 +540,15 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         result["executed"] = True
         result["detail"] = submitted[0] if len(submitted) == 1 else {"orders": submitted}
         result["block_reason"] = "executed"
+        try:
+            from utils.unified_enter_guard import record_enter, record_exit
+
+            if action == "enter_position":
+                record_enter(sym)
+            elif action == "exit_position":
+                record_exit(sym)
+        except Exception:
+            pass
         if action == "exit_position" and submitted:
             try:
                 from utils.ai_pnl_ledger import append_realized_fill
