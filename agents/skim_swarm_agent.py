@@ -109,6 +109,9 @@ def run_loop(iterations: int | None = None) -> None:
     _ensure_dirs()
     reconcile_report = reconcile_session_on_boot()
     adaptive_report = sync_adaptive_state_on_boot()
+    from utils.swarm_universe_guard import purge_orphan_symbol_states
+
+    orphan_purge = purge_orphan_symbol_states("skim_swarm")
     syms = universe()
     print(
         json.dumps(
@@ -121,6 +124,7 @@ def run_loop(iterations: int | None = None) -> None:
                 "eod_phase": describe_eod_phase(),
                 "session_reconcile": reconcile_report,
                 "adaptive_sync": adaptive_report,
+                "orphan_purge": orphan_purge,
             },
             default=str,
         ),
@@ -151,8 +155,9 @@ def run_loop(iterations: int | None = None) -> None:
         if drift_event:
             print(json.dumps(drift_event, default=str), flush=True)
             syms = fresh
-        owned = set(syms) | held_position_symbols(swarm_data_dir() / "state")
-        syms = wave_symbols(syms, positions, context=["SPY", "SOXX"], owned_symbols=owned)
+        configured = list(syms)
+        owned = set(configured) | held_position_symbols(swarm_data_dir() / "state")
+        syms = wave_symbols(configured, positions, context=["SPY", "SOXX"], owned_symbols=owned)
         context_syms = list(dict.fromkeys(syms + ["SPY", "SOXX"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)
@@ -217,7 +222,8 @@ def run_loop(iterations: int | None = None) -> None:
             swarm_halted=bool(swarm.get("halted")),
             results=results,
             positions=positions,
-            cached_universe=syms,
+            cached_universe=configured,
+            configured_universe=configured,
             universe_fn=universe,
             day_realized_pnl=swarm.get("day_realized_pnl"),
             owned_symbols=owned,
@@ -230,7 +236,12 @@ def run_loop(iterations: int | None = None) -> None:
             "next_sleep_sec": sleep_sec,
         }
         append_jsonl(_metrics_path(), metric)
-        _latest_metric_path().write_text(json.dumps({**metric, "universe": syms, "dry_run": dry_run()}, indent=2))
+        _latest_metric_path().write_text(
+            json.dumps(
+                {**metric, "universe": syms, "configured_universe": configured, "dry_run": dry_run()},
+                indent=2,
+            )
+        )
 
         print(
             json.dumps(

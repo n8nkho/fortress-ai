@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
-from utils.edge_quality import bracket_prices
+from utils.edge_quality import bracket_prices, clamp_bracket_prices
 from utils.edge_quality_config import bracket_exits_enabled, passive_entry_enabled
 
 logger = logging.getLogger("alpaca_execution")
@@ -106,16 +106,26 @@ def submit_entry_with_bracket(
     side_u = side.upper()
     alpaca_side = "buy" if side_u == "BUY" else "sell"
 
-    tp_px, sl_px = bracket_prices(
-        side="long" if side_u == "BUY" else "short",
-        entry_price=entry_price,
-        target_usd=target_usd,
-        stop_usd=abs(stop_usd),
-    )
-
     quote = fetch_quote(sym)
     use_bracket = bracket_exits_enabled()
     use_passive = passive_entry_enabled()
+
+    base_px = float(entry_price)
+    if use_passive:
+        base_px = passive_limit_price(side=side_u, quote=quote, fallback=entry_price)
+
+    tp_px, sl_px = bracket_prices(
+        side="long" if side_u == "BUY" else "short",
+        entry_price=base_px,
+        target_usd=target_usd,
+        stop_usd=abs(stop_usd),
+    )
+    tp_px, sl_px = clamp_bracket_prices(
+        side="long" if side_u == "BUY" else "short",
+        base_price=base_px,
+        take_profit=tp_px,
+        stop_loss=sl_px,
+    )
 
     try:
         from alpaca.trading.enums import OrderClass, OrderSide, TimeInForce
@@ -131,7 +141,7 @@ def submit_entry_with_bracket(
         sl_req = StopLossRequest(stop_price=sl_px)
 
         if use_bracket and use_passive:
-            limit_px = passive_limit_price(side=side_u, quote=quote, fallback=entry_price)
+            limit_px = base_px
             req = LimitOrderRequest(
                 symbol=sym,
                 qty=qty,
@@ -155,7 +165,7 @@ def submit_entry_with_bracket(
             )
             order_type = "bracket_market"
         elif use_passive:
-            limit_px = passive_limit_price(side=side_u, quote=quote, fallback=entry_price)
+            limit_px = base_px
             req = LimitOrderRequest(
                 symbol=sym,
                 qty=qty,

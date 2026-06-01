@@ -277,10 +277,16 @@ def scan_swarm_universe_drift(*, component: str, metric_path: Path) -> list[dict
         metric = json.loads(metric_path.read_text(encoding="utf-8"))
     except Exception:
         return findings
-    cached = metric.get("universe") if isinstance(metric.get("universe"), list) else []
+    cached = metric.get("configured_universe") if isinstance(metric.get("configured_universe"), list) else []
+    if not cached:
+        cached = metric.get("universe") if isinstance(metric.get("universe"), list) else []
     if not cached:
         return findings
     try:
+        from utils.swarm_universe_guard import wave_context_symbols
+
+        context = wave_context_symbols(component)
+        cached = [s for s in cached if s not in context]
         if component == "skim_swarm":
             from utils.skim_swarm_config import universe as universe_fn
         elif component == "infra_swarm":

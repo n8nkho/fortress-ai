@@ -178,6 +178,15 @@ def _apply_auto_tunable(code: str, tunable_delta: dict[str, float]) -> dict[str,
     for param, delta in tunable_delta.items():
         if param not in TUNABLE_BOUNDS:
             continue
+        if param == "confidence_threshold" and float(delta) < 0:
+            floor_lock = str(os.environ.get("FORTRESS_AI_CONFIDENCE_FLOOR_LOCK", "1")).strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+            if floor_lock or code == "low_unified_execution_rate":
+                continue
         try:
             base = float(cur.get(param) or 0)
             new_val = base + float(delta)
@@ -312,10 +321,10 @@ def scan_opportunities() -> list[dict[str, Any]]:
                 "component": "unified_ai",
                 "execution_rate": round(exec_rate, 4),
                 "recommendation": (
-                    "Execution rate very low — consider lowering confidence_threshold within bounds "
-                    "or widening watchlist if gates are too tight."
+                    "Execution rate very low — use off-denylist watchlist (FORTRESS_AI_ELIGIBLE_UNIVERSE); "
+                    "do not auto-lower confidence when FORTRESS_AI_CONFIDENCE_FLOOR_LOCK=1."
                 ),
-                "si_action": "tune_confidence_down",
+                "si_action": "unified_off_denylist_watchlist",
             }
         )
 

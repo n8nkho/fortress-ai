@@ -57,12 +57,14 @@ def detect_wave_anomalies(
     fresh_universe: list[str],
     owned_symbols: set[str] | None = None,
 ) -> list[dict[str, Any]]:
+    """Detect wave anomalies. ``cached_universe`` is env-configured symbols (not wave-expanded)."""
     findings: list[dict[str, Any]] = []
     open_syms = set(open_position_symbols(positions))
     owned_upper = {str(s).strip().upper() for s in owned_symbols} if owned_symbols is not None else None
+    configured_universe = list(cached_universe or [])
 
-    drift_added = [s for s in fresh_universe if s not in cached_universe]
-    drift_removed = [s for s in cached_universe if s not in fresh_universe]
+    drift_added = [s for s in fresh_universe if s not in configured_universe]
+    drift_removed = [s for s in configured_universe if s not in fresh_universe]
     if drift_added or drift_removed:
         findings.append(
             {
@@ -82,7 +84,7 @@ def detect_wave_anomalies(
     orphans = [
         s
         for s in open_syms
-        if s not in cached_universe and (owned_upper is None or s in owned_upper)
+        if s not in configured_universe and (owned_upper is None or s in owned_upper)
     ]
     foreign = (
         sorted(s for s in open_syms if owned_upper is not None and s not in owned_upper)
@@ -182,19 +184,20 @@ def run_wave_health(
     results: list[dict[str, Any]],
     positions: dict[str, dict[str, Any]],
     cached_universe: list[str],
+    configured_universe: list[str] | None = None,
     universe_fn,
     day_realized_pnl: float | None = None,
     owned_symbols: set[str] | None = None,
 ) -> dict[str, Any]:
     """Analyze wave, persist health snapshot, trigger integrity scan on critical findings."""
-    fresh, drift_event = refresh_universe_if_changed(cached_universe, universe_fn)
+    fresh, drift_event = refresh_universe_if_changed(configured_universe or cached_universe, universe_fn)
     findings = detect_wave_anomalies(
         component=component,
         wave=wave,
         swarm_halted=swarm_halted,
         results=results,
         positions=positions,
-        cached_universe=cached_universe,
+        cached_universe=configured_universe or cached_universe,
         fresh_universe=fresh,
         owned_symbols=owned_symbols,
     )

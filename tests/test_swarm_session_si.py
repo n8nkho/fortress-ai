@@ -79,6 +79,7 @@ class TestSwarmSessionSI(unittest.TestCase):
         self.assertTrue(pol["over_churn"])
         self.assertEqual(pol["mode"], "critical")
         self.assertEqual(pol["max_open_effective"], 3)
+        self.assertTrue(pol["pause_new_entries"])
 
     def test_integrity_scan_surfaces_churn(self):
         from utils.swarm_session_si import adapt_swarm_session

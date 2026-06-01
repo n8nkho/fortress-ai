@@ -46,7 +46,8 @@ class TestRrGate(unittest.TestCase):
 
     def test_rr_passes_healthy(self):
         with patch.dict(os.environ, {"FORTRESS_EDGE_QUALITY": "1", "FORTRESS_RR_GATE": "1"}):
-            ok, _, _ = rr_admission_ok(target_usd=0.50, stop_usd=0.35, win_rate=0.45)
+            with patch("utils.edge_autofix.session_rr_margin_boost", return_value=0.0):
+                ok, _, _ = rr_admission_ok(target_usd=0.50, stop_usd=0.35, win_rate=0.45)
             self.assertTrue(ok)
 
 
@@ -95,6 +96,50 @@ class TestBracketPrices(unittest.TestCase):
         tp, sl = bracket_prices(side="short", entry_price=50.0, target_usd=0.30, stop_usd=0.35)
         self.assertEqual(tp, 49.70)
         self.assertEqual(sl, 50.35)
+
+    def test_clamp_long_tight_stop(self):
+        from utils.edge_quality import clamp_bracket_prices
+
+        tp, sl = clamp_bracket_prices(
+            side="long", base_price=159.8, take_profit=160.15, stop_loss=159.79
+        )
+        self.assertLessEqual(sl, 159.79)
+        self.assertGreaterEqual(tp, 159.81)
+
+
+class TestSwarmUniverseGuard(unittest.TestCase):
+    def test_blocks_orphan_entry(self):
+        from utils.swarm_universe_guard import entry_blocked_outside_universe
+
+        with patch.dict(os.environ, {"FORTRESS_SKIM_UNIVERSE": "SPY,MSFT"}):
+            blocked, reason = entry_blocked_outside_universe("skim_swarm", "COHR")
+        self.assertTrue(blocked)
+        self.assertEqual(reason, "orphan_symbol_outside_universe")
+
+    def test_allows_configured(self):
+        from utils.swarm_universe_guard import entry_blocked_outside_universe
+
+        with patch.dict(os.environ, {"FORTRESS_SKIM_UNIVERSE": "SPY,MSFT"}):
+            blocked, _ = entry_blocked_outside_universe("skim_swarm", "MSFT")
+        self.assertFalse(blocked)
+
+
+class TestUnifiedSymbolPool(unittest.TestCase):
+    def test_eligible_excludes_denylist(self):
+        from utils.unified_symbol_pool import unified_eligible_universe
+
+        with patch.dict(
+            os.environ,
+            {
+                "FORTRESS_SKIM_UNIVERSE": "SPY,MSFT",
+                "FORTRESS_AI_SYMBOL_DENYLIST": "NVDA,SPY",
+                "FORTRESS_AI_ELIGIBLE_UNIVERSE": "QQQ,IWM,NVDA,SPY",
+            },
+        ):
+            syms = unified_eligible_universe(max_symbols=8)
+        self.assertIn("QQQ", syms)
+        self.assertNotIn("NVDA", syms)
+        self.assertNotIn("SPY", syms)
 
 
 class TestEdgeGatesIntegration(unittest.TestCase):

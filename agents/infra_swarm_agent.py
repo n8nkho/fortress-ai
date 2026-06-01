@@ -112,6 +112,9 @@ def run_loop(iterations: int | None = None) -> None:
     _ensure_dirs()
     reconcile_report = reconcile_session_on_boot()
     adaptive_report = sync_adaptive_state_on_boot()
+    from utils.swarm_universe_guard import purge_orphan_symbol_states
+
+    orphan_purge = purge_orphan_symbol_states("infra_swarm")
     universe_refresh = refresh_adaptive_universe(force=not (swarm_data_dir() / "adaptive_universe.json").exists())
     syms = universe()
     anchor = anchor_symbol()
@@ -129,6 +132,7 @@ def run_loop(iterations: int | None = None) -> None:
                 "session_reconcile": reconcile_report,
                 "adaptive_sync": adaptive_report,
                 "universe_refresh": universe_refresh,
+                "orphan_purge": orphan_purge,
             },
             default=str,
         ),
@@ -163,10 +167,11 @@ def run_loop(iterations: int | None = None) -> None:
         if drift_event:
             print(json.dumps(drift_event, default=str), flush=True)
             syms = fresh
-        owned = set(syms) | held_position_symbols(swarm_data_dir() / "state")
+        configured = list(syms)
+        owned = set(configured) | held_position_symbols(swarm_data_dir() / "state")
         # SPY is a market-data reference only for infra — fetched for shared context
         # below, but never added to the tradable wave (anchor stays tradable as before).
-        syms = wave_symbols(syms, positions, context=[anchor], owned_symbols=owned)
+        syms = wave_symbols(configured, positions, context=[anchor], owned_symbols=owned)
         context_syms = list(dict.fromkeys(syms + [anchor, "SPY"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)
@@ -223,6 +228,7 @@ def run_loop(iterations: int | None = None) -> None:
             "day_realized_pnl": swarm.get("day_realized_pnl"),
             "swarm_halted": bool(swarm.get("halted")),
             "universe": syms,
+            "configured_universe": configured,
             "universe_refresh": universe_refresh if n % 20 == 0 else None,
             "results": results,
         }
@@ -233,7 +239,8 @@ def run_loop(iterations: int | None = None) -> None:
             swarm_halted=bool(swarm.get("halted")),
             results=results,
             positions=positions,
-            cached_universe=syms,
+            cached_universe=configured,
+            configured_universe=configured,
             universe_fn=universe,
             day_realized_pnl=swarm.get("day_realized_pnl"),
             owned_symbols=owned,
@@ -247,7 +254,16 @@ def run_loop(iterations: int | None = None) -> None:
         }
         append_jsonl(_metrics_path(), metric)
         _latest_metric_path().write_text(
-            json.dumps({**metric, "universe": syms, "dry_run": dry_run(), "anchor": anchor}, indent=2)
+            json.dumps(
+                {
+                    **metric,
+                    "universe": syms,
+                    "configured_universe": configured,
+                    "dry_run": dry_run(),
+                    "anchor": anchor,
+                },
+                indent=2,
+            )
         )
 
         print(

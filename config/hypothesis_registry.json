@@ -17,7 +17,7 @@
       "id": "chop_no_edge",
       "title": "Pause new entries in chop regime (low r5/r1, neutral RSI)",
       "kind": "anticipation_gate",
-      "status": "shadow",
+      "status": "promoted",
       "tests": {
         "min_blocked_loser_pnl_usd": 0.2,
         "max_blocked_winner_pnl_usd": 0.3,
@@ -39,7 +39,7 @@
       "id": "scenario_stress_overlay",
       "title": "Apply scenario-stress winning overlay when holdout improves",
       "kind": "param_overlay",
-      "status": "shadow",
+      "status": "promoted",
       "tests": {
         "require_scenario_apply_recommended": true,
         "adversarial_min_improvement_usd": 0.05
@@ -69,11 +69,57 @@
       "id": "broker_bracket_exits",
       "title": "Broker-native bracket OCO exits on entry",
       "kind": "param_overlay",
-      "status": "shadow",
+      "status": "promoted",
       "tests": {
         "min_expectancy_usd": -0.05,
         "adversarial_min_improvement_usd": 0.0
       }
+    },
+    {
+      "id": "swarm_critical_pause_entries",
+      "title": "Pause all new swarm entries when session SI hits critical",
+      "kind": "param_overlay",
+      "status": "promoted",
+      "tests": {
+        "min_expectancy_usd": 0.0,
+        "adversarial_min_improvement_usd": 0.05
+      },
+      "notes": "2026-06-01: skim kept trading after negative_edge+over_churn because pause_new_entries stayed false."
+    },
+    {
+      "id": "orphan_symbol_entry_block",
+      "title": "Block new entries on symbols outside configured swarm universe",
+      "kind": "anticipation_gate",
+      "status": "promoted",
+      "tests": {
+        "min_blocked_loser_pnl_usd": 0.5,
+        "max_blocked_winner_pnl_usd": 0.1,
+        "adversarial_min_improvement_usd": 0.1
+      },
+      "notes": "2026-06-01: COHR/SMH orphan exits caused -$3.88 opening cluster on skim."
+    },
+    {
+      "id": "unified_off_denylist_watchlist",
+      "title": "Unified AI uses off-denylist watchlist only",
+      "kind": "param_overlay",
+      "status": "promoted",
+      "tests": {
+        "min_expectancy_usd": 0.0,
+        "adversarial_min_improvement_usd": 0.0
+      },
+      "notes": "2026-06-01: 14/14 enter attempts blocked as skim_swarm_reserved (NVDA/SPY/AAPL)."
+    },
+    {
+      "id": "opening_bell_stop_cluster_guard",
+      "title": "Extra caution first 15 min RTH when payoff inverted",
+      "kind": "anticipation_gate",
+      "status": "shadow",
+      "tests": {
+        "min_blocked_loser_pnl_usd": 0.8,
+        "max_blocked_winner_pnl_usd": 0.2,
+        "adversarial_min_improvement_usd": 0.15
+      },
+      "notes": "2026-06-01: SMH/COHR/MSFT stops in first 8 min set -$4.88 tone for skim session."
     }
   ]
 }

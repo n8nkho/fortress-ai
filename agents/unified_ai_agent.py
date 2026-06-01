@@ -125,13 +125,16 @@ def observe() -> dict[str, Any]:
         "instance": os.environ.get("FORTRESS_INSTANCE_NAME", "Fortress-AI"),
     }
     try:
-        from utils.classic_bridge import classic_screener_candidates
+        from utils.unified_symbol_pool import build_unified_watchlist
 
-        scan = classic_screener_candidates(max_symbols=8)
+        scan = build_unified_watchlist(max_symbols=8)
         syms = scan.get("symbols") or []
         if syms:
             out["watchlist_hint"] = syms
             out["watchlist_source"] = scan.get("source")
+            out["swarm_reserved_symbols"] = sorted(
+                str(x) for x in (scan.get("eligible_fallback") or []) if x not in syms
+            )[:8]
     except Exception:
         pass
     # Macro (yfinance)
@@ -251,6 +254,9 @@ def build_prompt(
     constraints = (
         "Mean-reversion bias; equities only in MVP. "
         "Max position notional respects FORTRESS_MAX_ORDER_NOTIONAL_USD. "
+        "Never enter_position for symbols reserved for skim/infra swarms (see watchlist_hint — "
+        "do not pick NVDA/SPY/AAPL/MSFT unless they appear in watchlist_hint). "
+        "Prefer watchlist_hint symbols for enter_position; they are already off the swarm denylist. "
         "Never enter_position for a symbol you already hold (adds are blocked). "
         "For exit_position, qty may be chunked automatically under notional caps. "
         f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually. "

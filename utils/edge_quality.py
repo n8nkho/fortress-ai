@@ -228,6 +228,9 @@ def time_stop_triggered(
     return progress < time_stop_min_progress_pct()
 
 
+ALPACA_BRACKET_MIN_OFFSET = 0.01
+
+
 def bracket_prices(
     *,
     side: str,
@@ -241,5 +244,30 @@ def bracket_prices(
     stp = abs(float(stop_usd))
     ep = float(entry_price)
     if side == "long":
-        return round(ep + tgt, 2), round(ep - stp, 2)
-    return round(ep - tgt, 2), round(ep + stp, 2)
+        tp, sl = round(ep + tgt, 2), round(ep - stp, 2)
+    else:
+        tp, sl = round(ep - tgt, 2), round(ep + stp, 2)
+    return clamp_bracket_prices(side=side, base_price=ep, take_profit=tp, stop_loss=sl)
+
+
+def clamp_bracket_prices(
+    *,
+    side: str,
+    base_price: float,
+    take_profit: float,
+    stop_loss: float,
+    min_offset: float = ALPACA_BRACKET_MIN_OFFSET,
+) -> tuple[float, float]:
+    """Enforce Alpaca bracket spacing vs base (limit or market) price."""
+    side = side.lower()
+    bp = round(float(base_price), 2)
+    tp = round(float(take_profit), 2)
+    sl = round(float(stop_loss), 2)
+    tick = max(0.01, float(min_offset))
+    if side == "long":
+        sl = min(sl, round(bp - tick, 2))
+        tp = max(tp, round(bp + tick, 2))
+    else:
+        sl = max(sl, round(bp + tick, 2))
+        tp = min(tp, round(bp - tick, 2))
+    return tp, sl

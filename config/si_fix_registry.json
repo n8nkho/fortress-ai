@@ -188,11 +188,12 @@
     },
     "low_unified_execution_rate": {
       "title": "Unified agent execution rate below target",
-      "kind": "tunable",
-      "mitigation_markers": [],
-      "auto_tunable": {
-        "confidence_threshold": -0.02
-      },
+      "kind": "monitor",
+      "mitigation_markers": [
+        "unified_off_denylist_watchlist",
+        "skim_swarm_reserved"
+      ],
+      "auto_tunable": {},
       "agent_review_if_unmitigated": true,
       "effort": "low",
       "impact": "medium"
@@ -266,7 +267,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-01T10:18:33.446341-04:00"
+      "registered_at_utc": "2026-06-01T19:01:46.753203-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -310,6 +311,54 @@
       "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "high"
+    },
+    "swarm_orphan_symbol_entry": {
+      "title": "Swarm entered symbol outside configured universe",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "orphan_symbol_outside_universe",
+        "orphan_purge"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "alpaca_bracket_tick_violation": {
+      "title": "Alpaca bracket stop/take-profit too close to base price",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "clamp_bracket_prices",
+        "bracket_error"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "swarm_critical_pause_entries": {
+      "title": "Session critical mode must pause new entries",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "swarm_session_critical_pause",
+        "pause_new_entries"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "unified_off_denylist_watchlist": {
+      "title": "Unified AI watchlist must exclude skim/infra reserved symbols",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "unified_eligible_default",
+        "skim_swarm_reserved"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     }
   }
 }

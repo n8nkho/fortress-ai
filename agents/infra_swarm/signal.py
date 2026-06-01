@@ -217,6 +217,23 @@ def decide(
         out["reasoning"] = "manual_denylist"
         return out
 
+    if side == "flat":
+        from utils.swarm_universe_guard import entry_blocked_outside_universe
+
+        blocked, reason = entry_blocked_outside_universe("infra_swarm", sym)
+        if blocked:
+            out["reasoning"] = reason or "orphan_symbol_outside_universe"
+            return out
+
+    try:
+        from utils.swarm_session_si import session_entry_boosts
+
+        if side == "flat" and session_entry_boosts("infra_swarm").get("pause_entries"):
+            out["reasoning"] = "swarm_session_critical_pause"
+            return out
+    except Exception:
+        pass
+
     params_early = get_params(sym)
     stop_mult = float(params_early.get("stop_target_mult_effective") or stop_target_mult())
     if side == "flat" and params_early.get("pause_entries"):

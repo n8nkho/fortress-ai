@@ -1,0 +1,49 @@
+{
+  "session_date": "2026-06-01",
+  "system_tz": "America/New_York",
+  "summary": "Skim -$3.70 (inverted payoff, opening stop cluster); infra -$0.19; unified 0 fills (denylist partition).",
+  "learnings": [
+    {
+      "id": "opening_bell_stop_cluster",
+      "component": "skim_swarm",
+      "finding": "SMH/COHR/MSFT stops in first 8 min RTH = -$4.88 before recovery trades.",
+      "mitigation": "orphan_symbol_entry_block + opening_blackout already partial; session critical now pauses entries.",
+      "hypothesis_id": "opening_bell_stop_cluster_guard"
+    },
+    {
+      "id": "inverted_payoff_skim",
+      "component": "skim_swarm",
+      "finding": "Payoff ratio 0.50 (avg loss 2x avg win); pullback_uptrend toxic.",
+      "mitigation": "edge_autofix disabled pullback_uptrend; RR boost applied.",
+      "hypothesis_id": "edge_rr_cost_gates"
+    },
+    {
+      "id": "unified_denylist_partition",
+      "component": "unified_ai",
+      "finding": "All 14 enter attempts on NVDA/SPY/AAPL blocked by skim_swarm_reserved.",
+      "mitigation": "unified_off_denylist_watchlist + FORTRESS_AI_ELIGIBLE_UNIVERSE.",
+      "hypothesis_id": "unified_off_denylist_watchlist"
+    },
+    {
+      "id": "si_confidence_conflict",
+      "component": "unified_ai",
+      "finding": "Governance auto-lowered confidence while operator raised floor to 0.88.",
+      "mitigation": "FORTRESS_AI_CONFIDENCE_FLOOR_LOCK=1; low_unified_execution_rate -> monitor only.",
+      "hypothesis_id": null
+    },
+    {
+      "id": "false_universe_drift",
+      "component": "skim_swarm",
+      "finding": "SOXX context symbol flagged as drift every wave vs env universe.",
+      "mitigation": "configured_universe in metrics; drift compares env lists only.",
+      "hypothesis_id": null
+    },
+    {
+      "id": "bracket_422_pltr",
+      "component": "skim_swarm",
+      "finding": "Alpaca rejected bracket stop vs passive limit base price.",
+      "mitigation": "clamp_bracket_prices from actual limit/base px.",
+      "hypothesis_id": "broker_bracket_exits"
+    }
+  ]
+}

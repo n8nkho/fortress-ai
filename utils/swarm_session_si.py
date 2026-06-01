@@ -225,7 +225,7 @@ def adapt_swarm_session(
             long_boost = 0.06
             short_boost = -0.06
             interval_mult = 1.28
-            pause_entries = False
+            pause_entries = True
         elif over_churn:
             mode = "churn"
             max_open_eff = max(2, base_max_open - 2)
