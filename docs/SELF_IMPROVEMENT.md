@@ -42,9 +42,31 @@ Fortress AI can propose **single-parameter** adjustments within fixed bounds. Ri
 ## Environment
 
 - `FORTRESS_AI_DATA_DIR` — Optional root for all of the above paths (default: `./data`).
-- `FORTRESS_AI_MIN_CONFIDENCE` — Baseline when no override is set.
+- `FORTRESS_AI_MIN_CONFIDENCE` — Baseline when no override is set; **`get_confidence_threshold()` never goes below this**.
+- `FORTRESS_AI_CONFIDENCE_FLOOR_LOCK=1` — Blocks SI auto-tuning from **lowering** confidence (default on in `.env.example`).
+- `FORTRESS_AI_ELIGIBLE_UNIVERSE` — Symbols unified AI may enter (off skim/infra denylist).
 - `FORTRESS_AI_RSI_ENTRY_THRESHOLD` — Baseline RSI entry hint when no override is set.
 - `DEEPSEEK_API_KEY` — Enables LLM proposals; omit for heuristic-only proposals.
+
+---
+
+# Recursive SI queue (integrity scan)
+
+Daily / RTH pipeline: `utils/integrity_diagnostics.py` → `utils/si_recommendation_queue.py` → `data/si_recommendation_queue.json`.
+
+| Disposition | Meaning |
+|-------------|---------|
+| `auto_applied` | Bounded tunable nudge (Tier 0/1) |
+| `pending_agent_review` | Cursor agent triages → user go-ahead for code |
+| `pending_human_go` | User must approve before implementation |
+
+Fix registry: `config/si_fix_registry.json`. Session learnings: `config/session_learnings_YYYYMMDD.json`.
+
+**Not auto-applied:** `low_unified_execution_rate` (monitor only when confidence floor lock is on). Prefer off-denylist watchlist over lowering confidence.
+
+API: `GET /api/si/recommendations`, governance cron `scripts/governance_maintenance.py`.
+
+See `.cursor/rules/recursive-si-workflow.mdc` for agent review workflow.
 
 ---
 

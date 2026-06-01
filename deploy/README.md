@@ -20,7 +20,11 @@ Paper trading checklist:
 - `ALPACA_BASE_URL=https://paper-api.alpaca.markets` (single `=` per line for secrets).
 - `FORTRESS_DOTENV_OVERRIDE=1` if your shell exports different `ALPACA_*`.
 - `DEEPSEEK_API_KEY` set.
-- `FORTRESS_AI_DRY_RUN=0` to allow Alpaca **paper** submits (still blocked by `pre_trade_gate` and confidence).
+- `FORTRESS_AI_DRY_RUN=0` to allow unified agent Alpaca **paper** submits (still blocked by `pre_trade_gate` and confidence).
+- `FORTRESS_SKIM_DRY_RUN=0` / `FORTRESS_INFRA_DRY_RUN=0` for intraday swarms (separate from unified).
+- `FORTRESS_AI_MIN_CONFIDENCE=0.88` and `FORTRESS_AI_CONFIDENCE_FLOOR_LOCK=1` for conservative unified entries.
+- `FORTRESS_AI_ELIGIBLE_UNIVERSE=QQQ,IWM,...` — off-denylist symbols unified may trade.
+- `FORTRESS_EDGE_QUALITY=1` — RR/cost/bracket gates for swarms (see `docs/EDGE_QUALITY.md`).
 
 Smoke tests:
 
@@ -50,12 +54,37 @@ journalctl -u fortress-ai-spy-agent -f
 
 API: `GET /api/spy/status`, `POST /api/spy/run-cycle` (on-demand when idle).
 
+## Skim + infra swarms (primary intraday)
+
+Rule-based always-on services — no LLM. Disable `fortress-ai-spy-agent` when skim is primary.
+
+```bash
+sudo cp deploy/fortress-ai-skim-swarm.service deploy/fortress-ai-infra-swarm.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now fortress-ai-skim-swarm fortress-ai-infra-swarm
+journalctl -u fortress-ai-skim-swarm -f
+```
+
+Docs: `docs/SKIM_SWARM.md`, `docs/INFRA_SWARM.md`.
+
+## RTH intraday SI (30m loop)
+
+Anomaly scan + edge autofix during market hours:
+
+```bash
+sudo cp deploy/fortress-ai-rth-intraday-si.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now fortress-ai-rth-intraday-si
+journalctl -u fortress-ai-rth-intraday-si -f
+```
+
 ## systemd (recommended)
 
 Adjust **User** and **paths** in the unit files if your Linux user or install dir differs.
 
 ```bash
 sudo cp deploy/fortress-ai-agent.service deploy/fortress-ai-dashboard.service /etc/systemd/system/
+# Optional but typical for paper RTH:
+# sudo cp deploy/fortress-ai-skim-swarm.service deploy/fortress-ai-infra-swarm.service deploy/fortress-ai-rth-intraday-si.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now fortress-ai-dashboard fortress-ai-agent
 sudo systemctl status fortress-ai-agent fortress-ai-dashboard

@@ -1,17 +1,34 @@
 # Fortress AI
 
-Parallel **single-agent (DeepSeek)** stack for research and A/B comparison against **Classic Fortress** (multi-agent). This directory is **fully isolated**: separate ports, data, logs, and Alpaca credentials.
+Parallel stack for **A/B comparison** against **Classic Fortress** (`trading-bot`). Isolated ports, data, logs, and Alpaca credentials.
+
+## Trading stacks (same repo)
+
+| Service | Unit | Role |
+|---------|------|------|
+| **Skim swarm** | `fortress-ai-skim-swarm` | Primary intraday execution — rule-based, no LLM → [docs/SKIM_SWARM.md](docs/SKIM_SWARM.md) |
+| **Infra swarm** | `fortress-ai-infra-swarm` | AI-infra layer propagation (capped) → [docs/INFRA_SWARM.md](docs/INFRA_SWARM.md) |
+| **Unified AI** | `fortress-ai-agent` | LLM discretionary on off-denylist names → [docs/UNIFIED_AI.md](docs/UNIFIED_AI.md) |
+| **RTH SI loop** | `fortress-ai-rth-intraday-si` | 30m anomaly scan + edge autofix during RTH |
+| **Classic** (sibling) | cron on `trading-bot` | Mean-reversion swing book → [docs/COMPARISON_CLASSIC_VS_AI.md](docs/COMPARISON_CLASSIC_VS_AI.md) |
+
+Edge quality (RR/cost/brackets): [docs/EDGE_QUALITY.md](docs/EDGE_QUALITY.md). Recursive SI queue: [docs/SELF_IMPROVEMENT.md](docs/SELF_IMPROVEMENT.md).
 
 ## Layout
 
 | Path | Purpose |
 |------|---------|
 | `agents/unified_ai_agent.py` | Main observe → reason → act loop |
+| `agents/skim_swarm_agent.py` | Intraday skim swarm |
+| `agents/infra_swarm_agent.py` | Infra SRP swarm |
 | `utils/pre_trade_gate.py` | Same submission gate logic as Classic (mandatory before orders) |
+| `utils/swarm_universe_guard.py` | Block entries outside configured universe; boot orphan purge |
+| `utils/unified_symbol_pool.py` | Off-denylist watchlist for unified AI |
 | `utils/operator_halt.py` | Kill switch file + env halt |
 | `dashboard/ai_command_center.py` | Dashboard (port from `FORTRESS_AI_DASHBOARD_PORT`, e.g. **8050**) |
 | `deploy/` | systemd unit examples + [deploy/README.md](deploy/README.md) |
-| `data/` | `ai_state.json`, `ai_decisions.jsonl`, `ai_metrics.jsonl`, cost ledger |
+| `config/session_learnings_*.json` | Dated session post-mortems for SI |
+| `data/` | `ai_state.json`, `ai_decisions.jsonl`, `skim_swarm/`, `infra_swarm/` |
 
 Deploy path on server: `/home/ubuntu/fortress-ai` (copy this tree).
 
@@ -20,8 +37,8 @@ Deploy path on server: `/home/ubuntu/fortress-ai` (copy this tree).
 | Phase | Trading | Confidence gate |
 |-------|---------|-----------------|
 | Week 1 | **Dry-run only** (`FORTRESS_AI_DRY_RUN=1`) | N/A (no submits) |
-| Paper (conservative) | Alpaca **paper** executes (`FORTRESS_AI_DRY_RUN=0`) | **0.85–0.92** — fewer trades, smaller sizes (`FORTRESS_MAX_ORDER_NOTIONAL_USD`) |
-| Later experiments | Paper | Lower toward **0.75–0.8** only if you want more activity |
+| Paper (conservative) | Alpaca **paper** executes (`FORTRESS_AI_DRY_RUN=0`) | **0.85–0.92** — unified agent only; skim/infra are rule-based |
+| Later experiments | Paper | Lower unified toward **0.75–0.8** only if deliberately seeking more LLM activity |
 
 **Paper trading on a server:** see **[deploy/README.md](deploy/README.md)** (systemd). No strategy guarantees “high win ratio” or “near zero losses”; use caps + halt + monitoring to limit damage.
 

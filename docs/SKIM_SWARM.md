@@ -39,6 +39,33 @@ Until set, autoresearch stays off; recursive improvement is deterministic (`adap
 
 (`BRKB` in env aliases to `BRK.B`. `NASA` = Tema Space Innovators ETF.)
 
+### Swarm session SI (cross-symbol)
+
+When `FORTRESS_SKIM_SWARM_SESSION_SI=1` (default), `utils/swarm_session_si.py` aggregates session stats across all symbols:
+
+| Mode | Trigger | Effect |
+|------|---------|--------|
+| **tight** | Negative session expectancy | Fewer open slots, higher entry deltas |
+| **churn** | High exit count + low win rate | Same + slower cycle |
+| **critical** | Severe loss / both anomalies | **`pause_new_entries: true`** — no new entries; exits still run |
+
+Policy: `data/skim_swarm/session_policy.json`. Block marker: `swarm_session_critical_pause`.
+
+### Universe guard
+
+<a id="universe-guard"></a>
+
+- **Configured universe** — `FORTRESS_SKIM_UNIVERSE` (env). Wave may union open **owned** positions + bar context (`SPY`, `SOXX`) for exits only.
+- **Orphan block** — new entries on symbols outside configured universe → `orphan_symbol_outside_universe` (`utils/swarm_universe_guard.py`).
+- **Boot purge** — flat state files for delisted/orphan symbols removed on agent start.
+- **Metrics** — `latest_metric.json` has `configured_universe` (env) and `universe` (active wave). Drift alerts compare configured lists only (avoids false `swarm_universe_drift` on SOXX context).
+
+### Edge quality
+
+RR/cost/expectancy gates, broker brackets, session scorecard — see [EDGE_QUALITY.md](EDGE_QUALITY.md).
+
+RTH autofix runs via `fortress-ai-rth-intraday-si` (30m) and may disable toxic patterns (e.g. `pullback_uptrend`) when payoff inverts.
+
 ## Enable on VM
 
 ```bash
@@ -58,4 +85,4 @@ sudo systemctl restart fortress-ai-dashboard
 - API: `GET /api/skim/status`
 - One-shot test: `FORTRESS_SKIM_DRY_RUN=1 python3 agents/skim_swarm_agent.py --once`
 
-Unified AI agent will not trade denylisted symbols.
+Unified AI agent will not trade denylisted symbols — see [UNIFIED_AI.md](UNIFIED_AI.md).

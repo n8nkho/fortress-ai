@@ -245,7 +245,9 @@ Template and APIs exist; typically disabled when skim swarm is primary.
 | Path | Written by | Read by |
 |------|-----------|---------|
 | data/skim_swarm/decisions.jsonl | Skim agent | Skim panel, diagnostics |
-| data/skim_swarm/learned/*.json | Symbol learning | Per-symbol stats |
+| data/skim_swarm/edge_scorecard.json | Edge scorecard | RTH SI, dashboard |
+| data/skim_swarm/session_policy.json | Swarm session SI | Entry pause / caps |
+| data/infra_swarm/decisions.jsonl | Infra agent | Infra panel |
 | data/ai_decisions.jsonl | Unified AI | AI Mind |
 | data/ai_llm_cost_ledger.jsonl | API costs | API usage |
 | data/beliefs/beliefs.json | Belief manager | Trade belief memory |
@@ -258,12 +260,17 @@ Template and APIs exist; typically disabled when skim swarm is primary.
 | Control | Mechanism |
 |---------|-----------|
 | Kill switch | operator_trading_halt.json |
-| Daily stop | FORTRESS_SKIM_DAILY_STOP_USD (-$200) |
-| Max open positions | Default 6 |
+| Daily stop | FORTRESS_SKIM_DAILY_STOP_USD / FORTRESS_INFRA_DAILY_STOP_USD |
+| Session SI critical | `pause_new_entries` — no new swarm entries; exits continue |
+| Orphan universe guard | Entries blocked outside `FORTRESS_*_UNIVERSE` |
+| Edge gates | RR / cost / expectancy (`FORTRESS_EDGE_*`) |
+| Bracket tick clamp | Alpaca min $0.01 offset on bracket stops |
+| Max open positions | Default 6 (skim); infra L1 gross cap |
 | Spread filter | FORTRESS_SKIM_MAX_SPREAD_BPS (25) |
 | EOD flatten | Force flat before close |
 | Weekly LLM cap | FORTRESS_AI_WEEKLY_COST_CAP_USD |
-| Symbol denylist | Unified AI blocked from skim universe |
+| Symbol denylist | Unified blocked from skim/infra universe |
+| Confidence floor lock | FORTRESS_AI_CONFIDENCE_FLOOR_LOCK — SI cannot lower below env min |
 
 ---
 

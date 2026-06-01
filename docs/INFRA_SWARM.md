@@ -18,6 +18,20 @@ Anchor basket: **SMH** (`FORTRESS_INFRA_ANCHOR`).
 
 Candidate pool (L1–L4) is scored by lifetime/session expectancy. Active universe is rewritten to `data/infra_swarm/adaptive_universe.json` with layer balance caps.
 
+### Swarm session SI
+
+Same session-level policy model as skim (`FORTRESS_INFRA_SWARM_SESSION_SI=1`). **Critical** mode pauses new entries and may cap L1 gross longs (`max_l1_gross_effective`). Exits on open positions still run.
+
+### Universe guard
+
+Orphan entry block, boot state purge, and `configured_universe` in metrics — same as skim ([universe guard](SKIM_SWARM.md#universe-guard)).
+
+### Edge quality
+
+See [EDGE_QUALITY.md](EDGE_QUALITY.md). Toxic patterns (e.g. `layer_catch_up_short`) may be auto-disabled by RTH edge autofix when session payoff inverts.
+
+Partition from skim: NVDA, AVGO, SOXX removed from skim universe; all infra symbols on `FORTRESS_AI_SYMBOL_DENYLIST`.
+
 ## Enable
 
 ```bash
@@ -34,4 +48,4 @@ sudo systemctl restart fortress-ai-dashboard
 - API: `GET /api/infra/status`
 - One-shot: `FORTRESS_INFRA_DRY_RUN=1 python3 agents/infra_swarm_agent.py --once`
 
-Partition from skim: NVDA, AVGO, SOXX removed from skim universe; all infra symbols on `FORTRESS_AI_SYMBOL_DENYLIST`.
+Unified AI: [UNIFIED_AI.md](UNIFIED_AI.md).
