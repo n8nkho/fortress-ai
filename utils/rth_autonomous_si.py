@@ -125,6 +125,13 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
     out["critical_applied"] = apply_critical_findings(list(scan.get("findings") or []))
 
     try:
+        from utils.skim_pattern_review import apply_swarm_pattern_review
+
+        out["skim_pattern_review"] = apply_swarm_pattern_review()
+    except Exception as e:
+        out["skim_pattern_review"] = {"error": str(e)[:120]}
+
+    try:
         from agents.self_improvement_engine import get_engine
         from agents.performance_monitor import PerformanceMonitor
 

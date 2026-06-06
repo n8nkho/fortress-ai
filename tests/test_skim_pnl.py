@@ -38,7 +38,23 @@ class TestSkimPnl(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            (root / "decisions.jsonl").write_text("", encoding="utf-8")
+            (root / "decisions.jsonl").write_text(
+                json.dumps(
+                    {
+                        "ts": "2026-05-22T15:00:00+00:00",
+                        "results": [
+                            {
+                                "symbol": "SOXX",
+                                "decision": {"action": "exit_position"},
+                                "act": {"executed": True},
+                                "features": {"unrealized_usd": 1.5},
+                            }
+                        ],
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
             with patch("agents.skim_swarm.pnl.swarm_data_dir", return_value=root):
                 with patch("agents.skim_swarm.pnl.session_date_et", return_value="2026-05-22"):
                     with patch("agents.skim_swarm.pnl.load_swarm_state", return_value={"day_realized_pnl": 0.5}):
@@ -60,7 +76,8 @@ class TestSkimPnl(unittest.TestCase):
             self.assertIn("daily", out)
             self.assertIn("cumulative", out)
             self.assertEqual(out["daily"]["unrealized_usd"], 0.25)
-            self.assertEqual(out["cumulative"]["realized_usd"], 1.5)
+            self.assertAlmostEqual(out["cumulative"]["realized_usd"], 1.5)
+            self.assertEqual(out["session_learned_realized_usd"], 1.5)
 
 
 if __name__ == "__main__":

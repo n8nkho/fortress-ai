@@ -95,6 +95,9 @@ _DEFAULT_LEARNED = {
     "session_stats": dict(_DEFAULT_SESSION_STATS),
     "lifetime_stats": dict(_DEFAULT_SESSION_STATS),
     "pattern_stats": {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS},
+    "lifetime_pattern_stats": {
+        p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS
+    },
     "session_overlay": {
         "enter_long_delta_boost": 0.0,
         "enter_short_delta_boost": 0.0,
@@ -214,6 +217,19 @@ def _fresh_learned(symbol: str) -> dict[str, Any]:
     return out
 
 
+def _bump_pattern_stat(bucket: dict[str, Any], pattern: str, pnl_usd: float) -> None:
+    ps = bucket.setdefault(
+        pattern,
+        {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0},
+    )
+    ps["exits"] = int(ps.get("exits") or 0) + 1
+    ps["sum_pnl_usd"] = round(float(ps.get("sum_pnl_usd") or 0) + float(pnl_usd), 4)
+    if pnl_usd >= 0:
+        ps["wins"] = int(ps.get("wins") or 0) + 1
+    else:
+        ps["losses"] = int(ps.get("losses") or 0) + 1
+
+
 def _merge_session_into_lifetime(learned: dict[str, Any]) -> None:
     """Roll prior session counters into lifetime_stats before daily reset."""
     ss = learned.get("session_stats") or {}
@@ -227,6 +243,24 @@ def _merge_session_into_lifetime(learned: dict[str, Any]) -> None:
             continue
         else:
             lt[key] = int(lt.get(key) or 0) + int(val or 0)
+    lps = learned.setdefault(
+        "lifetime_pattern_stats",
+        {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS},
+    )
+    for pattern, ps in (learned.get("pattern_stats") or {}).items():
+        if pattern not in _PATTERNS or not isinstance(ps, dict):
+            continue
+        ex = int(ps.get("exits") or 0)
+        if ex <= 0:
+            continue
+        row = lps.setdefault(
+            pattern,
+            {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0},
+        )
+        row["exits"] = int(row.get("exits") or 0) + ex
+        row["wins"] = int(row.get("wins") or 0) + int(ps.get("wins") or 0)
+        row["losses"] = int(row.get("losses") or 0) + int(ps.get("losses") or 0)
+        row["sum_pnl_usd"] = round(float(row.get("sum_pnl_usd") or 0) + float(ps.get("sum_pnl_usd") or 0), 4)
 
 
 def _reset_session(learned: dict[str, Any]) -> dict[str, Any]:
@@ -270,6 +304,10 @@ def load_learned(symbol: str) -> dict[str, Any]:
         data["params"]["pattern_deltas"].setdefault(p, 0.0)
     data.setdefault("session_stats", dict(_DEFAULT_SESSION_STATS))
     data.setdefault("pattern_stats", _empty_pattern_stats())
+    data.setdefault(
+        "lifetime_pattern_stats",
+        {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS},
+    )
     ensure_causation(data)
     ensure_intraday_state(data)
     data["symbol"] = symbol.upper()
@@ -496,13 +534,26 @@ def record_decision(
                         else:
                             stats["short_losses"] = int(stats.get("short_losses") or 0) + 1
                     if pattern and pattern in learned.get("pattern_stats", {}):
-                        ps = learned["pattern_stats"][pattern]
-                        ps["exits"] = int(ps.get("exits") or 0) + 1
-                        ps["sum_pnl_usd"] = round(float(ps.get("sum_pnl_usd") or 0) + pv, 4)
-                        if pv >= 0:
-                            ps["wins"] = int(ps.get("wins") or 0) + 1
-                        else:
-                            ps["losses"] = int(ps.get("losses") or 0) + 1
+                        _bump_pattern_stat(learned["pattern_stats"], pattern, pv)
+                        lps = learned.setdefault(
+                            "lifetime_pattern_stats",
+                            {p: {"exits": 0, "wins": 0, "losses": 0, "sum_pnl_usd": 0.0} for p in _PATTERNS},
+                        )
+                        _bump_pattern_stat(lps, pattern, pv)
+                    try:
+                        from utils.swarm_pnl_ledger import record_swarm_exit
+
+                        qty = max(1, int((features.get("position_qty") or act_result.get("qty") or 1)))
+                        record_swarm_exit(
+                            "skim_swarm",
+                            symbol=symbol,
+                            pnl_usd=pv,
+                            side=str(side or "long"),
+                            qty=qty,
+                            order_id=str(act_result.get("order_id") or "") or None,
+                        )
+                    except Exception:
+                        pass
                     causation_update = record_causation_exit(
                         learned,
                         entry_context=learned.get("last_entry_context"),

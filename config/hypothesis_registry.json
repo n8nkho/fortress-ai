@@ -17,7 +17,7 @@
       "id": "chop_no_edge",
       "title": "Pause new entries in chop regime (low r5/r1, neutral RSI)",
       "kind": "anticipation_gate",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_blocked_loser_pnl_usd": 0.2,
         "max_blocked_winner_pnl_usd": 0.3,
@@ -59,11 +59,12 @@
       "id": "edge_rr_cost_gates",
       "title": "RR and cost-aware entry admission before trade",
       "kind": "param_overlay",
-      "status": "shadow",
+      "status": "promoted",
       "tests": {
         "min_expectancy_usd": 0.0,
         "adversarial_min_improvement_usd": 0.0
-      }
+      },
+      "notes": "Shipped 2026-06-01 — edge_quality gates wired in skim/infra signal paths."
     },
     {
       "id": "broker_bracket_exits",
@@ -84,7 +85,7 @@
         "min_expectancy_usd": 0.0,
         "adversarial_min_improvement_usd": 0.05
       },
-      "notes": "2026-06-01: skim kept trading after negative_edge+over_churn because pause_new_entries stayed false."
+      "notes": "Shipped 2026-06-01 — critical mode sets pause_new_entries in swarm_session_si."
     },
     {
       "id": "orphan_symbol_entry_block",
@@ -107,13 +108,13 @@
         "min_expectancy_usd": 0.0,
         "adversarial_min_improvement_usd": 0.0
       },
-      "notes": "2026-06-01: 14/14 enter attempts blocked as skim_swarm_reserved (NVDA/SPY/AAPL)."
+      "notes": "Shipped 2026-06-01 — FORTRESS_AI_ELIGIBLE_UNIVERSE + unified_symbol_pool."
     },
     {
       "id": "opening_bell_stop_cluster_guard",
       "title": "Extra caution first 15 min RTH when payoff inverted",
       "kind": "anticipation_gate",
-      "status": "shadow",
+      "status": "promoted",
       "tests": {
         "min_blocked_loser_pnl_usd": 0.8,
         "max_blocked_winner_pnl_usd": 0.2,

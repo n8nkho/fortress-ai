@@ -34,6 +34,32 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "agents" / "infra_swarm_agent.py",
         _ROOT / "utils" / "swarm_runtime.py",
     ],
+    "swarm_orphan_symbol_entry": [
+        _ROOT / "utils" / "swarm_universe_guard.py",
+        _ROOT / "agents" / "skim_swarm" / "signal.py",
+    ],
+    "alpaca_bracket_tick_violation": [
+        _ROOT / "utils" / "edge_quality.py",
+        _ROOT / "utils" / "alpaca_execution.py",
+    ],
+    "swarm_critical_pause_entries": [
+        _ROOT / "utils" / "swarm_session_si.py",
+        _ROOT / "agents" / "skim_swarm" / "signal.py",
+        _ROOT / "agents" / "infra_swarm" / "signal.py",
+    ],
+    "unified_off_denylist_watchlist": [
+        _ROOT / "utils" / "unified_symbol_pool.py",
+        _ROOT / "agents" / "unified_ai_agent.py",
+    ],
+    "edge_rr_cost_gates": [
+        _ROOT / "utils" / "edge_quality.py",
+        _ROOT / "agents" / "skim_swarm" / "signal.py",
+    ],
+    "swarm_pnl_decisions_sync": [
+        _ROOT / "utils" / "swarm_decisions_pnl.py",
+        _ROOT / "utils" / "swarm_pnl_ledger.py",
+        _ROOT / "agents" / "skim_swarm" / "symbol_learning.py",
+    ],
 }
 
 

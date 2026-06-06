@@ -11,16 +11,18 @@ from agents.skim_swarm.eod import session_date_et
 from agents.skim_swarm.observe import observe_account
 from agents.skim_swarm.state import load_swarm_state
 from utils.skim_swarm_config import swarm_data_dir, universe
+from utils.swarm_decisions_pnl import (
+    cumulative_realized_from_decisions,
+    daily_realized_from_decisions,
+)
 
 _ET = ZoneInfo("America/New_York")
 
 
 def _wave_session_date(ts_raw: str) -> str | None:
-    try:
-        ts = datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00"))
-        return ts.astimezone(_ET).date().isoformat()
-    except Exception:
-        return None
+    from utils.swarm_decisions_pnl import wave_session_date_et
+
+    return wave_session_date_et(ts_raw)
 
 
 def session_daily_realized_usd(session: str | None = None) -> float:
@@ -56,32 +58,7 @@ def learned_symbol_snapshot(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _daily_realized_from_decisions(session: str) -> tuple[float, int]:
-    path = swarm_data_dir() / "decisions.jsonl"
-    if not path.exists():
-        return 0.0, 0
-    total = 0.0
-    exits = 0
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        try:
-            wave = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if _wave_session_date(str(wave.get("ts") or "")) != session:
-            continue
-        for row in wave.get("results") or []:
-            act = row.get("act") or {}
-            dec = row.get("decision") or {}
-            if not act.get("executed"):
-                continue
-            if dec.get("action") not in ("exit_position", "flatten"):
-                continue
-            u = (row.get("features") or {}).get("unrealized_usd")
-            if u is not None:
-                total += float(u)
-                exits += 1
-    return round(total, 4), exits
+    return daily_realized_from_decisions(swarm_data_dir() / "decisions.jsonl", session)
 
 
 def _session_realized_from_learned() -> tuple[float, list[dict[str, Any]]]:
@@ -146,14 +123,16 @@ def _open_unrealized() -> tuple[float, int, list[dict[str, Any]]]:
 
 def compute_pnl_summary() -> dict[str, Any]:
     session = session_date_et()
+    dec_path = swarm_data_dir() / "decisions.jsonl"
     daily_realized, daily_exits = _daily_realized_from_decisions(session)
+    cumulative_realized, cumulative_exits = cumulative_realized_from_decisions(dec_path)
     session_realized, per_symbol = _session_realized_from_learned()
     open_unreal, open_count, open_detail = _open_unrealized()
     swarm = load_swarm_state()
     swarm_daily = round(float(swarm.get("day_realized_pnl") or 0), 4)
 
     daily_net = round(daily_realized + open_unreal, 4)
-    session_net = round(session_realized + open_unreal, 4)
+    cumulative_net = round(cumulative_realized + open_unreal, 4)
 
     return {
         "session_date_et": session,
@@ -165,12 +144,14 @@ def compute_pnl_summary() -> dict[str, Any]:
             "open_positions": open_count,
         },
         "cumulative": {
-            "realized_usd": session_realized,
+            "realized_usd": cumulative_realized,
             "unrealized_usd": open_unreal,
-            "net_usd": session_net,
+            "net_usd": cumulative_net,
+            "exit_count": cumulative_exits,
             "open_positions": open_count,
         },
-        "swarm_state_daily_realized_usd": daily_realized,
+        "session_learned_realized_usd": session_realized,
+        "swarm_state_daily_realized_usd": swarm_daily,
         "swarm_halted": bool(swarm.get("halted")),
         "halt_reason": swarm.get("halt_reason"),
         "open_positions_detail": open_detail,

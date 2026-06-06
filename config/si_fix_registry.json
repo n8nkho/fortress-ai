@@ -199,13 +199,14 @@
       "impact": "medium"
     },
     "skim_winning_pattern_share_low": {
-      "title": "Skim winning-pattern share below Phase-1 target",
-      "kind": "policy",
-      "mitigation_markers": [],
-      "auto_tunable": {
-        "cooldown_mult": 0.1
-      },
-      "agent_review_if_unmitigated": true,
+      "title": "Skim portfolio winning-pattern share below Phase-1 target",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "skim_pattern_review",
+        "lifetime_pattern_stats"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "high"
     },
@@ -267,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-01T19:01:46.753203-04:00"
+      "registered_at_utc": "2026-06-06T17:56:31.722393-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -354,6 +355,18 @@
       "mitigation_markers": [
         "unified_eligible_default",
         "skim_swarm_reserved"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "swarm_pnl_decisions_sync": {
+      "title": "Swarm realized PnL synced from decisions.jsonl to ledger",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "record_swarm_exit",
+        "cumulative_realized_from_decisions"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

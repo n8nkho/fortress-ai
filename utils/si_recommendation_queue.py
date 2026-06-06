@@ -356,34 +356,25 @@ def scan_opportunities() -> list[dict[str, Any]]:
     if skim_learned.is_dir():
         try:
             from utils.skim_swarm_config import target_winning_pattern_share
-            from agents.skim_swarm.adaptive_policy import winning_pattern_share
+            from utils.skim_pattern_review import swarm_winning_pattern_share
 
             goal = target_winning_pattern_share()
-            shares: list[float] = []
-            for p in skim_learned.glob("*.json"):
-                doc = json.loads(p.read_text(encoding="utf-8"))
-                ps = doc.get("pattern_stats") or {}
-                disabled = set((doc.get("params") or {}).get("disable_patterns") or [])
-                wps = winning_pattern_share(ps, disabled=disabled)
-                if wps is not None:
-                    shares.append(wps)
-            if shares:
-                avg = sum(shares) / len(shares)
-                if avg < goal and len(shares) >= 3:
-                    out.append(
-                        {
-                            "code": "skim_winning_pattern_share_low",
-                            "severity": "high",
-                            "component": "skim_swarm",
-                            "avg_share": round(avg, 4),
-                            "target": goal,
-                            "recommendation": (
-                                f"Avg winning-pattern share {avg:.2%} below target {goal:.0%} — "
-                                "review pattern disables and per-symbol adaptive params."
-                            ),
-                            "si_action": "skim_pattern_review",
-                        }
-                    )
+            portfolio_share = swarm_winning_pattern_share(min_exits=3)
+            if portfolio_share is not None and portfolio_share < goal:
+                out.append(
+                    {
+                        "code": "skim_winning_pattern_share_low",
+                        "severity": "high",
+                        "component": "skim_swarm",
+                        "avg_share": round(portfolio_share, 4),
+                        "target": goal,
+                        "recommendation": (
+                            f"Portfolio winning-pattern share {portfolio_share:.2%} below target "
+                            f"{goal:.0%} — running skim_pattern_review (lifetime stats)."
+                        ),
+                        "si_action": "skim_pattern_review",
+                    }
+                )
         except Exception:
             pass
 
@@ -441,9 +432,21 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
 
     items: list[dict[str, Any]] = []
     auto_applied: list[dict[str, Any]] = []
+    pattern_review: dict[str, Any] | None = None
     for f in all_findings:
         item = upsert_from_finding(f, scan=scan)
         items.append(item)
+        code = str(f.get("code") or "")
+        if code == "skim_winning_pattern_share_low":
+            try:
+                from utils.skim_pattern_review import apply_swarm_pattern_review
+
+                pattern_review = apply_swarm_pattern_review()
+                if pattern_review.get("changes"):
+                    item["auto_correct"] = pattern_review
+                    item["disposition"] = DISPOSITION_AUTO_APPLIED
+            except Exception:
+                pass
         reg = load_fix_registry().get("fixes") or {}
         meta = reg.get(str(f.get("code") or ""), {}) if isinstance(reg, dict) else {}
         if isinstance(meta, dict) and item.get("disposition") == DISPOSITION_AUTO_APPLIED:
@@ -477,6 +480,9 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
         "pending_agent": pending_agent,
         "pending_human": pending_human,
     }
+    if pattern_review:
+        summary["skim_pattern_review"] = pattern_review
+
     snap = _data_dir() / "si_recommendation_summary.json"
     snap.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return summary
@@ -571,6 +577,33 @@ def mark_implemented(item_id: str, *, note: str = "") -> dict[str, Any]:
         _append_log({"event": "implemented", "item_id": item_id})
         return item
     raise KeyError(f"item_not_found:{item_id}")
+
+
+def mark_implemented_by_code(code: str, *, note: str = "") -> list[dict[str, Any]]:
+    """Close all open queue items matching anomaly code (post-ship cleanup)."""
+    queue = load_queue()
+    updated: list[dict[str, Any]] = []
+    changed = False
+    for i, item in enumerate(queue.get("items") or []):
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("code") or "") != code:
+            continue
+        if item.get("status") not in (STATUS_OPEN,):
+            continue
+        item["status"] = STATUS_IMPLEMENTED
+        item["disposition"] = DISPOSITION_AUTO_RESOLVED
+        item["implemented_utc"] = _now_iso()
+        item["implementation_note"] = note[:2000]
+        item["updated_utc"] = _now_iso()
+        item["closed_reason"] = "implemented_by_code"
+        queue["items"][i] = item
+        updated.append(item)
+        changed = True
+    if changed:
+        save_queue(queue)
+        _append_log({"event": "implemented_by_code", "code": code, "count": len(updated)})
+    return updated
 
 
 def status_dict() -> dict[str, Any]:
