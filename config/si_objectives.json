@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "description": "Outcome objectives the SI stack optimizes toward. Reviewed each RTH/governance cycle.",
+  "objectives": [
+    {
+      "id": "skim_session_expectancy",
+      "component": "skim_swarm",
+      "metric": "rolling_expectancy_usd",
+      "target_min": 0.0,
+      "window_sessions": 5,
+      "min_exits": 4,
+      "priority": "critical",
+      "description": "Skim rolling session expectancy non-negative with minimum sample."
+    },
+    {
+      "id": "skim_payoff_ratio",
+      "component": "skim_swarm",
+      "metric": "rolling_payoff_ratio",
+      "target_min": 1.0,
+      "window_sessions": 5,
+      "min_exits": 6,
+      "priority": "high",
+      "description": "Average win exceeds average loss over recent sessions."
+    },
+    {
+      "id": "infra_session_expectancy",
+      "component": "infra_swarm",
+      "metric": "rolling_expectancy_usd",
+      "target_min": 0.0,
+      "window_sessions": 5,
+      "min_exits": 4,
+      "priority": "high",
+      "description": "Infra overlay contributes non-negative edge."
+    },
+    {
+      "id": "unified_realized_pnl",
+      "component": "unified_ai",
+      "metric": "rolling_realized_usd",
+      "target_min": -1.0,
+      "window_sessions": 10,
+      "min_exits": 1,
+      "priority": "medium",
+      "description": "Unified sleeve not bleeding; small loss budget when research-only."
+    },
+    {
+      "id": "si_intervention_effectiveness",
+      "component": "si_meta",
+      "metric": "intervention_success_rate",
+      "target_min": 0.35,
+      "window_sessions": 7,
+      "min_exits": 0,
+      "priority": "high",
+      "description": "Share of recent SI interventions followed by metric improvement."
+    },
+    {
+      "id": "classic_fill_activity",
+      "component": "classic_fortress",
+      "metric": "rolling_fills",
+      "target_min": 1.0,
+      "window_sessions": 10,
+      "min_exits": 0,
+      "priority": "critical",
+      "description": "Classic book must produce at least one realized fill per review window."
+    },
+    {
+      "id": "classic_candidate_throughput",
+      "component": "classic_fortress",
+      "metric": "avg_candidates_per_screen",
+      "target_min": 1.0,
+      "window_sessions": 10,
+      "min_screens": 3,
+      "min_exits": 0,
+      "priority": "high",
+      "description": "Screener yields candidates in bull tape — not zero-candidate streaks."
+    },
+    {
+      "id": "classic_session_expectancy",
+      "component": "classic_fortress",
+      "metric": "rolling_expectancy_usd",
+      "target_min": 0.0,
+      "window_sessions": 10,
+      "min_exits": 2,
+      "priority": "medium",
+      "description": "Classic realized expectancy non-negative when fills exist."
+    }
+  ]
+}

@@ -273,3 +273,109 @@ def symbols_from_ai_decision_rows(rows: list[dict]) -> set[str]:
                     if t:
                         syms.add(t[:12])
     return syms
+
+
+def _classic_session_date_et(ts_raw: str) -> str | None:
+    from utils.swarm_decisions_pnl import wave_session_date_et
+
+    return wave_session_date_et(ts_raw)
+
+
+def classic_rolling_metrics(*, window_sessions: int = 10) -> dict[str, Any]:
+    """Rolling Classic Fortress outcomes from sibling trading-bot data (read-only)."""
+    from collections import defaultdict
+
+    data_dir = resolve_classic_data_dir()
+    ledger = resolve_classic_pnl_ledger_path()
+    by_day: dict[str, dict[str, Any]] = defaultdict(lambda: {"realized_usd": 0.0, "exit_count": 0, "wins": 0})
+    last_fill_day: str | None = None
+
+    if ledger and ledger.is_file():
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            try:
+                pnl = float(rec.get("pnl"))
+            except (TypeError, ValueError):
+                continue
+            day = _classic_session_date_et(str(rec.get("timestamp") or ""))
+            if not day:
+                continue
+            by_day[day]["realized_usd"] = round(float(by_day[day]["realized_usd"]) + pnl, 4)
+            by_day[day]["exit_count"] = int(by_day[day]["exit_count"]) + 1
+            if pnl > 0:
+                by_day[day]["wins"] = int(by_day[day]["wins"]) + 1
+            last_fill_day = day
+
+    fill_days = sorted(by_day.keys())[-window_sessions:]
+    total_pnl = sum(float(by_day[d]["realized_usd"]) for d in fill_days)
+    total_fills = sum(int(by_day[d]["exit_count"]) for d in fill_days)
+    expectancy = (total_pnl / total_fills) if total_fills else None
+
+    screens: list[dict[str, Any]] = []
+    avg_candidates = None
+    latest_regime = None
+    if data_dir and data_dir.is_dir():
+        sig_files = sorted(data_dir.glob("daily_signals_*.json"), reverse=True)[:window_sessions]
+        cand_vals: list[float] = []
+        for path in sig_files:
+            try:
+                doc = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            meta = doc.get("screening_meta") if isinstance(doc.get("screening_meta"), dict) else {}
+            cands = doc.get("candidates_found")
+            if cands is None:
+                cands = meta.get("candidates_found")
+            try:
+                c = float(cands or 0)
+            except (TypeError, ValueError):
+                c = 0.0
+            cand_vals.append(c)
+            day = str(path.stem.replace("daily_signals_", ""))
+            if len(day) == 8 and day.isdigit():
+                day = f"{day[:4]}-{day[4:6]}-{day[6:8]}"
+            screens.append(
+                {
+                    "session_date_et": day,
+                    "candidates_found": int(c),
+                    "regime": meta.get("market_regime_at_screen") or doc.get("market_regime"),
+                }
+            )
+            if latest_regime is None:
+                latest_regime = meta.get("market_regime_at_screen") or doc.get("market_regime")
+        if cand_vals:
+            avg_candidates = round(sum(cand_vals) / len(cand_vals), 4)
+
+    days_since_fill = None
+    if last_fill_day:
+        try:
+            from utils.system_time import now
+
+            today = now().date().isoformat()
+            d0 = datetime.fromisoformat(last_fill_day).date()
+            d1 = datetime.fromisoformat(today).date()
+            days_since_fill = max(0, (d1 - d0).days)
+        except Exception:
+            days_since_fill = None
+
+    return {
+        "component": "classic_fortress",
+        "window_sessions": window_sessions,
+        "data_dir": str(data_dir) if data_dir else None,
+        "ledger_path": str(ledger) if ledger else None,
+        "sessions": [{"session_date_et": d, **by_day[d]} for d in fill_days],
+        "screens": screens,
+        "rolling_realized_usd": round(total_pnl, 4),
+        "rolling_fills": total_fills,
+        "rolling_exits": total_fills,
+        "rolling_expectancy_usd": round(expectancy, 4) if expectancy is not None else None,
+        "avg_candidates_per_screen": avg_candidates,
+        "screens_sampled": len(screens),
+        "days_since_last_fill": days_since_fill,
+        "latest_regime": latest_regime,
+    }

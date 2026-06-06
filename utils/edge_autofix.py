@@ -59,7 +59,13 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
     pf = scorecard.get("profit_factor")
     exp = scorecard.get("expectancy_usd")
     exits = int(scorecard.get("exits") or 0)
-    if exits < 4 or pay is None:
+    try:
+        from utils.si_capability_review import effective_edge_autofix_min_exits
+
+        min_exits = effective_edge_autofix_min_exits()
+    except Exception:
+        min_exits = 4
+    if exits < min_exits or pay is None:
         return {"component": component, "changes": changes, "skipped": "insufficient_exits"}
 
     pay_f = float(pay)
@@ -81,7 +87,13 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
     )
     changes.append(f"session_enter_delta L={pol['enter_long_delta_boost']}")
 
-    boost = min(0.12, float(ov.get("rr_safety_margin_session_boost") or 0) + 0.03)
+    try:
+        from utils.si_capability_review import effective_edge_autofix_rr_boost_cap
+
+        rr_cap = effective_edge_autofix_rr_boost_cap()
+    except Exception:
+        rr_cap = 0.12
+    boost = min(rr_cap, float(ov.get("rr_safety_margin_session_boost") or 0) + 0.03)
     ov["rr_safety_margin_session_boost"] = round(boost, 4)
     changes.append(f"rr_margin_boost={boost:.3f}")
 

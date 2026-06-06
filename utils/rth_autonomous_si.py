@@ -132,6 +132,13 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
         out["skim_pattern_review"] = {"error": str(e)[:120]}
 
     try:
+        from utils.si_capability_review import run_capability_review_cycle
+
+        out["capability_review"] = run_capability_review_cycle(apply=True)
+    except Exception as e:
+        out["capability_review"] = {"error": str(e)[:120]}
+
+    try:
         from agents.self_improvement_engine import get_engine
         from agents.performance_monitor import PerformanceMonitor
 

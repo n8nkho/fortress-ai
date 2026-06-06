@@ -1,0 +1,105 @@
+<section class="fai-v2-card p-4 mt-4" id="fai-capability-review">
+  <div class="flex flex-wrap justify-between items-start gap-3 mb-3">
+    <div>
+      <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider">🎯 SI capability review</h2>
+      <p class="text-[11px] text-slate-500 mt-1 max-w-3xl">
+        Continuous outcome review vs objectives (Fortress AI + Classic). Meta-knobs in
+        <code class="fai-text-mono text-[10px]">data/si_capability/overrides.json</code>.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" @click="fetchCapabilityReview()"
+        class="px-2.5 py-1 rounded-lg bg-slate-700/90 hover:bg-slate-600 text-xs text-slate-100">Refresh</button>
+      <button type="button" @click="runCapabilityReview(false)"
+        class="px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-slate-400 hover:text-slate-200">Dry run</button>
+      <button type="button" @click="runCapabilityReview(true)"
+        class="px-2.5 py-1 rounded-lg bg-cyan-900/50 hover:bg-cyan-800/50 border border-cyan-500/30 text-xs text-cyan-100">Run review</button>
+    </div>
+  </div>
+
+  <template x-if="capError">
+    <p class="text-xs text-red-300 mb-2" x-text="capError"></p>
+  </template>
+
+  <template x-if="capReview && !capLoading">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs mb-4">
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Objective gaps</span>
+        <span class="text-amber-300 fai-text-mono text-lg" x-text="(capReview.latest.objective_gaps || []).length"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">SI effectiveness</span>
+        <span class="text-slate-200 fai-text-mono"
+          x-text="capReview.latest.intervention_success_rate != null ? (capReview.latest.intervention_success_rate * 100).toFixed(1) + '%' : '—'"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">RTH interval (effective)</span>
+        <span class="text-slate-200 fai-text-mono"
+          x-text="(capReview.latest.effective_rth_interval_sec || 0) + 's'"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Last review</span>
+        <span class="text-slate-400 fai-text-mono text-[10px]" x-text="(capReview.latest.ts || '').slice(0, 19)"></span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+        <h3 class="text-[10px] uppercase text-slate-500 mb-2">Stack metrics</h3>
+        <template x-for="(row, key) in (capMetricsRows || [])" :key="key">
+          <div class="flex justify-between gap-2 py-1 border-b border-white/5 text-[11px]">
+            <span class="text-slate-400" x-text="row.label"></span>
+            <span class="text-slate-200 fai-text-mono text-right" x-text="row.value"></span>
+          </div>
+        </template>
+      </div>
+      <div class="rounded-xl border border-amber-500/20 bg-amber-950/10 p-3">
+        <h3 class="text-[10px] uppercase text-amber-400/80 mb-2">Objective gaps</h3>
+        <template x-if="!(capReview.latest.objective_gaps || []).length">
+          <p class="text-[11px] text-emerald-300/90">All sampled objectives met.</p>
+        </template>
+        <ul class="space-y-2 max-h-40 overflow-y-auto fai-scroll">
+          <template x-for="(g, i) in (capReview.latest.objective_gaps || [])" :key="g.objective_id + '-' + i">
+            <li class="text-[11px] text-slate-300 border-l-2 border-amber-500/40 pl-2">
+              <span class="text-amber-200" x-text="g.component"></span>
+              <span class="text-slate-500"> · </span>
+              <span x-text="g.objective_id"></span>
+              <span class="block text-slate-500 fai-text-mono"
+                x-text="g.metric + '=' + g.value + ' (min ' + g.target_min + ')'"></span>
+            </li>
+          </template>
+        </ul>
+      </div>
+    </div>
+
+    <template x-if="(capReview.latest.classic_recommendations || []).length">
+      <div class="rounded-xl border border-violet-500/25 bg-violet-950/15 p-3 mb-4">
+        <h3 class="text-[10px] uppercase text-violet-300 mb-2">Classic recommendations</h3>
+        <ul class="space-y-2 text-[11px] text-slate-300">
+          <template x-for="(r, i) in (capReview.latest.classic_recommendations || [])" :key="r.action + '-' + i">
+            <li><span class="text-violet-200 fai-text-mono" x-text="r.action"></span> — <span x-text="r.detail"></span></li>
+          </template>
+        </ul>
+      </div>
+    </template>
+
+    <template x-if="(capReview.latest.applied || []).length">
+      <div class="rounded-xl border border-cyan-500/25 bg-cyan-950/15 p-3 mb-4">
+        <h3 class="text-[10px] uppercase text-cyan-300 mb-2">Applied meta-knobs</h3>
+        <ul class="space-y-1 text-[11px] text-slate-300 fai-text-mono">
+          <template x-for="(a, i) in (capReview.latest.applied || [])" :key="a.capability + '-' + i">
+            <li x-text="a.capability + ': ' + a.current + ' → ' + a.applied"></li>
+          </template>
+        </ul>
+      </div>
+    </template>
+
+    <details class="group">
+      <summary class="cursor-pointer text-xs text-slate-500 hover:text-cyan-300">Active overrides</summary>
+      <pre class="mt-2 text-[10px] text-emerald-200/90 fai-text-mono overflow-x-auto max-h-32"
+        x-text="JSON.stringify(capReview.overrides?.capabilities || {}, null, 2)"></pre>
+    </details>
+  </template>
+
+  <p x-show="capLoading" class="text-xs text-slate-500 mt-2">Loading capability review…</p>
+</section>

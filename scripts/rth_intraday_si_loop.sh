@@ -21,7 +21,7 @@ _is_rth() {
 }
 
 while true; do
-  if _is_rth; then
+    if _is_rth; then
     ts="$(date -Iseconds)"
     echo "[$ts] rth_intraday_si cycle start" >> "$LOG"
     if bash "${ROOT}/scripts/cron_run.sh" rth_intraday_si python3 "${ROOT}/scripts/rth_intraday_si.py" >> "$LOG" 2>&1; then
@@ -29,6 +29,7 @@ while true; do
     else
       echo "[$ts] rth_intraday_si cycle failed" >> "$LOG"
     fi
+    INTERVAL="$("$PY" -c "from utils.si_capability_review import effective_rth_interval_sec; print(effective_rth_interval_sec())" 2>/dev/null || echo "${FORTRESS_RTH_SI_INTERVAL_SEC:-1800}")"
     sleep "$INTERVAL"
   else
     sleep 120

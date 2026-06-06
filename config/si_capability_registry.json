@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "Bounded meta-knobs the capability reviewer may auto-tune (never weakens pre-trade gate or immutable caps).",
+  "capabilities": {
+    "winning_pattern_share_target": {
+      "kind": "tunable",
+      "bounds": { "min": 0.4, "max": 0.85 },
+      "default": 0.75,
+      "apply_via": "data/si_capability/overrides.json",
+      "reader": "utils.skim_swarm_config.target_winning_pattern_share",
+      "notes": "Phase-1 realistic target when portfolio patterns are net negative."
+    },
+    "edge_autofix_rr_boost_cap": {
+      "kind": "tunable",
+      "bounds": { "min": 0.08, "max": 0.25 },
+      "default": 0.2,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Caps session RR margin boost from edge autofix."
+    },
+    "edge_autofix_min_exits": {
+      "kind": "tunable",
+      "bounds": { "min": 3, "max": 12 },
+      "default": 4,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Minimum exits before edge autofix fires (reduce noise on quiet days)."
+    },
+    "rth_review_cadence_mult": {
+      "kind": "tunable",
+      "bounds": { "min": 0.5, "max": 1.0 },
+      "default": 1.0,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Multiplier on RTH SI interval when objectives off-track (<1 = more frequent)."
+    },
+    "session_si_critical_expectancy_usd": {
+      "kind": "tunable",
+      "bounds": { "min": -0.75, "max": -0.05 },
+      "default": -0.15,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Session expectancy threshold for critical mode (more negative = less aggressive)."
+    }
+  }
+}

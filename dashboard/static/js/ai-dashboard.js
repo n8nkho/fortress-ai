@@ -37,6 +37,11 @@ document.addEventListener("alpine:init", () => {
     siLoading: false,
     siError: null,
 
+    capReview: null,
+    capMetricsRows: [],
+    capLoading: false,
+    capError: null,
+
     peStatus: null,
     peAnalysis: null,
     peRecentEvents: [],
@@ -103,6 +108,7 @@ document.addEventListener("alpine:init", () => {
       window.addEventListener("keydown", (e) => this.onKey(e));
       document.addEventListener("visibilitychange", () => this.onVisibilityChange());
       this.fetchSelfImprovement();
+      this.fetchCapabilityReview();
       this.fetchPromptEvolution();
       this.fetchGovernance();
 
@@ -1155,6 +1161,57 @@ document.addEventListener("alpine:init", () => {
         this.siError = String(err);
       } finally {
         this.siLoading = false;
+      }
+    },
+
+    _buildCapMetricsRows(latest) {
+      const m = (latest && latest.metrics) || {};
+      const fmt = (v) => (v == null ? "—" : String(v));
+      const rows = [];
+      const skim = m.skim_swarm || {};
+      rows.push({ label: "Skim expectancy (5d)", value: fmt(skim.rolling_expectancy_usd) });
+      rows.push({ label: "Skim payoff (5d)", value: fmt(skim.rolling_payoff_ratio) });
+      const infra = m.infra_swarm || {};
+      rows.push({ label: "Infra expectancy (5d)", value: fmt(infra.rolling_expectancy_usd) });
+      const cl = m.classic_fortress || {};
+      rows.push({ label: "Classic fills (10d)", value: fmt(cl.rolling_fills) });
+      rows.push({ label: "Classic avg candidates", value: fmt(cl.avg_candidates_per_screen) });
+      rows.push({ label: "Classic days since fill", value: fmt(cl.days_since_last_fill) });
+      rows.push({ label: "Classic regime", value: fmt(cl.latest_regime) });
+      return rows;
+    },
+
+    async fetchCapabilityReview() {
+      this.capLoading = true;
+      this.capError = null;
+      try {
+        const r = await fetch("/api/si/capability-review");
+        if (!r.ok) throw new Error(await r.text());
+        this.capReview = await r.json();
+        this.capMetricsRows = this._buildCapMetricsRows(this.capReview.latest || {});
+      } catch (err) {
+        this.capError = String(err);
+      } finally {
+        this.capLoading = false;
+      }
+    },
+
+    async runCapabilityReview(apply) {
+      this.capLoading = true;
+      this.capError = null;
+      try {
+        const r = await fetch("/api/si/capability-review/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apply: !!apply }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || r.statusText);
+        await this.fetchCapabilityReview();
+      } catch (err) {
+        this.capError = String(err);
+      } finally {
+        this.capLoading = false;
       }
     },
 

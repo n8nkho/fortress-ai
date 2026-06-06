@@ -29,6 +29,12 @@ def main() -> int:
     if gov:
         out["governance"] = gov
     out["reversions"] = PerformanceMonitor().monitor_active_changes()
+    try:
+        from utils.si_capability_review import run_capability_review_cycle
+
+        out["capability_review"] = run_capability_review_cycle(apply=True)
+    except Exception as e:
+        out["capability_review"] = {"error": str(e)[:120]}
     print(json.dumps(out, default=str))
     return 0
 

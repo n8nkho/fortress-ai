@@ -1709,6 +1709,40 @@ def api_si_recommendations_implemented(item_id: str):
         return jsonify({"ok": False, "error": str(e)}), 400
 
 
+@app.route("/api/si/capability-review")
+def api_si_capability_review():
+    from utils.si_capability_review import latest_report_path, load_overrides, load_state
+
+    latest = {}
+    p = latest_report_path()
+    if p.is_file():
+        try:
+            latest = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            latest = {}
+    return jsonify(
+        {
+            "latest": latest,
+            "overrides": load_overrides(),
+            "state": load_state(),
+            "objectives": load_objectives(),
+        }
+    )
+
+
+@app.route("/api/si/capability-review/run", methods=["POST"])
+def api_si_capability_review_run():
+    from utils.si_capability_review import run_capability_review_cycle
+
+    body = request.get_json(silent=True) or {}
+    apply = body.get("apply", True)
+    try:
+        report = run_capability_review_cycle(apply=bool(apply))
+        return jsonify({"ok": True, "report": report})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
 @app.route("/api/prompt_evolution/status")
 def api_prompt_evolution_status():
     from agents.prompt_evolution import get_prompt_evolution

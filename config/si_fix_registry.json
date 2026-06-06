@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-06T17:56:31.722393-04:00"
+      "registered_at_utc": "2026-06-06T18:16:01.457387-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -372,6 +372,28 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "medium"
+    },
+    "si_objective_gap": {
+      "title": "SI outcome objective not met",
+      "kind": "monitor",
+      "mitigation_markers": [
+        "si_capability_review"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "si_capability_auto_applied": {
+      "title": "Meta-SI capability knobs auto-updated",
+      "kind": "monitor",
+      "mitigation_markers": [
+        "si_capability_review"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "info"
     }
   }
 }

@@ -15,7 +15,7 @@
   <style>[x-cloak]{display:none!important}</style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="{{ url_for('static', filename='js/charts.js') }}?v=17"></script>
-  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=26"></script>
+  <script src="{{ url_for('static', filename='js/ai-dashboard.js') }}?v=27"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
   <script src="{{ url_for('static', filename='js/dashboard-interactive.js') }}?v=12" defer></script>
 </head>
@@ -44,6 +44,7 @@
       <span class="text-amber-200/90 font-medium">Why no trade?</span> ·
       <span class="text-emerald-200/90 font-medium">Skim swarm</span> ·
       <span class="text-fuchsia-200/90 font-medium">Self-improvement</span> ·
+      <span class="text-cyan-200/90 font-medium">Capability review</span> ·
       <span class="text-violet-200/90 font-medium">Prompt evolution</span>
       <span class="text-slate-600 mx-1">—</span>
       <a href="#fai-why-no-trade" class="text-cyan-400 hover:underline">Why</a>
@@ -68,6 +69,8 @@
     </main>
 
     {% include 'components/self_improvement.html' %}
+
+    {% include 'components/capability_review.html' %}
 
     {% include 'components/prompt_evolution.html' %}
 

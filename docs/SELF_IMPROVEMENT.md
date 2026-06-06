@@ -70,6 +70,44 @@ See `.cursor/rules/recursive-si-workflow.mdc` for agent review workflow.
 
 ---
 
+# Continuous SI capability review (meta-SI)
+
+The stack reviews **whether SI is achieving declared objectives** and auto-tunes **meta-knobs** (how aggressively SI runs), not just trading parameters.
+
+## Objectives
+
+`config/si_objectives.json` — per-component targets (expectancy, payoff, unified PnL, intervention effectiveness).
+
+## Capability registry
+
+`config/si_capability_registry.json` — bounded knobs the reviewer may adjust:
+
+| Knob | Effect |
+|------|--------|
+| `winning_pattern_share_target` | Realistic Phase-1 pattern-share goal |
+| `edge_autofix_rr_boost_cap` | Max session RR margin boost |
+| `edge_autofix_min_exits` | Min exits before edge autofix |
+| `rth_review_cadence_mult` | RTH SI interval multiplier (<1 = more frequent) |
+
+Overrides: `data/si_capability/overrides.json`. Reports: `data/si_capability/latest.json`, `review_log.jsonl`.
+
+## Schedule
+
+- **Every RTH SI cycle** (30m default, adaptive) — `run_capability_review_cycle()` in `utils/rth_autonomous_si.py`
+- **Daily governance cron** — `scripts/governance_maintenance.py`
+- **Manual** — `python3 scripts/si_capability_review.py` (`--dry-run` to measure only)
+
+## API
+
+- `GET /api/si/capability-review` — latest report, overrides, state
+- `POST /api/si/capability-review/run` — trigger cycle (`{"apply": true}`)
+
+Queue codes: `si_objective_gap`, `si_capability_auto_applied`.
+
+Classic Fortress objectives read sibling `trading-bot/data` (fills + daily_signals) via `utils/classic_bridge.classic_rolling_metrics()`.
+
+---
+
 # Tier-2 prompt evolution (additive appendix)
 
 Tier 2 **does not replace** the JSON schema instructions in `build_prompt`. It only appends a short `ADDITIONAL_OPERATOR_GUIDANCE` block from human-approved text (see `utils/prompt_evolution_store.validate_appendix_text` blocklist).

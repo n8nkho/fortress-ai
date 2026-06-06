@@ -343,6 +343,14 @@ def causation_block_win_rate() -> float:
 
 def target_winning_pattern_share() -> float:
     """Goal share of patterns with positive PnL (default 75%). Not trade win rate."""
+    try:
+        from utils.si_capability_review import get_capability
+
+        cap = get_capability("winning_pattern_share_target")
+        if cap is not None:
+            return float(cap)
+    except Exception:
+        pass
     raw = (
         os.environ.get("FORTRESS_SKIM_TARGET_WINNING_PATTERN_SHARE")
         or os.environ.get("FORTRESS_SKIM_TARGET_WIN_RATE")
