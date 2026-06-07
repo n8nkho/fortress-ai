@@ -176,6 +176,17 @@ class TestDashboardApi(unittest.TestCase):
         d = r.get_json()
         self.assertIn("veto_pending", d)
 
+    def test_si_capability_review_shape(self):
+        r = self.client.get("/api/si/capability-review")
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.get_json()
+        self.assertIn("latest", d)
+        self.assertIn("overrides", d)
+        self.assertIn("state", d)
+        self.assertIn("objectives", d)
+        self.assertIsInstance(d["objectives"], list)
+        self.assertGreater(len(d["objectives"]), 0)
+
     def test_optional_basic_auth_blocks_anonymous(self):
         with patch.dict(
             os.environ,

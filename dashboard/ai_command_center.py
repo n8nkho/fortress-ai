@@ -1711,7 +1711,7 @@ def api_si_recommendations_implemented(item_id: str):
 
 @app.route("/api/si/capability-review")
 def api_si_capability_review():
-    from utils.si_capability_review import latest_report_path, load_overrides, load_state
+    from utils.si_capability_review import latest_report_path, load_objectives, load_overrides, load_state
 
     latest = {}
     p = latest_report_path()
