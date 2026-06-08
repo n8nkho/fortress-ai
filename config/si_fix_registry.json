@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-06T18:16:01.457387-04:00"
+      "registered_at_utc": "2026-06-08T16:00:35.484437-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -394,6 +394,19 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "info"
+    },
+    "si_stale_queue_reconcile": {
+      "title": "Auto-close SI queue items when findings clear",
+      "kind": "ops",
+      "mitigation_markers": [
+        "finding_cleared",
+        "auto_resolved_stale"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium",
+      "recommendation": "reconcile_cleared_findings() on each integrity/capability scan; Classic auto-remediates regime/cron/evolution before re-scan."
     }
   }
 }

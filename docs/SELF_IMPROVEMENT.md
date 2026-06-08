@@ -106,6 +106,8 @@ Queue codes: `si_objective_gap`, `si_capability_auto_applied`.
 
 Classic Fortress objectives read sibling `trading-bot/data` (fills + daily_signals) via `utils/classic_bridge.classic_rolling_metrics()`.
 
+**Stale queue auto-close:** each integrity/capability scan calls `reconcile_cleared_findings()` — open items auto-resolve when the finding no longer appears. Classic also auto-remediates `regime_stale_rth`, `cron_heartbeat_fail`, and `evolution_stale` before re-scan (`FORTRESS_SI_AUTO_REFRESH_REGIME`, `FORTRESS_SI_AUTO_REFRESH_CRON`, `FORTRESS_SI_AUTO_RUN_EVOLVE` default on).
+
 ---
 
 # Tier-2 prompt evolution (additive appendix)

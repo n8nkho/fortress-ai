@@ -507,7 +507,8 @@ def _upsert_capability_queue_findings(gaps: list[dict[str, Any]], applied: list[
                         f"{gap.get('metric')}={gap.get('value')} < {gap.get('target_min')}."
                     ),
                     "si_action": "si_capability_review",
-                }
+                },
+                source="capability_review",
             )
         if applied:
             upsert_from_finding(
@@ -562,4 +563,20 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
     )
     if apply:
         _upsert_capability_queue_findings(gaps, applied)
+        try:
+            from utils.si_recommendation_queue import reconcile_cleared_findings
+
+            active = [
+                {
+                    "code": "si_objective_gap",
+                    "component": gap.get("component"),
+                    "objective_id": gap.get("objective_id"),
+                }
+                for gap in gaps
+            ]
+            if applied:
+                active.append({"code": "si_capability_auto_applied", "component": "si_meta"})
+            reconcile_cleared_findings({}, active_findings=active)
+        except Exception:
+            pass
     return report

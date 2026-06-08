@@ -90,12 +90,47 @@ def _now_iso() -> str:
     return now_iso()
 
 
-def _finding_key(code: str, component: str = "") -> str:
-    return f"{component}:{code}" if component else str(code)
+def _finding_key(code: str, component: str = "", *, objective_id: str = "") -> str:
+    base = f"{component}:{code}" if component else str(code)
+    if objective_id and code == "si_objective_gap":
+        return f"{base}:{objective_id}"
+    return base
 
 
-def find_open_item(queue: dict[str, Any], *, code: str, component: str = "") -> dict[str, Any] | None:
-    key = _finding_key(code, component)
+def finding_key_from_finding(finding: dict[str, Any]) -> str:
+    return _finding_key(
+        str(finding.get("code") or ""),
+        str(finding.get("component") or ""),
+        objective_id=str(finding.get("objective_id") or ""),
+    )
+
+
+def _finding_still_active(item: dict[str, Any], findings: list[dict[str, Any]]) -> bool:
+    code = str(item.get("code") or "")
+    component = str(item.get("component") or "")
+    item_oid = str((item.get("finding") or {}).get("objective_id") or "")
+    for f in findings:
+        if str(f.get("code") or "") != code:
+            continue
+        if str(f.get("component") or "") != component:
+            continue
+        f_oid = str(f.get("objective_id") or "")
+        if code == "si_objective_gap" and (item_oid or f_oid):
+            if item_oid and f_oid:
+                return item_oid == f_oid
+            return True
+        return True
+    return False
+
+
+def find_open_item(
+    queue: dict[str, Any],
+    *,
+    code: str,
+    component: str = "",
+    finding: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    key = finding_key_from_finding(finding or {"code": code, "component": component})
     for item in queue.get("items") or []:
         if not isinstance(item, dict):
             continue
@@ -231,7 +266,7 @@ def upsert_from_finding(
         meta = {}
 
     queue = load_queue()
-    existing = find_open_item(queue, code=code, component=component)
+    existing = find_open_item(queue, code=code, component=component, finding=finding)
     now = _now_iso()
 
     disposition = DISPOSITION_PENDING_AGENT
@@ -257,7 +292,7 @@ def upsert_from_finding(
 
     item = existing or {
         "id": str(uuid.uuid4()),
-        "finding_key": _finding_key(code, component),
+        "finding_key": finding_key_from_finding(finding),
         "created_utc": now,
         "status": STATUS_OPEN,
         "human_go": None,
@@ -416,6 +451,43 @@ def reconcile_deployed_guards(scan: dict[str, Any]) -> list[str]:
     return closed
 
 
+def reconcile_cleared_findings(
+    scan: dict[str, Any],
+    *,
+    active_findings: list[dict[str, Any]] | None = None,
+) -> list[str]:
+    """Auto-close open SI items when scans no longer report the underlying finding."""
+    findings = active_findings if active_findings is not None else list(scan.get("findings") or [])
+    queue = load_queue()
+    closed: list[str] = []
+    changed = False
+    for i, item in enumerate(queue.get("items") or []):
+        if not isinstance(item, dict) or item.get("status") != STATUS_OPEN:
+            continue
+        if item.get("disposition") == DISPOSITION_PENDING_HUMAN:
+            continue
+        if item.get("implementation_ready"):
+            continue
+        if _finding_still_active(item, findings):
+            continue
+        code = str(item.get("code") or "")
+        item["status"] = STATUS_IMPLEMENTED
+        item["disposition"] = DISPOSITION_AUTO_RESOLVED
+        item["closed_reason"] = "finding_cleared"
+        item["implemented_utc"] = _now_iso()
+        item["implementation_note"] = (
+            f"Auto-closed: finding no longer active ({code})."
+        )[:2000]
+        item["updated_utc"] = _now_iso()
+        queue["items"][i] = item
+        closed.append(code)
+        changed = True
+        _append_log({"event": "auto_resolved_stale", "item_id": item.get("id"), "code": code})
+    if changed:
+        save_queue(queue)
+    return closed
+
+
 def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
     from utils.integrity_diagnostics import run_integrity_scan
 
@@ -458,11 +530,9 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
                     item["disposition"] = DISPOSITION_AUTO_APPLIED
                     item["auto_correct"] = res
 
-    pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
-    pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
-
-    # Auto-close open code-guard items when fix is deployed and scan is clean
+    # Auto-close deployed guards + findings no longer reported
     reconcile_deployed_guards(scan)
+    auto_resolved = reconcile_cleared_findings(scan, active_findings=all_findings)
 
     pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
     pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
@@ -475,6 +545,7 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
         "findings_processed": len(all_findings),
         "items_upserted": len(items),
         "auto_applied": auto_applied,
+        "auto_resolved": auto_resolved,
         "pending_agent_review": len(pending_agent),
         "pending_human_go": len(pending_human),
         "pending_agent": pending_agent,

@@ -123,5 +123,41 @@ class TestClassicCapabilityObjectives(unittest.TestCase):
         self.assertTrue(any(g["objective_id"] == "classic_fill_activity" for g in gaps))
 
 
+class TestSiStaleReconcile(unittest.TestCase):
+    def test_reconcile_closes_cleared_finding(self):
+        from utils.si_recommendation_queue import (
+            DISPOSITION_MONITORING,
+            STATUS_OPEN,
+            load_queue,
+            reconcile_cleared_findings,
+            save_queue,
+        )
+
+        with tempfile.TemporaryDirectory() as td:
+            data = Path(td)
+            queue = {
+                "version": 1,
+                "items": [
+                    {
+                        "id": "x1",
+                        "finding_key": "skim_swarm:si_objective_gap:skim_session_expectancy",
+                        "status": STATUS_OPEN,
+                        "disposition": DISPOSITION_MONITORING,
+                        "code": "si_objective_gap",
+                        "component": "skim_swarm",
+                        "finding": {
+                            "objective_id": "skim_session_expectancy",
+                            "component": "skim_swarm",
+                        },
+                    }
+                ],
+            }
+            with patch("utils.si_recommendation_queue._data_dir", return_value=data):
+                save_queue(queue)
+                closed = reconcile_cleared_findings({}, active_findings=[])
+                self.assertEqual(closed, ["si_objective_gap"])
+                self.assertEqual(load_queue()["items"][0]["closed_reason"], "finding_cleared")
+
+
 if __name__ == "__main__":
     unittest.main()
