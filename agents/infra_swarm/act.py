@@ -12,6 +12,7 @@ from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_bloc
 from utils.alpaca_execution import cancel_open_orders, submit_entry_with_bracket
 from utils.edge_quality_config import edge_quality_enabled
 from utils.infra_swarm_config import dry_run, max_shares, normalize_symbol
+from utils.skim_clip_ladder import clip_size, effective_max_shares
 
 
 def _alpaca_client():
@@ -193,6 +194,20 @@ def act(
         result.update(_submit_exit(side, pos_qty))
         return result
 
+    if action == "exit_partial":
+        if pos_qty <= 0:
+            result["detail"] = "no_position"
+            result["block_reason"] = "no_position"
+            return result
+        try:
+            exit_qty = int(decision.get("exit_qty") or clip_size())
+        except (TypeError, ValueError):
+            exit_qty = clip_size()
+        exit_qty = max(1, min(exit_qty, pos_qty))
+        side = "SELL" if pos_side == "long" else "BUY"
+        result.update(_submit_exit(side, exit_qty))
+        return result
+
     if action == "enter_long":
         if pos_side != "flat":
             result["detail"] = f"not_flat:{pos_side}"
@@ -207,6 +222,32 @@ def act(
             result["block_reason"] = "not_flat"
             return result
         result.update(_submit_entry("SELL", qty_cap))
+        return result
+
+    if action == "add_clip_long":
+        if pos_side != "long":
+            result["detail"] = f"not_long:{pos_side}"
+            result["block_reason"] = "not_long"
+            return result
+        cap = int(decision.get("clip_max_shares") or effective_max_shares(symbol, "infra_swarm"))
+        if pos_qty >= cap:
+            result["detail"] = "max_shares"
+            result["block_reason"] = "max_shares"
+            return result
+        result.update(_submit_one("BUY", qty_cap, is_exit=False))
+        return result
+
+    if action == "add_clip_short":
+        if pos_side != "short":
+            result["detail"] = f"not_short:{pos_side}"
+            result["block_reason"] = "not_short"
+            return result
+        cap = int(decision.get("clip_max_shares") or effective_max_shares(symbol, "infra_swarm"))
+        if pos_qty >= cap:
+            result["detail"] = "max_shares"
+            result["block_reason"] = "max_shares"
+            return result
+        result.update(_submit_one("SELL", qty_cap, is_exit=False))
         return result
 
     result["detail"] = "unknown_action"

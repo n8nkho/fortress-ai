@@ -249,7 +249,11 @@ def dry_run() -> bool:
 
 
 def max_shares() -> int:
-    """Hard cap: one share per symbol."""
+    """Shares per entry/exit clip order (not max exposure)."""
+    from utils.swarm_clip_ladder import clip_ladder_enabled, clip_size
+
+    if clip_ladder_enabled("infra_swarm"):
+        return clip_size()
     return 1
 
 

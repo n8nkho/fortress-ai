@@ -17,6 +17,7 @@ from utils.movement_anticipation import (
     entry_blocked_by_anticipation,
 )
 from utils.edge_quality import evaluate_entry_edge_gates, time_stop_triggered
+from utils.swarm_clip_ladder import authorize_add_clip, clip_ladder_enabled, clip_size, effective_max_shares
 from utils.infra_swarm_config import (
     anchor_symbol,
     atr_k,
@@ -254,6 +255,7 @@ def decide(
 
     unreal = features.get("unrealized_usd")
     peak = _f(symbol_state.get("peak_unrealized"), 0)
+    pos_qty = max(0, int(features.get("position_qty") or 0))
 
     if side in ("long", "short") and unreal is not None:
         u = _f(unreal)
@@ -265,8 +267,13 @@ def decide(
             out["reasoning"] = "time_stop"
             return out
         if u >= target:
-            out["action"] = "exit_position"
-            out["reasoning"] = f"infra_target_hit:{u:.3f}>={target:.3f}"
+            if clip_ladder_enabled("infra_swarm") and pos_qty > clip_size():
+                out["action"] = "exit_partial"
+                out["exit_qty"] = clip_size()
+                out["reasoning"] = f"infra_target_partial:{u:.3f}>={target:.3f} leave={pos_qty - clip_size()}"
+            else:
+                out["action"] = "exit_position"
+                out["reasoning"] = f"infra_target_hit:{u:.3f}>={target:.3f}"
             return out
         if u > 0 and peak >= target * 0.6 and u < peak * 0.55:
             out["action"] = "exit_position"
@@ -281,6 +288,89 @@ def decide(
             out["action"] = "exit_position"
             out["reasoning"] = "stack_unwind_take_profit"
             return out
+        params_hold = get_params(sym)
+        enter_long = float(params_hold["enter_long"])
+        enter_short = float(params_hold["enter_short"])
+        if (
+            not swarm_halted
+            and clip_ladder_enabled("infra_swarm")
+            and side == "long"
+            and pos_qty < effective_max_shares(
+                sym,
+                "infra_swarm",
+                unrealized=u,
+                target_usd=target,
+                score=score,
+                enter_threshold=enter_long,
+                side="long",
+            )
+        ):
+            ok, clip_reason = authorize_add_clip(
+                sym,
+                component="infra_swarm",
+                side="long",
+                pos_qty=pos_qty,
+                unrealized=u,
+                target_usd=target,
+                score=score,
+                enter_threshold=enter_long,
+            )
+            if ok and score >= enter_long:
+                out["action"] = "add_clip_long"
+                out["clip_max_shares"] = effective_max_shares(
+                    sym,
+                    "infra_swarm",
+                    unrealized=u,
+                    target_usd=target,
+                    score=score,
+                    enter_threshold=enter_long,
+                    side="long",
+                )
+                out["reasoning"] = f"clip_add_long score={score:.2f} qty={pos_qty}"
+                return out
+            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off", "not_clear_winner"):
+                out["reasoning"] = f"hold_long:{u:.3f}:{clip_reason}"
+                return out
+        if (
+            not swarm_halted
+            and clip_ladder_enabled("infra_swarm")
+            and side == "short"
+            and pos_qty < effective_max_shares(
+                sym,
+                "infra_swarm",
+                unrealized=u,
+                target_usd=target,
+                score=score,
+                enter_threshold=enter_short,
+                side="short",
+            )
+        ):
+            ok, clip_reason = authorize_add_clip(
+                sym,
+                component="infra_swarm",
+                side="short",
+                pos_qty=pos_qty,
+                unrealized=u,
+                target_usd=target,
+                score=score,
+                enter_threshold=enter_short,
+            )
+            if ok and score <= enter_short:
+                out["action"] = "add_clip_short"
+                out["clip_max_shares"] = effective_max_shares(
+                    sym,
+                    "infra_swarm",
+                    unrealized=u,
+                    target_usd=target,
+                    score=score,
+                    enter_threshold=enter_short,
+                    side="short",
+                )
+                out["reasoning"] = f"clip_add_short score={score:.2f} qty={pos_qty}"
+                return out
+            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off", "not_clear_winner"):
+                out["reasoning"] = f"hold_short:{u:.3f}:{clip_reason}"
+                return out
         out["reasoning"] = f"hold_{side}:{u:.3f}"
         return out
 

@@ -229,7 +229,8 @@ def act(
             result["detail"] = f"not_long:{pos_side}"
             result["block_reason"] = "not_long"
             return result
-        if pos_qty >= effective_max_shares(symbol):
+        cap = int(decision.get("clip_max_shares") or effective_max_shares(symbol, "skim_swarm"))
+        if pos_qty >= cap:
             result["detail"] = "max_shares"
             result["block_reason"] = "max_shares"
             return result
@@ -241,7 +242,8 @@ def act(
             result["detail"] = f"not_short:{pos_side}"
             result["block_reason"] = "not_short"
             return result
-        if pos_qty >= effective_max_shares(symbol):
+        cap = int(decision.get("clip_max_shares") or effective_max_shares(symbol, "skim_swarm"))
+        if pos_qty >= cap:
             result["detail"] = "max_shares"
             result["block_reason"] = "max_shares"
             return result

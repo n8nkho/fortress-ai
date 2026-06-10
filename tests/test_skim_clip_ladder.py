@@ -90,9 +90,11 @@ class TestSkimClipLadder(unittest.TestCase):
         save_session_policy("skim_swarm", {"mode": "normal"})
         ok, reason = authorize_add_clip(
             "SPY",
+            component="skim_swarm",
             side="long",
             pos_qty=1,
             unrealized=-0.05,
+            target_usd=0.12,
             score=0.5,
             enter_threshold=0.2,
         )
@@ -126,13 +128,39 @@ class TestSkimClipLadder(unittest.TestCase):
         with patch("agents.skim_swarm.eod.session_date_et", return_value="2026-05-27"):
             ok, reason = authorize_add_clip(
                 "AAPL",
+                component="skim_swarm",
                 side="long",
                 pos_qty=1,
                 unrealized=0.08,
+                target_usd=0.12,
                 score=0.35,
                 enter_threshold=0.22,
             )
         self.assertTrue(ok, reason)
+
+    def test_clear_winner_allows_second_share_without_history(self):
+        from utils.swarm_clip_ladder import effective_max_shares, in_trade_clip_cap
+
+        cap = in_trade_clip_cap(
+            unrealized=0.04,
+            target_usd=0.12,
+            score=0.35,
+            enter_threshold=0.22,
+            side="long",
+            historical_max=1,
+            component="skim_swarm",
+        )
+        self.assertGreaterEqual(cap, 2)
+        lifted = effective_max_shares(
+            "NEW",
+            "skim_swarm",
+            unrealized=0.04,
+            target_usd=0.12,
+            score=0.35,
+            enter_threshold=0.22,
+            side="long",
+        )
+        self.assertGreaterEqual(lifted, 2)
 
     def test_ladder_off_behaves_like_one_share(self):
         os.environ["FORTRESS_SKIM_CLIP_LADDER"] = "0"

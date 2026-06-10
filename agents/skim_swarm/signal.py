@@ -305,24 +305,43 @@ def decide(
             return out
         if (
             not swarm_halted
-            and clip_ladder_enabled()
-            and pos_qty < effective_max_shares(sym)
+            and clip_ladder_enabled("skim_swarm")
+            and pos_qty < effective_max_shares(
+                sym,
+                "skim_swarm",
+                unrealized=u,
+                target_usd=target,
+                score=score,
+                enter_threshold=float(get_params(sym)["enter_long"]),
+                side="long",
+            )
         ):
             params_hold = get_params(sym)
             enter_long = float(params_hold["enter_long"])
             ok, clip_reason = authorize_add_clip(
                 sym,
+                component="skim_swarm",
                 side="long",
                 pos_qty=pos_qty,
                 unrealized=u,
+                target_usd=target,
                 score=score,
                 enter_threshold=enter_long,
             )
             if ok and score >= enter_long:
                 out["action"] = "add_clip_long"
+                out["clip_max_shares"] = effective_max_shares(
+                    sym,
+                    "skim_swarm",
+                    unrealized=u,
+                    target_usd=target,
+                    score=score,
+                    enter_threshold=enter_long,
+                    side="long",
+                )
                 out["reasoning"] = f"clip_add_long score={score:.2f} qty={pos_qty}"
                 return out
-            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off"):
+            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off", "not_clear_winner"):
                 out["reasoning"] = f"hold_long:{u:.3f}:{clip_reason}"
                 return out
         out["reasoning"] = f"hold_long:{u:.3f}"
@@ -356,24 +375,43 @@ def decide(
             return out
         if (
             not swarm_halted
-            and clip_ladder_enabled()
-            and pos_qty < effective_max_shares(sym)
+            and clip_ladder_enabled("skim_swarm")
+            and pos_qty < effective_max_shares(
+                sym,
+                "skim_swarm",
+                unrealized=u,
+                target_usd=target,
+                score=score,
+                enter_threshold=float(get_params(sym)["enter_short"]),
+                side="short",
+            )
         ):
             params_hold = get_params(sym)
             enter_short = float(params_hold["enter_short"])
             ok, clip_reason = authorize_add_clip(
                 sym,
+                component="skim_swarm",
                 side="short",
                 pos_qty=pos_qty,
                 unrealized=u,
+                target_usd=target,
                 score=score,
                 enter_threshold=enter_short,
             )
             if ok and score <= enter_short:
                 out["action"] = "add_clip_short"
+                out["clip_max_shares"] = effective_max_shares(
+                    sym,
+                    "skim_swarm",
+                    unrealized=u,
+                    target_usd=target,
+                    score=score,
+                    enter_threshold=enter_short,
+                    side="short",
+                )
                 out["reasoning"] = f"clip_add_short score={score:.2f} qty={pos_qty}"
                 return out
-            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off"):
+            if clip_reason and clip_reason not in ("clip_score_weak", "clip_ladder_off", "not_clear_winner"):
                 out["reasoning"] = f"hold_short:{u:.3f}:{clip_reason}"
                 return out
         out["reasoning"] = f"hold_short:{u:.3f}"
