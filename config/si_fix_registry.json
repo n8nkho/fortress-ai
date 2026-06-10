@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-09T20:50:33.511353-04:00"
+      "registered_at_utc": "2026-06-10T11:56:19.204864-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -464,6 +464,42 @@
       "auto_tunable": {
         "classic_fill_recency_days_max": 1.0
       },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "si_autonomous_code": {
+      "title": "Autonomous code SI via Cursor agent after queue assess",
+      "kind": "ops",
+      "mitigation_markers": [
+        "si_auto_code",
+        "autonomous_code_si"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "classic_si_screener_relax": {
+      "title": "Classic bear/ranging screener auto-relax on zero-candidate streak",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "classic_si_screener_relax",
+        "screener_si_overrides"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "classic_si_queue_bridge": {
+      "title": "Fortress capability gaps pushed to Classic SI queue",
+      "kind": "ops",
+      "mitigation_markers": [
+        "capability_review",
+        "classic_si_auto"
+      ],
+      "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "medium"

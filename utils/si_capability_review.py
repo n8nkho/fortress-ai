@@ -612,6 +612,13 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
     classic_recs = propose_classic_recommendations(metrics, gaps)
     applied: list[dict[str, Any]] = apply_capability_updates(proposals) if apply else []
 
+    try:
+        from utils.classic_bridge import push_findings_to_classic_queue
+
+        push_findings_to_classic_queue(gaps, classic_recs)
+    except Exception:
+        pass
+
     state = load_state()
     state = _update_intervention_effectiveness(metrics, applied, state)
     save_state(state)

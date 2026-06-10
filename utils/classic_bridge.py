@@ -379,3 +379,78 @@ def classic_rolling_metrics(*, window_sessions: int = 10) -> dict[str, Any]:
         "days_since_last_fill": days_since_fill,
         "latest_regime": latest_regime,
     }
+
+
+def resolve_trading_bot_root() -> Path | None:
+    tb = (os.environ.get("FORTRESS_TRADING_BOT_ROOT") or "").strip()
+    if tb:
+        p = Path(tb).expanduser()
+        return p if p.is_dir() else None
+    sibling = _repo_root().parent / "trading-bot"
+    return sibling if sibling.is_dir() else None
+
+
+def push_findings_to_classic_queue(
+    gaps: list[dict[str, Any]],
+    recommendations: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Upsert Classic objective gaps into trading-bot SI queue for autonomous apply."""
+    tb = resolve_trading_bot_root()
+    if not tb:
+        return []
+    import sys
+
+    root = str(tb)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    try:
+        from utils.si_recommendation_queue import upsert_from_finding
+    except Exception:
+        return []
+
+    upserted: list[dict[str, Any]] = []
+    metrics = classic_rolling_metrics(window_sessions=10)
+
+    for gap in gaps:
+        if str(gap.get("component") or "") != "classic_fortress":
+            continue
+        oid = str(gap.get("objective_id") or "")
+        code = "classic_candidate_throughput"
+        if oid in ("classic_fill_recency", "classic_fill_activity"):
+            code = "classic_fill_recency"
+        finding = {
+            "code": code,
+            "objective_id": oid,
+            "severity": "high" if gap.get("priority") == "critical" else "medium",
+            "component": "classic_fortress",
+            "title": f"Classic objective gap: {oid}",
+            "recommendation": (
+                f"{oid}: {gap.get('metric')}={gap.get('value')} gap={gap.get('gap')}; "
+                f"regime={metrics.get('latest_regime')}; days_since_fill={metrics.get('days_since_last_fill')}."
+            ),
+            "kind": "tunable",
+            "effort": "low",
+            "impact": gap.get("priority") or "high",
+        }
+        upserted.append(upsert_from_finding(finding, source="capability_review"))
+
+    for rec in recommendations or []:
+        if not isinstance(rec, dict):
+            continue
+        action = str(rec.get("action") or "")
+        code = "classic_candidate_throughput"
+        if "fill" in action:
+            code = "classic_fill_recency"
+        finding = {
+            "code": code,
+            "severity": "medium",
+            "component": "classic_fortress",
+            "title": f"Classic SI: {action}",
+            "recommendation": str(rec.get("detail") or ""),
+            "kind": "tunable",
+            "effort": "low",
+            "impact": "high",
+        }
+        upserted.append(upsert_from_finding(finding, source="capability_review"))
+
+    return upserted

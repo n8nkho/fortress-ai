@@ -5,7 +5,7 @@ Flow:
 1. integrity + opportunity scans produce findings
 2. fix registry maps findings → auto-tunable nudges or code-guard mitigation checks
 3. tunable corrections apply within governance bounds (Tier 0/1)
-4. unresolved code/ops items → pending_agent_review → agent assessment → pending_human_go
+4. unresolved code/ops items → pending_agent_review → auto-assess → auto_implement (no human go)
 """
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ DISPOSITION_AUTO_APPLIED = "auto_applied"
 DISPOSITION_MONITORING = "monitoring"
 DISPOSITION_PENDING_AGENT = "pending_agent_review"
 DISPOSITION_PENDING_HUMAN = "pending_human_go"
+DISPOSITION_AUTO_IMPLEMENT_QUEUED = "auto_implement_queued"
 DISPOSITION_DISMISSED = "dismissed"
 
 STATUS_OPEN = "open"
@@ -468,6 +469,8 @@ def reconcile_cleared_findings(
             continue
         if item.get("implementation_ready"):
             continue
+        if item.get("disposition") == DISPOSITION_AUTO_IMPLEMENT_QUEUED:
+            continue
         if _finding_still_active(item, findings):
             continue
         code = str(item.get("code") or "")
@@ -536,6 +539,7 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
 
     pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
     pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
+    pending_auto = list_pending(disposition=DISPOSITION_AUTO_IMPLEMENT_QUEUED)
 
     ts = _now_iso()
     summary = {
@@ -548,11 +552,23 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
         "auto_resolved": auto_resolved,
         "pending_agent_review": len(pending_agent),
         "pending_human_go": len(pending_human),
+        "auto_implement_queued": len(pending_auto),
         "pending_agent": pending_agent,
         "pending_human": pending_human,
+        "pending_auto_implement": pending_auto,
     }
     if pattern_review:
         summary["skim_pattern_review"] = pattern_review
+
+    try:
+        from utils.si_code_implementation import run_autonomous_code_si_cycle
+
+        summary["autonomous_code_si"] = run_autonomous_code_si_cycle(
+            assess_limit=int(os.environ.get("FORTRESS_SI_AUTO_ASSESS_LIMIT", "5") or 5),
+            implement_limit=int(os.environ.get("FORTRESS_SI_AUTO_IMPLEMENT_LIMIT", "1") or 1),
+        )
+    except Exception as e:
+        summary["autonomous_code_si"] = {"error": str(e)[:120]}
 
     snap = _data_dir() / "si_recommendation_summary.json"
     snap.write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -594,7 +610,15 @@ def set_agent_assessment(
             "assessed_utc": _now_iso(),
         }
         if worth_implementing:
-            item["disposition"] = DISPOSITION_PENDING_HUMAN
+            try:
+                from utils.si_code_implementation import auto_code_enabled
+
+                if auto_code_enabled():
+                    item["disposition"] = DISPOSITION_AUTO_IMPLEMENT_QUEUED
+                else:
+                    item["disposition"] = DISPOSITION_PENDING_HUMAN
+            except Exception:
+                item["disposition"] = DISPOSITION_PENDING_HUMAN
         else:
             item["disposition"] = DISPOSITION_DISMISSED
             item["status"] = STATUS_CLOSED
@@ -681,10 +705,22 @@ def status_dict() -> dict[str, Any]:
     queue = load_queue()
     pending_agent = list_pending(disposition=DISPOSITION_PENDING_AGENT)
     pending_human = list_pending(disposition=DISPOSITION_PENDING_HUMAN)
+    pending_auto = list_pending(disposition=DISPOSITION_AUTO_IMPLEMENT_QUEUED)
     return {
         "queue_size": len(queue.get("items") or []),
         "pending_agent_review": pending_agent,
         "pending_human_go": pending_human,
+        "auto_implement_queued": pending_auto,
+        "autonomous_code_enabled": _autonomous_code_flag(),
         "fix_registry_path": str(fix_registry_path()),
         "summary_path": str(_data_dir() / "si_recommendation_summary.json"),
     }
+
+
+def _autonomous_code_flag() -> bool:
+    try:
+        from utils.si_code_implementation import auto_code_enabled
+
+        return auto_code_enabled()
+    except Exception:
+        return False

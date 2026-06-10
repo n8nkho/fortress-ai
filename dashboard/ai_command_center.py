@@ -1709,6 +1709,35 @@ def api_si_recommendations_implemented(item_id: str):
         return jsonify({"ok": False, "error": str(e)}), 400
 
 
+@app.route("/api/si/code/run", methods=["POST"])
+def api_si_autonomous_code_run():
+    from utils.si_code_implementation import run_autonomous_code_si_cycle
+
+    body = request.get_json(silent=True) or {}
+    try:
+        result = run_autonomous_code_si_cycle(
+            assess_limit=int(body.get("assess_limit") or 5),
+            implement_limit=int(body.get("implement_limit") or 1),
+        )
+        return jsonify({"ok": True, **result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/si/code/implement/<item_id>", methods=["POST"])
+def api_si_code_implement_item(item_id: str):
+    from utils.si_code_implementation import implement_item
+
+    body = request.get_json(silent=True) or {}
+    try:
+        result = implement_item(item_id, dry_run=bool(body.get("dry_run")))
+        return jsonify(result)
+    except KeyError:
+        return jsonify({"ok": False, "error": "item_not_found"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
 @app.route("/api/si/capability-review")
 def api_si_capability_review():
     from utils.si_capability_review import latest_report_path, load_objectives, load_overrides, load_state

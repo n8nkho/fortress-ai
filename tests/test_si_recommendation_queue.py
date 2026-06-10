@@ -34,6 +34,7 @@ class TestSiRecommendationQueue(unittest.TestCase):
         self.assertEqual(len(q.get("items") or []), 1)
 
     def test_agent_assessment_moves_to_human_go(self):
+        os.environ["FORTRESS_SI_AUTO_CODE"] = "0"
         from utils.si_recommendation_queue import (
             DISPOSITION_PENDING_HUMAN,
             set_agent_assessment,
@@ -55,6 +56,30 @@ class TestSiRecommendationQueue(unittest.TestCase):
             proposed_implementation="Increase FORTRESS_AI_WEEKLY_LLM_CAP_USD to 10.",
         )
         self.assertEqual(updated.get("disposition"), DISPOSITION_PENDING_HUMAN)
+
+    def test_agent_assessment_auto_queues_when_enabled(self):
+        os.environ["FORTRESS_SI_AUTO_CODE"] = "1"
+        from utils.si_recommendation_queue import (
+            DISPOSITION_AUTO_IMPLEMENT_QUEUED,
+            set_agent_assessment,
+            upsert_from_finding,
+        )
+
+        item = upsert_from_finding(
+            {
+                "code": "weekly_llm_budget_tight",
+                "severity": "medium",
+                "component": "unified_ai",
+                "recommendation": "Raise budget cap.",
+            }
+        )
+        updated = set_agent_assessment(
+            item["id"],
+            worth_implementing=True,
+            rationale="Implement.",
+            proposed_implementation="Edit config.",
+        )
+        self.assertEqual(updated.get("disposition"), DISPOSITION_AUTO_IMPLEMENT_QUEUED)
 
     def test_register_fix_in_registry(self):
         from utils.si_recommendation_queue import fix_registry_path, load_fix_registry, register_fix_in_registry
