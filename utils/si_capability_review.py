@@ -623,6 +623,16 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
     state = _update_intervention_effectiveness(metrics, applied, state)
     save_state(state)
 
+    singularity: dict[str, Any] = {}
+    try:
+        from utils.si_singularity import run_singularity_cycle
+
+        singularity = run_singularity_cycle(metrics, gaps, apply=apply)
+        if singularity.get("singularity_applied"):
+            applied = applied + list(singularity.get("singularity_applied") or [])
+    except Exception as e:
+        singularity = {"error": str(e)[:120]}
+
     report = {
         "ok": True,
         "ts": now_iso(),
@@ -632,6 +642,7 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
         "classic_recommendations": classic_recs,
         "proposals": proposals,
         "applied": applied,
+        "singularity": singularity,
         "intervention_success_rate": state.get("intervention_success_rate"),
         "effective_rth_interval_sec": effective_rth_interval_sec(),
         "overrides": load_overrides().get("capabilities") or {},
@@ -645,6 +656,7 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
             "gaps": len(gaps),
             "applied": len(applied),
             "intervention_success_rate": state.get("intervention_success_rate"),
+            "singularity_phase": singularity.get("phase"),
         }
     )
     if apply:

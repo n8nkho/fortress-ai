@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-10T11:56:19.204864-04:00"
+      "registered_at_utc": "2026-06-10T12:00:36.990141-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -503,6 +503,22 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "medium"
+    },
+    "si_singularity_surpass": {
+      "title": "Singularity surpass mode \u2014 escalate when floor objectives met",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "singularity_compound",
+        "surpass_escalate",
+        "singularity_phase"
+      ],
+      "auto_tunable": {
+        "singularity_aggression_mult": 0.05,
+        "singularity_aspire_lift_pct": 0.01
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "critical"
     }
   }
 }

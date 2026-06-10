@@ -1772,6 +1772,35 @@ def api_si_capability_review_run():
         return jsonify({"ok": False, "error": str(e)}), 400
 
 
+@app.route("/api/si/singularity")
+def api_si_singularity():
+    from utils.si_singularity import latest_path, load_config, load_state
+
+    latest = {}
+    p = latest_path()
+    if p.is_file():
+        try:
+            latest = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            latest = {}
+    return jsonify({"latest": latest, "config": load_config(), "state": load_state()})
+
+
+@app.route("/api/si/singularity/run", methods=["POST"])
+def api_si_singularity_run():
+    from utils.si_capability_review import collect_metrics, evaluate_objective_gaps
+    from utils.si_singularity import run_singularity_cycle
+
+    body = request.get_json(silent=True) or {}
+    try:
+        metrics = collect_metrics()
+        gaps = evaluate_objective_gaps(metrics)
+        report = run_singularity_cycle(metrics, gaps, apply=bool(body.get("apply", True)))
+        return jsonify({"ok": True, "report": report})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
 @app.route("/api/prompt_evolution/status")
 def api_prompt_evolution_status():
     from agents.prompt_evolution import get_prompt_evolution

@@ -10,7 +10,8 @@
       "window_sessions": 5,
       "min_exits": 4,
       "priority": "critical",
-      "description": "Skim rolling session expectancy non-negative with minimum sample."
+      "description": "Skim rolling session expectancy non-negative with minimum sample.",
+      "target_aspire": 0.08
     },
     {
       "id": "skim_payoff_ratio",
@@ -20,7 +21,8 @@
       "window_sessions": 5,
       "min_exits": 6,
       "priority": "high",
-      "description": "Average win exceeds average loss over recent sessions."
+      "description": "Average win exceeds average loss over recent sessions.",
+      "target_aspire": 1.25
     },
     {
       "id": "infra_session_expectancy",
@@ -30,7 +32,8 @@
       "window_sessions": 5,
       "min_exits": 4,
       "priority": "high",
-      "description": "Infra overlay contributes non-negative edge."
+      "description": "Infra overlay contributes non-negative edge.",
+      "target_aspire": 0.35
     },
     {
       "id": "unified_realized_pnl",
@@ -50,7 +53,8 @@
       "window_sessions": 7,
       "min_exits": 0,
       "priority": "high",
-      "description": "Share of recent SI interventions followed by metric improvement."
+      "description": "Share of recent SI interventions followed by metric improvement.",
+      "target_aspire": 0.55
     },
     {
       "id": "classic_fill_activity",
@@ -71,7 +75,8 @@
       "min_screens": 3,
       "min_exits": 0,
       "priority": "high",
-      "description": "Screener yields candidates in bull tape — not zero-candidate streaks."
+      "description": "Screener yields candidates in bull tape — not zero-candidate streaks.",
+      "target_aspire": 2.0
     },
     {
       "id": "classic_session_expectancy",
@@ -91,7 +96,8 @@
       "window_sessions": 10,
       "min_exits": 0,
       "priority": "high",
-      "description": "Classic must produce a fill within adaptive recency window (days)."
+      "description": "Classic must produce a fill within adaptive recency window (days).",
+      "target_aspire": 3.0
     }
   ]
 }

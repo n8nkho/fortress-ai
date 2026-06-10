@@ -72,6 +72,20 @@
       "default": 7.0,
       "apply_via": "data/si_capability/overrides.json",
       "notes": "Adaptive max days since last Classic fill before recency gap fires."
+    },
+    "singularity_aggression_mult": {
+      "kind": "tunable",
+      "bounds": { "min": 0.5, "max": 1.5 },
+      "default": 1.0,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Scales surpass-mode SI escalation when floor objectives are met."
+    },
+    "singularity_aspire_lift_pct": {
+      "kind": "tunable",
+      "bounds": { "min": 0.02, "max": 0.15 },
+      "default": 0.05,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Fraction to lift dynamic aspire targets each singularity compound cycle."
     }
   }
 }

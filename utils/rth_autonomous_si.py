@@ -175,6 +175,9 @@ def _persist_cycle_report(doc: dict[str, Any]) -> None:
                     "ts": doc.get("ts"),
                     "findings": doc.get("integrity", {}).get("findings"),
                     "critical_applied": len(doc.get("critical_applied") or []),
+                    "singularity_phase": (
+                        (doc.get("capability_review") or {}).get("singularity") or {}
+                    ).get("phase"),
                     "edge": {
                         k: {
                             "payoff": (v or {}).get("payoff_ratio"),

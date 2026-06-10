@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Singularity mission — surpass floor objectives with dynamic aspire targets.",
+  "mission": "Compound portfolio edge across all sleeves; SI recursively improves its own effectiveness.",
+  "portfolio": {
+    "metric": "combined_rolling_realized_usd",
+    "target_min": 2.0,
+    "target_aspire": 12.0,
+    "window_sessions": 5
+  },
+  "phase_thresholds": {
+    "singularity_surpass_rate": 0.85,
+    "singularity_cycles_to_lift": 3
+  },
+  "component_weights": {
+    "skim_swarm": 0.22,
+    "infra_swarm": 0.28,
+    "classic_fortress": 0.25,
+    "unified_ai": 0.05,
+    "si_meta": 0.20
+  },
+  "aspire_defaults": {
+    "skim_session_expectancy": 0.08,
+    "skim_payoff_ratio": 1.25,
+    "infra_session_expectancy": 0.35,
+    "classic_candidate_throughput": 2.0,
+    "classic_fill_recency": 3.0,
+    "si_intervention_effectiveness": 0.55
+  }
+}
