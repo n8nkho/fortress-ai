@@ -242,7 +242,8 @@ def evaluate_objective_gaps(metrics: dict[str, Any]) -> list[dict[str, Any]]:
         comp = str(obj.get("component") or "")
         metric = str(obj.get("metric") or "")
         target_min = obj.get("target_min")
-        if target_min is None:
+        target_max = obj.get("target_max")
+        if target_min is None and target_max is None:
             continue
         min_exits = int(obj.get("min_exits") or 0)
         min_screens = int(obj.get("min_screens") or 0)
@@ -253,6 +254,16 @@ def evaluate_objective_gaps(metrics: dict[str, Any]) -> list[dict[str, Any]]:
             fills = int(comp_metrics.get("rolling_fills") or 0)
             if min_exits and fills < min_exits:
                 continue
+            # Adaptive recency: use capability knob as effective target_max when set.
+            if str(obj.get("metric") or "") == "days_since_last_fill":
+                try:
+                    from utils.si_adaptive_actions import adaptive_classic_fill_recency_max
+
+                    obj = dict(obj)
+                    obj["target_max"] = adaptive_classic_fill_recency_max()
+                    target_max = obj["target_max"]
+                except Exception:
+                    pass
         elif comp != "si_meta":
             exits = int(comp_metrics.get("rolling_exits") or 0)
             if exits < min_exits:
@@ -260,7 +271,22 @@ def evaluate_objective_gaps(metrics: dict[str, Any]) -> list[dict[str, Any]]:
         val = _metric_value(metrics, comp, metric)
         if val is None:
             continue
-        if float(val) < float(target_min):
+        if target_max is not None:
+            if float(val) > float(target_max):
+                gaps.append(
+                    {
+                        "objective_id": obj.get("id"),
+                        "component": comp,
+                        "metric": metric,
+                        "value": round(float(val), 4),
+                        "target_max": float(target_max),
+                        "gap": round(float(val) - float(target_max), 4),
+                        "priority": str(obj.get("priority") or "medium"),
+                        "description": obj.get("description"),
+                    }
+                )
+            continue
+        if target_min is not None and float(val) < float(target_min):
             gaps.append(
                 {
                     "objective_id": obj.get("id"),
@@ -360,6 +386,46 @@ def propose_capability_updates(
                     "reason": "Objectives met — relax review cadence toward default.",
                 }
             )
+        return proposals
+
+    # When primary knobs are saturated, adapt secondary knobs from gap severity.
+    gap_sev = sum(min(1.0, float(g.get("gap") or 0)) for g in gaps) / max(len(gaps), 1)
+    if any(g.get("objective_id") == "skim_session_expectancy" for g in gaps):
+        cur_strength = float(get_capability("rolling_edge_autofix_strength", 0.55) or 0.55)
+        new_strength = _clamp_capability("rolling_edge_autofix_strength", min(1.0, cur_strength + 0.05 * gap_sev))
+        if new_strength > cur_strength + 0.02:
+            proposals.append(
+                {
+                    "capability": "rolling_edge_autofix_strength",
+                    "current": cur_strength,
+                    "proposed": round(new_strength, 4),
+                    "reason": "Primary knobs saturated — increase rolling-aware autofix strength.",
+                }
+            )
+    if any(g.get("objective_id") == "classic_fill_recency" for g in gaps):
+        cur_days = float(get_capability("classic_fill_recency_days_max", 7.0) or 7.0)
+        new_days = _clamp_capability("classic_fill_recency_days_max", max(3.0, cur_days - 1.0 * gap_sev))
+        if new_days < cur_days - 0.4:
+            proposals.append(
+                {
+                    "capability": "classic_fill_recency_days_max",
+                    "current": cur_days,
+                    "proposed": round(new_days, 2),
+                    "reason": "Classic fill recency gap — tighten adaptive day threshold.",
+                }
+            )
+    if any(g.get("component") == "unified_ai" for g in gaps) or gap_sev > 0.5:
+        cur_trim = float(get_capability("unified_loser_trim_pct_equity", 0.05) or 0.05)
+        new_trim = _clamp_capability("unified_loser_trim_pct_equity", max(0.02, cur_trim - 0.005 * gap_sev))
+        if new_trim < cur_trim - 0.001:
+            proposals.append(
+                {
+                    "capability": "unified_loser_trim_pct_equity",
+                    "current": cur_trim,
+                    "proposed": round(new_trim, 4),
+                    "reason": "Portfolio drag — lower adaptive trim threshold (earlier action).",
+                }
+            )
 
     return proposals
 
@@ -394,6 +460,19 @@ def propose_classic_recommendations(
                 "detail": (
                     f"No fills in window; last fill {days}d ago — check cron screen/monitor, "
                     "entry gate, and TRENDING_BULL prefilter rejects."
+                ),
+            }
+        )
+    if "classic_fill_recency" in gap_ids:
+        days = classic.get("days_since_last_fill")
+        regime = classic.get("latest_regime") or "unknown"
+        recs.append(
+            {
+                "component": "classic_fortress",
+                "action": "adaptive_fill_recency",
+                "detail": (
+                    f"Last fill {days}d ago (regime {regime}) — run trading-bot screen/evolve; "
+                    "tighten classic_fill_recency_days_max if gap persists."
                 ),
             }
         )

@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-08T16:00:35.484437-04:00"
+      "registered_at_utc": "2026-06-09T20:50:33.511353-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -407,6 +407,66 @@
       "effort": "low",
       "impact": "medium",
       "recommendation": "reconcile_cleared_findings() on each integrity/capability scan; Classic auto-remediates regime/cron/evolution before re-scan."
+    },
+    "si_adaptive_rolling_edge": {
+      "title": "Rolling-aware edge autofix when session scorecard is green",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "rolling_edge_autofix",
+        "rolling_aware",
+        "rolling_edge_autofix:strength"
+      ],
+      "auto_tunable": {
+        "rolling_edge_autofix_strength": 0.05
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "si_adaptive_symbol_brake": {
+      "title": "Per-symbol adaptive session loss brake",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "session_brake",
+        "pause_long",
+        "disable_pattern"
+      ],
+      "auto_tunable": {
+        "symbol_session_loss_brake_mult": 0.1
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "si_adaptive_unified_loser": {
+      "title": "Adaptive unified-book loser trim and entry block",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_adaptive_loser_trim",
+        "si_adaptive_block",
+        "si_adaptive_loser_dry_run"
+      ],
+      "auto_tunable": {
+        "unified_loser_trim_pct_equity": 0.005,
+        "unified_loser_trim_fraction": 0.05
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "si_adaptive_classic_recency": {
+      "title": "Classic fill recency objective with adaptive day threshold",
+      "kind": "monitor",
+      "mitigation_markers": [
+        "adaptive_fill_recency",
+        "classic_fill_recency"
+      ],
+      "auto_tunable": {
+        "classic_fill_recency_days_max": 1.0
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     }
   }
 }

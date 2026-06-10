@@ -134,9 +134,19 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
     try:
         from utils.si_capability_review import run_capability_review_cycle
 
-        out["capability_review"] = run_capability_review_cycle(apply=True)
+        cap = run_capability_review_cycle(apply=True)
+        out["capability_review"] = cap
     except Exception as e:
         out["capability_review"] = {"error": str(e)[:120]}
+        cap = {}
+
+    try:
+        from utils.si_adaptive_actions import run_adaptive_si_cycle
+
+        gaps = (cap if isinstance(cap, dict) else {}).get("objective_gaps") or []
+        out["adaptive_si"] = run_adaptive_si_cycle(gaps=gaps, edge_context=edge_results)
+    except Exception as e:
+        out["adaptive_si"] = {"error": str(e)[:120]}
 
     try:
         from agents.self_improvement_engine import get_engine

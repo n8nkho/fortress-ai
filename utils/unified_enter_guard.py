@@ -60,6 +60,14 @@ def entry_blocked_by_cooldown(symbol: str, *, held_qty: int) -> tuple[bool, str 
     sym = _sym_key(symbol)
     if not sym:
         return False, None
+    try:
+        from utils.si_adaptive_actions import unified_symbol_blocked
+
+        blocked, reason = unified_symbol_blocked(sym)
+        if blocked:
+            return True, reason or "si_adaptive_block"
+    except Exception:
+        pass
     rec = (load_state().get("symbols") or {}).get(sym)
     if not isinstance(rec, dict):
         return False, None

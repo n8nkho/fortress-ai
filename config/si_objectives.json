@@ -82,6 +82,16 @@
       "min_exits": 2,
       "priority": "medium",
       "description": "Classic realized expectancy non-negative when fills exist."
+    },
+    {
+      "id": "classic_fill_recency",
+      "component": "classic_fortress",
+      "metric": "days_since_last_fill",
+      "target_max": 7.0,
+      "window_sessions": 10,
+      "min_exits": 0,
+      "priority": "high",
+      "description": "Classic must produce a fill within adaptive recency window (days)."
     }
   ]
 }

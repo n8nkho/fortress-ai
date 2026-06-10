@@ -37,6 +37,41 @@
       "default": -0.15,
       "apply_via": "data/si_capability/overrides.json",
       "notes": "Session expectancy threshold for critical mode (more negative = less aggressive)."
+    },
+    "rolling_edge_autofix_strength": {
+      "kind": "tunable",
+      "bounds": { "min": 0.15, "max": 1.0 },
+      "default": 0.55,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Scales rolling-aware edge autofix when session scorecard is green but rolling metrics lag."
+    },
+    "symbol_session_loss_brake_mult": {
+      "kind": "tunable",
+      "bounds": { "min": 0.5, "max": 2.0 },
+      "default": 1.0,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Multiplier on per-symbol session loss brake thresholds."
+    },
+    "unified_loser_trim_pct_equity": {
+      "kind": "tunable",
+      "bounds": { "min": 0.02, "max": 0.12 },
+      "default": 0.05,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Unrealized loss as fraction of equity before adaptive partial trim."
+    },
+    "unified_loser_trim_fraction": {
+      "kind": "tunable",
+      "bounds": { "min": 0.1, "max": 0.5 },
+      "default": 0.25,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Fraction of position to trim when loser threshold exceeded."
+    },
+    "classic_fill_recency_days_max": {
+      "kind": "tunable",
+      "bounds": { "min": 3.0, "max": 14.0 },
+      "default": 7.0,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Adaptive max days since last Classic fill before recency gap fires."
     }
   }
 }
