@@ -1,7 +1,7 @@
 {
   "description": "Phase 1 protected-path baseline. git blob SHA-1 (git hash-object) per file at the committed HEAD when the daily integrity check was set up. The 7am check compares these against the current GitHub HEAD of each repo. Any change = drift to flag.",
   "captured_at": "2026-06-11T13:54:00-04:00",
-  "note_revision": "Re-baselined trading-bot to the master branch (canonical source of truth; main is 161 commits stale and fails OPEN on halt read error). fortress-ai unchanged.",
+  "note_revision": "Updated 2026-06-11 to trading-bot Phase 2 commit cd2c24d (verified additive-only: BUY position-pct cap, broker brackets, risk_guardian lock; no thresholds weakened). operator_halt.py blob unchanged. fortress-ai unchanged.",
   "repos": {
     "fortress-ai": {
       "branch": "main",
@@ -16,11 +16,11 @@
     "trading-bot": {
       "branch": "master",
       "canonical": true,
-      "head": "20d079b6ad94287f18f2d5adc3aff0ca0befee0f",
+      "head": "cd2c24db0204b52145b8e55bbe9610e33b4ac76b",
       "protected_files": {
-        "utils/pre_trade_gate.py": "515e5e0cc17f6d67915ccfca3dade6c397491220",
+        "utils/pre_trade_gate.py": "852120fa9fba106372267eebb122db9cd0166245",
         "utils/operator_halt.py": "f02adee5ad244bc970d4f6e1462e47078dec0aa8",
-        "agents/risk_guardian.py": "6023c02d3b60bb196922a14732caa5723b95a954"
+        "agents/risk_guardian.py": "ef4834e5a8df300bef7803b4c5dab05a4e3d0f66"
       },
       "note": "trading-bot has no si_code_implementation.py (self-coder is fortress-only). master is canonical; the GitHub default branch (main, 01e57ad) is 161 commits stale and its operator_halt.py fails OPEN on read error."
     }
