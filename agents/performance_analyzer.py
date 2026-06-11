@@ -85,15 +85,14 @@ class PerformanceAnalyzer:
         for a in actions:
             dist[a] = dist.get(a, 0) + 1
 
-        from utils.decision_log_metrics import trade_pnls_for_enter_executions, win_rate_from_pnls
+        from utils.decision_log_metrics import (
+            max_drawdown_fraction,
+            trade_pnls_for_enter_executions,
+        )
 
         tp = trade_pnls_for_enter_executions(rows)
-        wr = win_rate_from_pnls(tp) if tp else None
-        note = (
-            "win_rate from enter_position rows with PnL fields when present."
-            if tp
-            else "No PnL on logged enters — win_rate None until fills/PnL are written."
-        )
+        expectancy = (sum(tp) / len(tp)) if tp else None
+        mdd = max_drawdown_fraction(tp) if len(tp) >= 2 else None
 
         return {
             "period_days": days,
@@ -103,7 +102,8 @@ class PerformanceAnalyzer:
             "avg_confidence": (sum(confidences) / len(confidences)) if confidences else None,
             "execution_rate": (exec_n / n) if n else 0.0,
             "by_prompt_variant": variants,
-            "win_rate": wr,
+            "rolling_expectancy_usd": round(expectancy, 4) if expectancy is not None else None,
+            "max_drawdown_fraction": round(mdd, 4) if mdd is not None else None,
             "pnl_sample_trades": len(tp),
-            "note": note,
+            "note": "Expectancy-first monitor metrics from enter rows with PnL when present.",
         }

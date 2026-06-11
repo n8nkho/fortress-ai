@@ -58,6 +58,31 @@ class TestSiSingularity(unittest.TestCase):
             out = run_singularity_cycle({}, [])
         self.assertEqual(out.get("skipped"), "singularity_disabled")
 
+    def test_drawdown_guard_holds_aspire_lift(self):
+        from utils.si_singularity import maybe_lift_aspire_targets
+
+        metrics = {
+            "skim_swarm": {
+                "sessions": [
+                    {"session_date_et": "2026-06-08", "realized_usd": 100.0},
+                    {"session_date_et": "2026-06-09", "realized_usd": -80.0},
+                ]
+            },
+            "infra_swarm": {"sessions": []},
+            "classic_fortress": {"sessions": []},
+            "unified_ai": {"sessions": []},
+        }
+        state = {"aspire_overrides": {}, "singularity_streak": 5}
+        with patch("utils.si_singularity.load_state", return_value=state):
+            with patch("utils.si_singularity.save_state"):
+                with patch(
+                    "utils.si_capability_review.get_capability",
+                    side_effect=lambda k, d: 0.05 if k == "singularity_aspire_lift_pct" else 0.05,
+                ):
+                    out = maybe_lift_aspire_targets("singularity", 1.0, metrics=metrics)
+        self.assertEqual(out.get("held"), "SI-HOLD: drawdown_guard")
+        self.assertEqual(out.get("lifted"), {})
+
 
 if __name__ == "__main__":
     unittest.main()

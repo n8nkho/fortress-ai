@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Outcome objectives the SI stack optimizes toward. Reviewed each RTH/governance cycle.",
+  "description": "Outcome objectives the SI stack optimizes toward (expectancy-first — no win-rate primary targets). Reviewed each RTH/governance cycle.",
   "objectives": [
     {
       "id": "skim_session_expectancy",

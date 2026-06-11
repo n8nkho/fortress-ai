@@ -308,7 +308,37 @@ def propose_singularity_capability_updates(
     return proposals
 
 
-def maybe_lift_aspire_targets(phase: str, surpass_rate: float) -> dict[str, Any]:
+def _portfolio_rolling_drawdown_pct(metrics: dict[str, Any] | None) -> float | None:
+    """Peak-to-trough drawdown on combined daily realized PnL across sleeves (0–1)."""
+    if not metrics:
+        return None
+    from utils.decision_log_metrics import max_drawdown_fraction
+
+    daily: dict[str, float] = {}
+    for comp in ("skim_swarm", "infra_swarm", "classic_fortress", "unified_ai"):
+        block = metrics.get(comp) or {}
+        for row in block.get("sessions") or []:
+            if not isinstance(row, dict):
+                continue
+            day = str(row.get("session_date_et") or row.get("day") or "").strip()
+            if not day:
+                continue
+            daily[day] = round(
+                daily.get(day, 0.0) + float(row.get("realized_usd") or row.get("realized") or 0),
+                4,
+            )
+    if len(daily) < 2:
+        return None
+    pnls = [daily[d] for d in sorted(daily.keys())]
+    return max_drawdown_fraction(pnls)
+
+
+def maybe_lift_aspire_targets(
+    phase: str,
+    surpass_rate: float,
+    *,
+    metrics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """When sustained singularity, raise dynamic aspire targets (bounded)."""
     cfg = load_config()
     thresholds = cfg.get("phase_thresholds") or {}
@@ -320,6 +350,12 @@ def maybe_lift_aspire_targets(phase: str, surpass_rate: float) -> dict[str, Any]
         )
         or 0.05
     )
+    max_dd_cap = float(
+        __import__("utils.si_capability_review", fromlist=["get_capability"]).get_capability(
+            "max_rolling_drawdown_pct", 0.12
+        )
+        or 0.12
+    )
 
     state = load_state()
     streak = int(state.get("singularity_streak") or 0)
@@ -330,6 +366,18 @@ def maybe_lift_aspire_targets(phase: str, surpass_rate: float) -> dict[str, Any]
     state["singularity_streak"] = streak
     state["last_phase"] = phase
     state["last_surpass_rate"] = surpass_rate
+
+    rolling_dd = _portfolio_rolling_drawdown_pct(metrics)
+    if rolling_dd is not None and rolling_dd > max_dd_cap:
+        save_state(state)
+        return {
+            "lifted": {},
+            "streak": streak,
+            "phase": phase,
+            "held": "SI-HOLD: drawdown_guard",
+            "rolling_drawdown_pct": round(float(rolling_dd), 4),
+            "max_rolling_drawdown_pct": max_dd_cap,
+        }
 
     lifted: dict[str, float] = {}
     if streak >= need_cycles and phase == "singularity":
@@ -402,7 +450,15 @@ def push_surpass_to_classic(directives: list[dict[str, Any]]) -> list[dict[str, 
             }
             for d in classic_dirs
         ]
-        recs = [{"component": "classic_fortress", "action": d.get("action"), "detail": d.get("detail")} for d in classic_dirs]
+        recs = [
+            {
+                "component": "classic_fortress",
+                "action": d.get("action"),
+                "detail": d.get("detail"),
+                "objective_id": d.get("objective_id"),
+            }
+            for d in classic_dirs
+        ]
         return push_findings_to_classic_queue(gaps, recs)
     except Exception:
         return []
@@ -429,7 +485,7 @@ def run_singularity_cycle(
 
         applied = apply_capability_updates(proposals)
 
-    lift = maybe_lift_aspire_targets(phase, surpass_rate)
+    lift = maybe_lift_aspire_targets(phase, surpass_rate, metrics=metrics)
     directives = singularity_directives(phase, surpass_gaps)
     classic_pushed = push_surpass_to_classic(directives) if apply else []
 

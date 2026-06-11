@@ -390,6 +390,21 @@ def resolve_trading_bot_root() -> Path | None:
     return sibling if sibling.is_dir() else None
 
 
+def _load_trading_bot_queue_module(tb: Path):
+    """Import trading-bot queue module from disk (avoid fortress-ai utils cache collision)."""
+    import importlib.util
+
+    path = tb / "utils" / "si_recommendation_queue.py"
+    if not path.is_file():
+        raise ImportError(f"trading_bot_queue_missing:{path}")
+    spec = importlib.util.spec_from_file_location("trading_bot_si_recommendation_queue", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"trading_bot_queue_spec_failed:{path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def push_findings_to_classic_queue(
     gaps: list[dict[str, Any]],
     recommendations: list[dict[str, Any]] | None = None,
@@ -398,13 +413,9 @@ def push_findings_to_classic_queue(
     tb = resolve_trading_bot_root()
     if not tb:
         return []
-    import sys
-
-    root = str(tb)
-    if root not in sys.path:
-        sys.path.insert(0, root)
     try:
-        from utils.si_recommendation_queue import upsert_from_finding
+        tb_queue = _load_trading_bot_queue_module(tb)
+        upsert_from_finding = tb_queue.upsert_from_finding
     except Exception:
         return []
 
@@ -438,14 +449,18 @@ def push_findings_to_classic_queue(
         if not isinstance(rec, dict):
             continue
         action = str(rec.get("action") or "")
+        oid = str(rec.get("objective_id") or "")
         code = "classic_candidate_throughput"
-        if "fill" in action:
+        if oid in ("classic_fill_recency", "classic_fill_activity") or "fill" in action:
             code = "classic_fill_recency"
+        elif action == "surpass_escalate" and oid:
+            code = "classic_candidate_throughput" if "throughput" in oid else "classic_fill_recency" if "fill" in oid else "si_objective_gap"
         finding = {
             "code": code,
+            "objective_id": oid or None,
             "severity": "medium",
             "component": "classic_fortress",
-            "title": f"Classic SI: {action}",
+            "title": f"Classic SI: {action or code}",
             "recommendation": str(rec.get("detail") or ""),
             "kind": "tunable",
             "effort": "low",
