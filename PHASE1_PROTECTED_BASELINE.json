@@ -1,11 +1,11 @@
 {
   "description": "Phase 1 protected-path baseline. git blob SHA-1 (git hash-object) per file at the committed HEAD when the daily integrity check was set up. The 7am check compares these against the current GitHub HEAD of each repo. Any change = drift to flag.",
-  "captured_at": "2026-06-11T15:10:00-04:00",
-  "note_revision": "Updated 2026-06-11 post issues #4/#5 merge. fortress-ai main=6db0ec6 (baseline-commit HEAD; fix-issue-5 merge was 1ff2380) (fix-issue-5 merged: bounded tighten-only revert knobs; protected blobs UNCHANGED \u2014 perf_monitor.py & registries are not protected). trading-bot master=8c9836d (fix-issue-4 merged: bracket-unavailable -> SI-HOLD, no naked order; protected blobs UNCHANGED \u2014 orchestrator.py & alpaca_execution.py are not protected). master is the GitHub DEFAULT branch. Phases 1+2+3 and issues #1-#5 all verified clean + merged.",
+  "captured_at": "2026-06-11T16:09:00-04:00",
+  "note_revision": "Updated 2026-06-11 post hygiene-cleanup merge. fortress main=75d9d97 (dead-code removal, test-collection guards tests/optional_deps.py+__init__.py, CI workflow, doc/config sync). trading master=47c6a6b (dead analyst/log code removed, CI, .env.example docs). Protected blobs UNCHANGED on both. Phases 1-3, issues #1-#5, and hygiene pass all verified clean + merged. Safety rails fully in force.",
   "repos": {
     "fortress-ai": {
       "branch": "main",
-      "head": "6db0ec684c16e63508d074cbfec3102189766d74",
+      "head": "75d9d97c787850adff4de102b11a4da270077133",
       "protected_files": {
         "utils/pre_trade_gate.py": "dea2b8a98348fc1539e267982829270318ab2b9a",
         "utils/operator_halt.py": "0ffd62255949a533232162f924396395228dcf00",
@@ -16,7 +16,7 @@
     "trading-bot": {
       "branch": "master",
       "canonical": true,
-      "head": "8c9836dd9718eb7c370cbe0791c6a5278b027546",
+      "head": "47c6a6b43f942286693d469d2c7736961f63f131",
       "protected_files": {
         "utils/pre_trade_gate.py": "852120fa9fba106372267eebb122db9cd0166245",
         "utils/operator_halt.py": "f02adee5ad244bc970d4f6e1462e47078dec0aa8",
