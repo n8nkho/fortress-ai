@@ -10,19 +10,38 @@ from typing import Any
 
 from agents.performance_analyzer import PerformanceAnalyzer
 
+# Hardcoded defaults — registry bounds + tighten-only read path cannot loosen below these.
+_REVERT_TRIGGER_DEFAULTS: dict[str, float | int] = {
+    "min_rolling_expectancy_usd": -0.05,
+    "expectancy_regression_usd": 0.03,
+    "max_drawdown_threshold": 0.15,
+    "min_monitoring_days": 7,
+}
+
 
 def _data_dir() -> Path:
     raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
     return Path(raw) if raw else Path(__file__).resolve().parent.parent / "data"
 
 
+def get_revert_trigger(name: str) -> float | int:
+    """Operator-configurable revert knobs — self-tuner cannot loosen vs defaults."""
+    from utils.si_capability_review import _clamp_capability, get_capability
+
+    default = _REVERT_TRIGGER_DEFAULTS[name]
+    raw = get_capability(name, default)
+    val = _clamp_capability(name, float(raw if raw is not None else default))
+    if name == "min_rolling_expectancy_usd":
+        return max(val, float(default))
+    if name in ("expectancy_regression_usd", "max_drawdown_threshold"):
+        return min(val, float(default))
+    if name == "min_monitoring_days":
+        return int(min(val, float(default)))
+    return val
+
+
 class PerformanceMonitor:
-    REVERT_TRIGGERS = {
-        "min_rolling_expectancy_usd": -0.05,
-        "expectancy_regression_usd": 0.03,
-        "max_drawdown_threshold": 0.15,
-        "min_monitoring_days": 7,
-    }
+    REVERT_TRIGGERS = dict(_REVERT_TRIGGER_DEFAULTS)
 
     def load_active_outcomes(self, *, max_entries: int = 40) -> list[dict[str, Any]]:
         p = _data_dir() / "improvement_outcomes.jsonl"
@@ -59,14 +78,14 @@ class PerformanceMonitor:
         except Exception:
             return False
         days = (datetime.now(timezone.utc) - t_applied).days
-        if days < int(self.REVERT_TRIGGERS["min_monitoring_days"]):
+        if days < int(get_revert_trigger("min_monitoring_days")):
             return False
 
         perf = self.get_performance_since(applied)
         exp = perf.get("rolling_expectancy_usd")
         baseline = outcome.get("baseline_expectancy_usd")
-        min_exp = float(self.REVERT_TRIGGERS["min_rolling_expectancy_usd"])
-        regress = float(self.REVERT_TRIGGERS["expectancy_regression_usd"])
+        min_exp = float(get_revert_trigger("min_rolling_expectancy_usd"))
+        regress = float(get_revert_trigger("expectancy_regression_usd"))
 
         if exp is not None:
             if float(exp) < min_exp:
@@ -75,7 +94,7 @@ class PerformanceMonitor:
                 return True
 
         mdd = perf.get("max_drawdown_fraction")
-        if mdd is not None and float(mdd) >= float(self.REVERT_TRIGGERS["max_drawdown_threshold"]):
+        if mdd is not None and float(mdd) >= float(get_revert_trigger("max_drawdown_threshold")):
             return True
 
         return False

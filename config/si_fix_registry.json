@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-11T14:49:21.162158-04:00"
+      "registered_at_utc": "2026-06-11T15:03:34.114790-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -559,6 +559,35 @@
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "medium",
+      "impact": "high"
+    },
+    "performance_monitor_revert_knobs": {
+      "title": "PerformanceMonitor revert triggers via bounded capability registry",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "performance_monitor_expectancy_regression",
+        "get_revert_trigger"
+      ],
+      "auto_tunable": {
+        "min_rolling_expectancy_usd": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "expectancy_regression_usd": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "max_drawdown_threshold": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "min_monitoring_days": {
+          "tier": 0,
+          "direction": "tighten_only"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
       "impact": "high"
     }
   }

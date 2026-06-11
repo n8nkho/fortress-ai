@@ -93,6 +93,34 @@
       "default": 0.12,
       "apply_via": "data/si_capability/overrides.json",
       "notes": "Portfolio rolling drawdown ceiling — blocks aspire target lifts when breached (SI-HOLD)."
+    },
+    "min_rolling_expectancy_usd": {
+      "kind": "tunable",
+      "bounds": { "min": -0.05, "max": -0.01 },
+      "default": -0.05,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "PerformanceMonitor revert floor for rolling expectancy (max -0.05 = cannot loosen vs default)."
+    },
+    "expectancy_regression_usd": {
+      "kind": "tunable",
+      "bounds": { "min": 0.01, "max": 0.03 },
+      "default": 0.03,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "PerformanceMonitor revert when baseline minus rolling expectancy exceeds this (max 0.03 = tighten-only)."
+    },
+    "max_drawdown_threshold": {
+      "kind": "tunable",
+      "bounds": { "min": 0.05, "max": 0.15 },
+      "default": 0.15,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "PerformanceMonitor revert when rolling max drawdown fraction reaches threshold (max 0.15 = tighten-only)."
+    },
+    "min_monitoring_days": {
+      "kind": "tunable",
+      "bounds": { "min": 3, "max": 7 },
+      "default": 7,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Days before PerformanceMonitor may revert an active change (max 7 = cannot delay monitoring)."
     }
   }
 }
