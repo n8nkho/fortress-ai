@@ -7,21 +7,21 @@ This is the canonical branch map for the two-repo trading stack. **Always commit
 | Repo | Canonical branch | GitHub default | Status |
 |------|------------------|----------------|--------|
 | `fortress-ai` | `main` | `main` | ✅ aligned — commit here |
-| `trading-bot` | **`master`** | `main` ⚠️ | ⚠️ default is WRONG — see below |
+| `trading-bot` | **`master`** | **`master`** ✅ | ✅ reconciled 2026-06-11 — master is now the default |
 
 ### fortress-ai
 - Canonical = `main`. Default = `main`. No ambiguity. Commit Phase 2–3 fortress work to `main`.
 - Phase 1 landed at `8f05950`.
 
-### trading-bot — IMPORTANT
-- **Canonical / deployed branch = `master`.** Commit ALL trading-bot work to `master`.
-- The GitHub **default branch is `main`, and it is STALE**: `master` is **161 commits ahead of `main`, 0 behind**.
-- `main`'s `utils/operator_halt.py` still **fails OPEN** on a halt-state read error (`return False` in the `except`). `master`'s correctly **fails CLOSED** (`return True`). The Phase 1.2 fix lives only on `master`.
-- Phase 1 landed at `20d079b` on `master`.
-- **Do NOT branch from, merge into, or commit to `main`.** Do NOT merge `main` into `master` (that would drag stale code over the good branch). If anything needs to reach `main`, the direction is `master` → `main`, and only a human does that.
+### trading-bot — RECONCILED
+- **Canonical / deployed branch = `master`, and as of 2026-06-11 it is the GitHub DEFAULT branch.** Commit ALL trading-bot work to `master`.
+- The old `main` (`01e57ad`) is retained but **stale and no longer default**. Its `operator_halt.py` fails OPEN — do NOT use it.
+- `master`'s `operator_halt.py` correctly **fails CLOSED** (`return True` on read error).
+- Phase 1 landed at `20d079b`; Phase 2 at `cd2c24d` (current `master` HEAD).
+- **Do NOT branch from, merge into, or commit to `main`.** Never merge `main` into `master`.
 
-## Pending reconciliation (human-owned, do not perform autonomously)
-The operator will resolve the `main`/`master` split by one of: switching the GitHub default to `master`, merging `master` → `main`, or deleting `main`. Until that happens, treat `master` as the only source of truth for `trading-bot`.
+## Reconciliation status: DONE
+The `main`/`master` split was reconciled on 2026-06-11 by setting `master` as the GitHub default branch. No further action needed unless `master` ceases to be default.
 
 ## Rules for Cursor when implementing Phase 2–3
 1. **trading-bot → branch `master`. fortress-ai → branch `main`.** Verify with `git rev-parse --abbrev-ref HEAD` before any commit in each repo.
