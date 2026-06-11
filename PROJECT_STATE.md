@@ -43,8 +43,13 @@ Non-blocking follow-ups (operator's call): enable `FORTRESS_SI_AUTO_PUSH` when r
 ## Standing guardrails (unchanged, always in force)
 - Never weaken `pre_trade_gate`, immutable risk caps, kill switch, or `operator_halt`. STOP + `# SI-BLOCKED:` rather than touch a protected file.
 - Stays on paper. Do not flip `FORTRESS_LIVE_TRADING_ACK` / any live flag.
-- Keep `FORTRESS_SI_AUTO_PUSH=0` until the operator explicitly enables autonomous push (rails are in place; operator decision pending).
 - A weekday 7:00am ET drift monitor checks the protected files on GitHub and emails a green/yellow/red status. Baseline: `PHASE1_PROTECTED_BASELINE.json`.
+
+## Autonomous operation status (LIVE as of 2026-06-11)
+- Operator ENABLED the full self-improvement loop in local `.env`: `FORTRESS_SI_AUTO_CODE=1`, `FORTRESS_SI_AUTO_COMMIT=1`, `FORTRESS_SI_AUTO_PUSH=1`. The bot now self-codes, commits, and pushes to canonical branches (fortress `main` / trading-bot `master`) without operator intervention.
+- Brakes confirmed in force at enable time: `FORTRESS_SI_AUTO_CODE_REQUIRE_E2E=1` (every push gated behind the acceptance suite); no `FORTRESS_LIVE_TRADING_ACK` line (stays on PAPER); `FORTRESS_SI_AUTO_CODE_MAX_PER_DAY=3`.
+- Pre-push guard chain (in `utils/si_code_implementation.py`, all fire before any push): (1) halt-freeze `SI-FROZEN`; (2) protected-file snapshot + restore-on-modify `SI-FROZEN: protected_file_modified`; (3) `_diff_allowed` deny-list `blocked`; (4) E2E acceptance gate; (5) commit then push. Push is the last step, gated behind all of the above.
+- Monitoring: the existing weekday 7:00am ET drift check stands watch (operator chose to keep it as-is rather than add a near-real-time push alert).
 
 ## Protected-file hashes (current baseline — do not let these drift)
 - fortress-ai (main): `pre_trade_gate.py`=dea2b8a, `operator_halt.py`=0ffd622, `si_code_implementation.py`=b276348
