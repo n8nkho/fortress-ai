@@ -30,6 +30,15 @@ def rth_cycle_interval_sec() -> int:
         return 1800
 
 
+def si_mutations_frozen() -> dict[str, Any] | None:
+    """When operator halt is active, skip all SI self-tuning / coding / push steps."""
+    from utils.operator_halt import is_trading_halted
+
+    if is_trading_halted():
+        return {"skipped": "SI-FROZEN: trading_halted", "frozen": True}
+    return None
+
+
 def _session_date_et() -> str:
     from agents.skim_swarm.eod import session_date_et
 
@@ -82,6 +91,12 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
     # log=False — we call process_scan_to_queue explicitly once
     scan = run_integrity_scan(log=False)
     out["integrity"] = {"counts": scan.get("counts"), "findings": len(scan.get("findings") or [])}
+
+    frozen = si_mutations_frozen()
+    if frozen:
+        out.update(frozen)
+        _persist_cycle_report(out)
+        return out
 
     from utils.si_recommendation_queue import process_scan_to_queue, status_dict
 

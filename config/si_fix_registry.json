@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-10T12:06:52.375226-04:00"
+      "registered_at_utc": "2026-06-11T13:46:50.679389-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -532,6 +532,20 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"
+    },
+    "si_protected_paths_hardening": {
+      "title": "Phase 1 singularity hardening \u2014 protected paths + halt freeze + run lock",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "SI-BLOCKED",
+        "SI-FROZEN",
+        "protected_path",
+        "trading_halted"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "critical"
     }
   }
 }

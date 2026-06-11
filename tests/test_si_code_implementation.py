@@ -96,10 +96,43 @@ class TestSiCodeImplementation(unittest.TestCase):
 
         from utils.si_code_implementation import implement_item
 
-        with patch("utils.si_code_implementation._implementations_today", return_value=0):
+        with patch("utils.si_code_implementation._implementation_attempts_today", return_value=0):
             result = implement_item(item["id"], dry_run=True)
         self.assertTrue(result.get("dry_run"))
         self.assertTrue(Path(result["prompt_path"]).is_file())
+
+    def test_velocity_cap_counts_failed_attempts(self):
+        from utils.si_code_implementation import _record_implementation_attempt, max_implementations_per_day
+
+        os.environ["FORTRESS_SI_AUTO_CODE_MAX_PER_DAY"] = "1"
+        _record_implementation_attempt("attempt-a")
+        item = {
+            "status": "open",
+            "kind": "code_guard",
+            "disposition": "auto_implement_queued",
+            "agent_assessment": {"worth_implementing": True},
+            "code": "x",
+        }
+        ok, reason = can_auto_implement(item)
+        self.assertFalse(ok)
+        self.assertEqual(reason, "daily_velocity_cap")
+
+    def test_implement_frozen_when_halted(self):
+        from utils.si_recommendation_queue import upsert_from_finding
+
+        item = upsert_from_finding(
+            {
+                "code": "test_guard",
+                "severity": "medium",
+                "component": "skim_swarm",
+                "recommendation": "Fix thing.",
+            }
+        )
+        with patch("utils.operator_halt.is_trading_halted", return_value=True):
+            from utils.si_code_implementation import implement_item
+
+            out = implement_item(item["id"])
+        self.assertEqual(out.get("skipped"), "SI-FROZEN: trading_halted")
 
 
 if __name__ == "__main__":

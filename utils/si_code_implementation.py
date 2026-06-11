@@ -3,19 +3,22 @@ Autonomous code-level SI — assess, implement, verify, commit without human go.
 
 Safety rails (always on):
 - Never edit .env, immutable governance params, or weaken pre-trade gate markers
+- PROTECTED_PATHS deny-list + SHA-256 integrity guard (Phase 1 hardening)
 - e2e must pass before mark_implemented (configurable)
-- Velocity caps per day / week
+- Velocity caps per day (attempts, not only successes)
 - monitor-only findings skipped unless explicit code kind
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import re
 import shutil
 import subprocess
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from utils.system_time import ensure_system_tz, now_iso
 
@@ -43,10 +46,114 @@ ALLOWED_WRITE_PREFIXES = (
     "deploy/",
 )
 
+# Repo-relative paths the self-coder must never modify (deny-list overrides allow-prefix).
+PROTECTED_REL_PATHS = (
+    "utils/pre_trade_gate.py",
+    "utils/operator_halt.py",
+    "agents/risk_guardian.py",
+    "config/si_capability_registry.json",
+    "utils/si_code_implementation.py",
+    "SINGULARITY_HARDENING_PROMPT.md",
+)
+
+
+class RunLockBusy(Exception):
+    pass
+
 
 def _data_dir() -> Path:
     raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
     return Path(raw) if raw else (_ROOT / "data")
+
+
+def _normalize_rel_path(path: str) -> str:
+    return path.replace("\\", "/").lstrip("./")
+
+
+def path_is_protected(rel_path: str) -> bool:
+    norm = _normalize_rel_path(rel_path)
+    for protected in PROTECTED_REL_PATHS:
+        if norm == protected or norm.endswith(f"/{protected}"):
+            return True
+    return False
+
+
+def _protected_files_for_repo(repo: Path) -> list[Path]:
+    out: list[Path] = []
+    for rel in PROTECTED_REL_PATHS:
+        p = repo / rel
+        if p.is_file():
+            out.append(p)
+    return out
+
+
+def _snapshot_protected_files(repo: Path) -> dict[str, bytes]:
+    snaps: dict[str, bytes] = {}
+    for p in _protected_files_for_repo(repo):
+        snaps[_normalize_rel_path(str(p.relative_to(repo)))] = p.read_bytes()
+    return snaps
+
+
+def _verify_protected_integrity(repo: Path, snapshots: dict[str, bytes]) -> list[str]:
+    modified: list[str] = []
+    for rel, expected in snapshots.items():
+        p = repo / rel
+        if not p.is_file():
+            modified.append(rel)
+            continue
+        if p.read_bytes() != expected:
+            modified.append(rel)
+    return modified
+
+
+def _restore_protected_snapshots(repo: Path, snapshots: dict[str, bytes]) -> list[str]:
+    restored: list[str] = []
+    for rel, data in snapshots.items():
+        p = repo / rel
+        if p.is_file() and p.read_bytes() != data:
+            p.write_bytes(data)
+            restored.append(rel)
+    return restored
+
+
+def _run_lock_path() -> Path:
+    return _data_dir() / "si_code_implementation" / ".run.lock"
+
+
+@contextmanager
+def _run_lock() -> Iterator[None]:
+    lock_path = _run_lock_path()
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = open(lock_path, "a+", encoding="utf-8")
+    try:
+        fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as exc:
+        fd.close()
+        raise RunLockBusy("run_lock_held") from exc
+    try:
+        fd.seek(0)
+        fd.truncate()
+        fd.write(json.dumps({"pid": os.getpid(), "started_utc": now_iso()}))
+        fd.flush()
+        yield
+    finally:
+        try:
+            fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+        finally:
+            fd.close()
+
+
+def _si_frozen_response(context: str) -> dict[str, Any] | None:
+    from utils.operator_halt import is_trading_halted
+
+    if is_trading_halted():
+        return {
+            "ok": True,
+            "skipped": "SI-FROZEN: trading_halted",
+            "frozen": True,
+            "context": context,
+        }
+    return None
 
 
 def auto_code_enabled() -> bool:
@@ -121,20 +228,29 @@ def _save_item(item: dict[str, Any]) -> None:
     raise KeyError(f"item_not_found:{item.get('id')}")
 
 
-def _implementations_today() -> int:
+def _implementation_attempts_today() -> int:
     d = implementation_runs_dir()
     if not d.is_dir():
         return 0
     today = now_iso()[:10]
     n = 0
-    for f in d.glob("*/result.json"):
+    for f in d.glob("*/attempt.json"):
         try:
             doc = json.loads(f.read_text(encoding="utf-8"))
-            if str(doc.get("finished_utc") or "").startswith(today) and doc.get("ok"):
+            if str(doc.get("started_utc") or "").startswith(today):
                 n += 1
         except Exception:
             continue
     return n
+
+
+def _record_implementation_attempt(item_id: str) -> None:
+    run_dir = implementation_runs_dir() / item_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "attempt.json").write_text(
+        json.dumps({"item_id": item_id, "started_utc": now_iso()}, indent=2),
+        encoding="utf-8",
+    )
 
 
 def _registry_meta(code: str) -> dict[str, Any]:
@@ -170,7 +286,7 @@ def can_auto_implement(item: dict[str, Any]) -> tuple[bool, str]:
     if disp not in allowed_disp and not assessment.get("worth_implementing"):
         return False, f"disposition:{disp}"
 
-    if _implementations_today() >= max_implementations_per_day():
+    if _implementation_attempts_today() >= max_implementations_per_day():
         return False, "daily_velocity_cap"
 
     meta = _registry_meta(str(item.get("code") or ""))
@@ -316,7 +432,8 @@ def build_implementation_prompt(item: dict[str, Any]) -> str:
 
 ## Hard constraints
 - Do NOT edit .env, .cursor/, data/, or weaken pre-trade gate / immutable caps
-- Only edit: agents/, utils/, config/, scripts/, tests/, dashboard/, deploy/
+- NEVER edit protected files: {', '.join(PROTECTED_REL_PATHS)}
+- Only edit: agents/, utils/, config/, scripts/, tests/, dashboard/, deploy/ (non-protected)
 - Minimize diff scope; match existing code style
 - Add detectable log/block_reason markers: {', '.join(markers) if markers else 'as appropriate'}
 - Update config/si_fix_registry.json for code {item.get('code')} if new mitigation
@@ -345,6 +462,8 @@ def _git_diff_paths(repo: Path) -> list[str]:
 
 def _diff_allowed(paths: list[str]) -> tuple[bool, str]:
     for p in paths:
+        if path_is_protected(p):
+            return False, f"SI-BLOCKED: protected_path:{p}"
         if any(frag in p for frag in FORBIDDEN_PATH_FRAGMENTS):
             return False, f"forbidden_path:{p}"
         if not any(p.startswith(prefix) for prefix in ALLOWED_WRITE_PREFIXES):
@@ -443,6 +562,11 @@ def _run_cursor_agent(prompt: str, *, cwd: Path) -> tuple[int, str]:
 def implement_item(item_id: str, *, dry_run: bool = False) -> dict[str, Any]:
     from utils.si_recommendation_queue import mark_implemented
 
+    frozen = _si_frozen_response("implement_item")
+    if frozen:
+        frozen["item_id"] = item_id
+        return frozen
+
     item = _load_item(item_id)
     ok, reason = can_auto_implement(item)
     if not ok:
@@ -454,103 +578,137 @@ def implement_item(item_id: str, *, dry_run: bool = False) -> dict[str, Any]:
     (run_dir / "prompt.md").write_text(prompt, encoding="utf-8")
 
     if dry_run:
-        return {"ok": True, "dry_run": True, "item_id": item_id, "prompt_path": str(run_dir / "prompt.md")}
+        paths_probe = ["utils/pre_trade_gate.py"]
+        allowed, block = _diff_allowed(paths_probe)
+        return {
+            "ok": True,
+            "dry_run": True,
+            "item_id": item_id,
+            "prompt_path": str(run_dir / "prompt.md"),
+            "protected_probe": {"allowed": allowed, "block": block},
+        }
 
-    item.setdefault("code_implementation", {})
-    item["code_implementation"].update({"status": "implementing", "started_utc": now_iso()})
-    item["updated_utc"] = now_iso()
-    _save_item(item)
+    try:
+        with _run_lock():
+            _record_implementation_attempt(item_id)
 
-    repos = [_ROOT]
-    if _TRADING_BOT.is_dir() and "classic" in str(item.get("component") or "").lower():
-        repos.append(_TRADING_BOT)
+            item.setdefault("code_implementation", {})
+            item["code_implementation"].update({"status": "implementing", "started_utc": now_iso()})
+            item["updated_utc"] = now_iso()
+            _save_item(item)
 
-    agent_outputs: list[str] = []
-    for repo in repos:
-        code, out = _run_cursor_agent(prompt, cwd=repo)
-        agent_outputs.append(f"--- {repo.name} exit={code} ---\n{out}")
-        (run_dir / f"agent_{repo.name}.txt").write_text(out, encoding="utf-8")
+            repos = [_ROOT]
+            if _TRADING_BOT.is_dir() and "classic" in str(item.get("component") or "").lower():
+                repos.append(_TRADING_BOT)
 
-    changed_repos: list[str] = []
-    for repo in repos:
-        paths = _git_diff_paths(repo)
-        if paths:
-            allowed, block = _diff_allowed(paths)
-            if not allowed:
-                result = {
-                    "ok": False,
-                    "item_id": item_id,
-                    "error": block,
-                    "paths": paths,
+            protected_snaps: dict[str, dict[str, bytes]] = {
+                repo.name: _snapshot_protected_files(repo) for repo in repos
+            }
+
+            agent_outputs: list[str] = []
+            for repo in repos:
+                code, out = _run_cursor_agent(prompt, cwd=repo)
+                agent_outputs.append(f"--- {repo.name} exit={code} ---\n{out}")
+                (run_dir / f"agent_{repo.name}.txt").write_text(out, encoding="utf-8")
+
+            for repo in repos:
+                modified = _verify_protected_integrity(repo, protected_snaps.get(repo.name) or {})
+                if modified:
+                    _restore_protected_snapshots(repo, protected_snaps.get(repo.name) or {})
+                    result = {
+                        "ok": False,
+                        "item_id": item_id,
+                        "error": f"SI-FROZEN: protected_file_modified {','.join(modified)}",
+                        "paths": modified,
+                        "finished_utc": now_iso(),
+                    }
+                    (run_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+                    item["code_implementation"].update({"status": "frozen", **result})
+                    _save_item(item)
+                    return result
+
+            changed_repos: list[str] = []
+            for repo in repos:
+                paths = _git_diff_paths(repo)
+                if paths:
+                    allowed, block = _diff_allowed(paths)
+                    if not allowed:
+                        result = {
+                            "ok": False,
+                            "item_id": item_id,
+                            "error": block,
+                            "paths": paths,
+                            "finished_utc": now_iso(),
+                        }
+                        (run_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+                        item["code_implementation"].update({"status": "blocked", **result})
+                        _save_item(item)
+                        return result
+                    changed_repos.append(repo.name)
+
+            e2e_ok = True
+            e2e_log = ""
+            if require_e2e() and changed_repos:
+                for repo in repos:
+                    if repo.name not in changed_repos:
+                        continue
+                    ok_e2e, log = _run_e2e(repo)
+                    e2e_log += f"\n[{repo.name}] {log[-800:]}"
+                    if not ok_e2e:
+                        e2e_ok = False
+                        break
+
+            commits: dict[str, str] = {}
+            pushes: dict[str, str] = {}
+            if e2e_ok and changed_repos:
+                msg = f"SI auto-fix: {item.get('code')} — {item.get('title')}"
+                for repo in repos:
+                    if repo.name not in changed_repos:
+                        continue
+                    c_ok, c_log = _auto_commit(repo, msg)
+                    commits[repo.name] = c_log
+                    if c_ok and auto_push_enabled():
+                        p_ok, p_log = _auto_push(repo)
+                        pushes[repo.name] = p_log
+
+            success = e2e_ok and (bool(changed_repos) or not require_e2e())
+            result = {
+                "ok": success,
+                "item_id": item_id,
+                "code": item.get("code"),
+                "changed_repos": changed_repos,
+                "e2e_ok": e2e_ok,
+                "commits": commits,
+                "pushes": pushes,
+                "agent_summary": agent_outputs[-1][-1500:] if agent_outputs else "",
+                "finished_utc": now_iso(),
+            }
+            (run_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+
+            item["code_implementation"].update(
+                {
+                    "status": "completed" if success else "failed",
+                    "result": result,
                     "finished_utc": now_iso(),
                 }
-                (run_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
-                item["code_implementation"].update({"status": "blocked", **result})
-                _save_item(item)
-                return result
-            changed_repos.append(repo.name)
+            )
+            _save_item(item)
 
-    e2e_ok = True
-    e2e_log = ""
-    if require_e2e() and changed_repos:
-        for repo in repos:
-            if repo.name not in changed_repos:
-                continue
-            ok_e2e, log = _run_e2e(repo)
-            e2e_log += f"\n[{repo.name}] {log[-800:]}"
-            if not ok_e2e:
-                e2e_ok = False
-                break
+            if success:
+                mark_implemented(
+                    item_id,
+                    note=f"si_auto_code: repos={changed_repos} e2e={e2e_ok}",
+                )
+                try:
+                    from utils.si_fix_deployment import sync_deployed_from_registry
 
-    commits: dict[str, str] = {}
-    pushes: dict[str, str] = {}
-    if e2e_ok and changed_repos:
-        msg = f"SI auto-fix: {item.get('code')} — {item.get('title')}"
-        for repo in repos:
-            if repo.name not in changed_repos:
-                continue
-            c_ok, c_log = _auto_commit(repo, msg)
-            commits[repo.name] = c_log
-            if c_ok and auto_push_enabled():
-                p_ok, p_log = _auto_push(repo)
-                pushes[repo.name] = p_log
+                    sync_deployed_from_registry()
+                except Exception:
+                    pass
 
-    success = e2e_ok and (bool(changed_repos) or not require_e2e())
-    result = {
-        "ok": success,
-        "item_id": item_id,
-        "code": item.get("code"),
-        "changed_repos": changed_repos,
-        "e2e_ok": e2e_ok,
-        "commits": commits,
-        "pushes": pushes,
-        "agent_summary": agent_outputs[-1][-1500:] if agent_outputs else "",
-        "finished_utc": now_iso(),
-    }
-    (run_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
-
-    item["code_implementation"].update(
-        {
-            "status": "completed" if success else "failed",
-            "result": result,
-            "finished_utc": now_iso(),
-        }
-    )
-    _save_item(item)
-
-    if success:
-        mark_implemented(
-            item_id,
-            note=f"si_auto_code: repos={changed_repos} e2e={e2e_ok}",
-        )
-        try:
-            from utils.si_fix_deployment import sync_deployed_from_registry
-
-            sync_deployed_from_registry()
-        except Exception:
-            pass
-
-    return result
+            return result
+    except RunLockBusy:
+        return {"ok": False, "skipped": "run_lock_held", "item_id": item_id}
 
 
 def auto_implement_queued(*, limit: int = 1) -> list[dict[str, Any]]:
@@ -570,6 +728,10 @@ def run_autonomous_code_si_cycle(*, assess_limit: int = 5, implement_limit: int 
     if not auto_code_enabled():
         return {"ok": True, "skipped": "auto_code_disabled"}
 
+    frozen = _si_frozen_response("run_autonomous_code_si_cycle")
+    if frozen:
+        return frozen
+
     assessed = auto_assess_pending(limit=assess_limit)
     implemented = auto_implement_queued(limit=implement_limit)
     return {
@@ -579,5 +741,5 @@ def run_autonomous_code_si_cycle(*, assess_limit: int = 5, implement_limit: int 
         "assessments": assessed,
         "implemented": len(implemented),
         "implementations": implemented,
-        "remaining_today_cap": max(0, max_implementations_per_day() - _implementations_today()),
+        "remaining_today_cap": max(0, max_implementations_per_day() - _implementation_attempts_today()),
     }

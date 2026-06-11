@@ -25,7 +25,7 @@ def is_trading_halted() -> bool:
         data = json.loads(HALT_PATH.read_text(encoding="utf-8"))
         return bool(data.get("active"))
     except Exception:
-        return False
+        return True
 
 
 def get_halt_state() -> dict:
