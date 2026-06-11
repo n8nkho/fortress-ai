@@ -34,10 +34,11 @@ This file is the single source of truth for where the two-repo trading stack sta
 - Tests: `test_singularity_classic_bridge_e2e.py`, `test_si_objectives_expectancy_first.py`, `test_performance_monitor.py`, `test_si_singularity.py` (253 tests OK).
 
 ## Open items (tracked as GitHub issues on fortress-ai)
-- **#4 (Low)** — Bracket path falls back to a naked market order on broker error. Fix: retry-or-skip, never submit unbracketed. (trading-bot `master`)
-- **#5 (Low)** — Phase 3.4 auto-revert thresholds are hardcoded. Decide: keep hardcoded (safer, recommended) or move to bounded registry knobs. (fortress-ai `main`)
+- None. All tracked issues (#1–#5) are resolved and merged.
 
-(Closed: #1 gate self-edit → Phase 1.1; #2 halt freeze → Phase 1.2; #3 Classic brackets → Phase 2.2.)
+(Closed: #1 gate self-edit → Phase 1.1; #2 halt freeze → Phase 1.2; #3 Classic brackets → Phase 2.2; #4 bracket-unavailable → SI-HOLD, never naked → trading-bot `master` merge 8c9836d (fix 7f1ab7e); #5 auto-revert thresholds → bounded tighten-only registry knobs → fortress-ai `main` merge 1ff2380 (fix 9ad35cd).)
+
+Non-blocking follow-ups (operator's call, not bugs): old trading-bot `main` could be deleted for tidiness; `FORTRESS_SI_AUTO_PUSH` flip to enable autonomous push.
 
 ## Standing guardrails (unchanged, always in force)
 - Never weaken `pre_trade_gate`, immutable risk caps, kill switch, or `operator_halt`. STOP + `# SI-BLOCKED:` rather than touch a protected file.
