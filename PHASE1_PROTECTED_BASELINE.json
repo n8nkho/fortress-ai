@@ -1,11 +1,11 @@
 {
   "description": "Phase 1 protected-path baseline. git blob SHA-1 (git hash-object) per file at the committed HEAD when the daily integrity check was set up. The 7am check compares these against the current GitHub HEAD of each repo. Any change = drift to flag.",
-  "captured_at": "2026-06-11T13:54:00-04:00",
-  "note_revision": "Updated 2026-06-11 post Phase 3 merge. fortress-ai main=60884111 (Phase 3 merged; protected blobs unchanged). trading-bot master=cd2c24d and is now the GitHub DEFAULT branch (main/master split reconciled). Phase 1+2+3 all verified clean. (HEAD bumped after docs sync 6088411; protected blobs unchanged)",
+  "captured_at": "2026-06-11T15:10:00-04:00",
+  "note_revision": "Updated 2026-06-11 post issues #4/#5 merge. fortress-ai main=1ff2380 (fix-issue-5 merged: bounded tighten-only revert knobs; protected blobs UNCHANGED — perf_monitor.py & registries are not protected). trading-bot master=8c9836d (fix-issue-4 merged: bracket-unavailable -> SI-HOLD, no naked order; protected blobs UNCHANGED — orchestrator.py & alpaca_execution.py are not protected). master is the GitHub DEFAULT branch. Phases 1+2+3 and issues #1-#5 all verified clean + merged.",
   "repos": {
     "fortress-ai": {
       "branch": "main",
-      "head": "60884111bb4f864696fd02d1441761f79a035973",
+      "head": "1ff23800d120c9f25bde3c2fcc6ab1a053b19e04",
       "protected_files": {
         "utils/pre_trade_gate.py": "dea2b8a98348fc1539e267982829270318ab2b9a",
         "utils/operator_halt.py": "0ffd62255949a533232162f924396395228dcf00",
@@ -16,7 +16,7 @@
     "trading-bot": {
       "branch": "master",
       "canonical": true,
-      "head": "cd2c24db0204b52145b8e55bbe9610e33b4ac76b",
+      "head": "8c9836dd9718eb7c370cbe0791c6a5278b027546",
       "protected_files": {
         "utils/pre_trade_gate.py": "852120fa9fba106372267eebb122db9cd0166245",
         "utils/operator_halt.py": "f02adee5ad244bc970d4f6e1462e47078dec0aa8",
