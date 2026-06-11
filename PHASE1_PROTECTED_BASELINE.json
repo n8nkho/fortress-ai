@@ -1,11 +1,11 @@
 {
   "description": "Phase 1 protected-path baseline. git blob SHA-1 (git hash-object) per file at the committed HEAD when the daily integrity check was set up. The 7am check compares these against the current GitHub HEAD of each repo. Any change = drift to flag.",
   "captured_at": "2026-06-11T16:09:00-04:00",
-  "note_revision": "Updated 2026-06-11 post hygiene-cleanup merge. fortress main=75d9d97 (dead-code removal, test-collection guards tests/optional_deps.py+__init__.py, CI workflow, doc/config sync). trading master=47c6a6b (dead analyst/log code removed, CI, .env.example docs). Protected blobs UNCHANGED on both. Phases 1-3, issues #1-#5, and hygiene pass all verified clean + merged. Safety rails fully in force.",
+  "note_revision": "Updated 2026-06-11: autonomous push enabled (PROJECT_STATE doc commit). Protected blobs UNCHANGED. fortress main=a3a0b70, trading master=47c6a6b. Note: AUTO_PUSH now live \u2014 the bot may push SI auto-fix commits to canonical; the 7am check baseline-vs-HEAD diff will surface them.",
   "repos": {
     "fortress-ai": {
       "branch": "main",
-      "head": "75d9d97c787850adff4de102b11a4da270077133",
+      "head": "a3a0b7039546566179a60b08a94fb049cece1ea0",
       "protected_files": {
         "utils/pre_trade_gate.py": "dea2b8a98348fc1539e267982829270318ab2b9a",
         "utils/operator_halt.py": "0ffd62255949a533232162f924396395228dcf00",
