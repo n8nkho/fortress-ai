@@ -362,11 +362,6 @@ def target_winning_pattern_share() -> float:
         return 0.75
 
 
-def target_win_rate() -> float:
-    """Deprecated alias — use target_winning_pattern_share()."""
-    return target_winning_pattern_share()
-
-
 def pattern_disable_min_exits() -> int:
     try:
         return max(2, int(os.environ.get("FORTRESS_SKIM_PATTERN_DISABLE_MIN_EXITS", "3") or 3))

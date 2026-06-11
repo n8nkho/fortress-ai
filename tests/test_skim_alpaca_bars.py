@@ -7,15 +7,10 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 
 from agents.skim_swarm.alpaca_bars import _normalize_symbol_df, fetch_intraday_bars
-from agents.skim_swarm.features import _fetch_bars
+from tests.optional_deps import has_yfinance
 
 
 class TestSkimAlpacaBars(unittest.TestCase):
-    def setUp(self) -> None:
-        from agents.skim_swarm import features
-
-        features._bar_cache.clear()
-
     def test_normalize_symbol_df(self):
         idx = pd.to_datetime(["2026-05-22 14:30:00", "2026-05-22 14:31:00"], utc=True)
         raw = pd.DataFrame(
@@ -33,30 +28,6 @@ class TestSkimAlpacaBars(unittest.TestCase):
         assert out is not None
         self.assertIn("Close", out.columns)
         self.assertAlmostEqual(float(out["Close"].iloc[-1]), 100.6)
-
-    def test_fetch_bars_prefers_alpaca(self):
-        idx = pd.to_datetime(["2026-05-22 14:30:00", "2026-05-22 14:31:00"], utc=True)
-        alpaca_df = pd.DataFrame({"Close": [500.0, 501.0]}, index=idx)
-        with patch("agents.skim_swarm.features._use_alpaca_bars", return_value=True):
-            with patch(
-                "agents.skim_swarm.alpaca_bars.fetch_intraday_bars",
-                return_value={"NVDA": alpaca_df},
-            ):
-                with patch("agents.skim_swarm.features.yf.download") as yf_dl:
-                    out = _fetch_bars(["NVDA"])
-        self.assertIn("NVDA", out)
-        self.assertAlmostEqual(float(out["NVDA"]["Close"].iloc[-1]), 501.0)
-        yf_dl.assert_not_called()
-
-    def test_fetch_bars_falls_back_to_yfinance(self):
-        yf_idx = pd.to_datetime(["2026-05-22 14:30:00"], utc=True)
-        yf_df = pd.DataFrame({"Close": [400.0]}, index=yf_idx)
-        with patch("agents.skim_swarm.features._use_alpaca_bars", return_value=True):
-            with patch("agents.skim_swarm.alpaca_bars.fetch_intraday_bars", return_value={}):
-                with patch("agents.skim_swarm.features.yf.download", return_value=yf_df):
-                    out = _fetch_bars(["MSFT"])
-        self.assertIn("MSFT", out)
-        self.assertAlmostEqual(float(out["MSFT"]["Close"].iloc[-1]), 400.0)
 
     def test_fetch_intraday_bars_batches(self):
         idx = pd.MultiIndex.from_product(
@@ -76,6 +47,45 @@ class TestSkimAlpacaBars(unittest.TestCase):
                 out = fetch_intraday_bars(["NVDA"], feed="iex")
         self.assertIn("NVDA", out)
         self.assertEqual(mock_client.get_stock_bars.call_count, 1)
+
+
+if has_yfinance():
+    from agents.skim_swarm.features import _fetch_bars
+
+    class TestSkimAlpacaBarsWithYfinance(TestSkimAlpacaBars):
+        def setUp(self) -> None:
+            from agents.skim_swarm import features
+
+            features._bar_cache.clear()
+
+        def test_fetch_bars_prefers_alpaca(self):
+            idx = pd.to_datetime(["2026-05-22 14:30:00", "2026-05-22 14:31:00"], utc=True)
+            alpaca_df = pd.DataFrame({"Close": [500.0, 501.0]}, index=idx)
+            with patch("agents.skim_swarm.features._use_alpaca_bars", return_value=True):
+                with patch(
+                    "agents.skim_swarm.alpaca_bars.fetch_intraday_bars",
+                    return_value={"NVDA": alpaca_df},
+                ):
+                    with patch("agents.skim_swarm.features.yf.download") as yf_dl:
+                        out = _fetch_bars(["NVDA"])
+            self.assertIn("NVDA", out)
+            self.assertAlmostEqual(float(out["NVDA"]["Close"].iloc[-1]), 501.0)
+            yf_dl.assert_not_called()
+
+        def test_fetch_bars_falls_back_to_yfinance(self):
+            yf_idx = pd.to_datetime(["2026-05-22 14:30:00"], utc=True)
+            yf_df = pd.DataFrame({"Close": [400.0]}, index=yf_idx)
+            with patch("agents.skim_swarm.features._use_alpaca_bars", return_value=True):
+                with patch("agents.skim_swarm.alpaca_bars.fetch_intraday_bars", return_value={}):
+                    with patch("agents.skim_swarm.features.yf.download", return_value=yf_df):
+                        out = _fetch_bars(["MSFT"])
+            self.assertIn("MSFT", out)
+            self.assertAlmostEqual(float(out["MSFT"]["Close"].iloc[-1]), 400.0)
+else:
+
+    @unittest.skip("yfinance not installed (pip install -r requirements.txt)")
+    class TestSkimAlpacaBarsWithYfinance(unittest.TestCase):
+        pass
 
 
 if __name__ == "__main__":

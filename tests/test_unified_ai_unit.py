@@ -1,20 +1,24 @@
 """Unit tests — no network keys required."""
 from __future__ import annotations
 
-import json
+import sys
+import tempfile
 import unittest
 from pathlib import Path
-import tempfile
-
-import sys
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
-from agents.unified_ai_agent import _parse_llm_json  # noqa: E402
+from tests.optional_deps import has_yfinance
 from utils.api_costs import append_llm_cost_record, estimate_llm_cost_usd, week_cost_usd  # noqa: E402
 
+if has_yfinance():
+    from agents.unified_ai_agent import _parse_llm_json  # noqa: E402
+else:
+    _parse_llm_json = None  # kept: parsed in TestParse when yfinance present
 
+
+@unittest.skipUnless(has_yfinance(), "yfinance not installed (pip install -r requirements.txt)")
 class TestParse(unittest.TestCase):
     def test_plain_json(self):
         d = _parse_llm_json('{"action":"wait","confidence":0.5}')

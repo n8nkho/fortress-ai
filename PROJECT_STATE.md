@@ -5,11 +5,11 @@ This file is the single source of truth for where the two-repo trading stack sta
 ## Repos & branches (CANONICAL)
 | Repo | Commit to branch | Current HEAD | GitHub default |
 |------|------------------|--------------|----------------|
-| `fortress-ai` | `main` | `94b517a` | `main` ✅ |
-| `trading-bot` | `master` | `cd2c24d` | `master` ✅ (reconciled 2026-06-11) |
+| `fortress-ai` | `main` | `94fa853` | `main` ✅ |
+| `trading-bot` | `master` | `8c9836d` | `master` ✅ |
 
-- trading-bot's old `main` (`01e57ad`) is STALE and no longer default. Never commit to it.
 - Verify `git rev-parse --abbrev-ref HEAD` before any commit.
+- Stale remote branches (`fix-issue-*`, `phase3-review`, trading-bot `main`, abandoned `cursor/*`) are operator-deletable after hygiene merge; never commit to non-canonical branches.
 
 ## What has shipped (all verified clean, all merged to canonical branches)
 
@@ -20,25 +20,25 @@ This file is the single source of truth for where the two-repo trading stack sta
 - Velocity cap counts attempts; single-flight `fcntl` lock at `data/si_code_implementation/.run.lock`.
 - Tests: `tests/test_si_protected_paths.py`.
 
-### Phase 2 — Unify (trading-bot, `cd2c24d`)
+### Phase 2 — Unify (trading-bot, `cd2c24d` base; bracket hold at `8c9836d`)
 - Classic gate parity: BUY position-% cap (only tightens), symbol-format validation, `estimated_notional` passed on SELL + option paths.
-- Broker-side OCO brackets on Classic stock entries (`utils/alpaca_execution.py::submit_entry_with_bracket`).
+- Broker-side OCO brackets on Classic stock entries (`utils/alpaca_execution.py::submit_entry_with_bracket`); bracket failure → `SI-HOLD: bracket_unavailable` (no naked market order).
 - `risk_guardian.py`: `threading.RLock` + `_sync_state_from_disk()` so the circuit breaker is authoritative across threads/processes.
 - Tests: `tests/test_singularity_phase2.py`, extensions to `test_guardrail_extensions.py`.
 
-### Phase 3 — Escalate (fortress-ai, merged at `0f4fc95`)
+### Phase 3 — Escalate (fortress-ai, merged at `0f4fc95`; revert knobs at `1ff2380`)
 - `classic_bridge.py` bridge fix + e2e test proving Fortress learning reaches Classic's `si_recommendation_queue.json`.
 - Expectancy-first objectives confirmed — NO win-rate primaries anywhere.
 - Drawdown guard: bounded `max_rolling_drawdown_pct` knob (0.05–0.25, default 0.12) in `si_capability_registry.json`; `maybe_lift_aspire_targets` emits `SI-HOLD: drawdown_guard` and does not lift targets when breached.
-- `PerformanceMonitor` auto-revert on rolling-expectancy regression / drawdown breach (NOT win-rate).
-- Tests: `test_singularity_classic_bridge_e2e.py`, `test_si_objectives_expectancy_first.py`, `test_performance_monitor.py`, `test_si_singularity.py` (253 tests OK).
+- `PerformanceMonitor` auto-revert on rolling-expectancy regression / drawdown breach (NOT win-rate); thresholds operator-configurable via tighten-only registry knobs.
+- Tests: `test_singularity_classic_bridge_e2e.py`, `test_si_objectives_expectancy_first.py`, `test_performance_monitor.py`, `test_si_singularity.py` (255+ tests OK).
 
-## Open items (tracked as GitHub issues on fortress-ai)
-- None. All tracked issues (#1–#5) are resolved and merged.
+## Issues (#1–#5)
+All resolved and merged to canonical branches.
 
-(Closed: #1 gate self-edit → Phase 1.1; #2 halt freeze → Phase 1.2; #3 Classic brackets → Phase 2.2; #4 bracket-unavailable → SI-HOLD, never naked → trading-bot `master` merge 8c9836d (fix 7f1ab7e); #5 auto-revert thresholds → bounded tighten-only registry knobs → fortress-ai `main` merge 1ff2380 (fix 9ad35cd).)
+(Closed: #1 gate self-edit → Phase 1.1; #2 halt freeze → Phase 1.2; #3 Classic brackets → Phase 2.2; #4 bracket-unavailable → trading-bot `8c9836d`; #5 auto-revert tighten-only knobs → fortress-ai `1ff2380`.)
 
-Non-blocking follow-ups (operator's call, not bugs): old trading-bot `main` could be deleted for tidiness; `FORTRESS_SI_AUTO_PUSH` flip to enable autonomous push.
+Non-blocking follow-ups (operator's call): enable `FORTRESS_SI_AUTO_PUSH` when ready for autonomous git push.
 
 ## Standing guardrails (unchanged, always in force)
 - Never weaken `pre_trade_gate`, immutable risk caps, kill switch, or `operator_halt`. STOP + `# SI-BLOCKED:` rather than touch a protected file.

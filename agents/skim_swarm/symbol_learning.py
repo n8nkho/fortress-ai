@@ -695,11 +695,6 @@ def refresh_historical_seeds(learned: dict[str, Any]) -> bool:
     return changed
 
 
-def promote_historical_verify_params(learned: dict[str, Any]) -> bool:
-    """Legacy helper — prefer refresh_historical_seeds on boot."""
-    return refresh_historical_seeds(learned)
-
-
 def _disable_patterns_from_learned(learned: dict[str, Any]) -> list[str]:
     params = learned.get("params") or {}
     if params.get("disable_patterns") is not None:
