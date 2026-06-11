@@ -1,11 +1,11 @@
 {
   "description": "Phase 1 protected-path baseline. git blob SHA-1 (git hash-object) per file at the committed HEAD when the daily integrity check was set up. The 7am check compares these against the current GitHub HEAD of each repo. Any change = drift to flag.",
   "captured_at": "2026-06-11T13:54:00-04:00",
-  "note_revision": "Updated 2026-06-11 to trading-bot Phase 2 commit cd2c24d (verified additive-only: BUY position-pct cap, broker brackets, risk_guardian lock; no thresholds weakened). operator_halt.py blob unchanged. fortress-ai unchanged.",
+  "note_revision": "Updated 2026-06-11 post Phase 3 merge. fortress-ai main=0f4fc95 (Phase 3 merged; protected blobs unchanged). trading-bot master=cd2c24d and is now the GitHub DEFAULT branch (main/master split reconciled). Phase 1+2+3 all verified clean.",
   "repos": {
     "fortress-ai": {
       "branch": "main",
-      "head": "8f059506dd0faa82dacd0875d6bc9c3722c689c7",
+      "head": "0f4fc95091894949bb0de6ab00537aaf23fe1754",
       "protected_files": {
         "utils/pre_trade_gate.py": "dea2b8a98348fc1539e267982829270318ab2b9a",
         "utils/operator_halt.py": "0ffd62255949a533232162f924396395228dcf00",
@@ -22,7 +22,7 @@
         "utils/operator_halt.py": "f02adee5ad244bc970d4f6e1462e47078dec0aa8",
         "agents/risk_guardian.py": "ef4834e5a8df300bef7803b4c5dab05a4e3d0f66"
       },
-      "note": "trading-bot has no si_code_implementation.py (self-coder is fortress-only). master is canonical; the GitHub default branch (main, 01e57ad) is 161 commits stale and its operator_halt.py fails OPEN on read error."
+      "note": "trading-bot has no si_code_implementation.py (self-coder is fortress-only). master is canonical AND is now the GitHub default branch (reconciled 2026-06-11). The old main is retained but no longer default."
     }
   }
 }
