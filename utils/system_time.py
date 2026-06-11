@@ -66,7 +66,3 @@ def ensure_system_tz() -> None:
     os.environ.setdefault("TZ", name)
     os.environ.setdefault("FORTRESS_SYSTEM_TZ", name)
 
-
-# Legacy name — returns New York time, not UTC.
-def utc_now_iso() -> str:
-    return now_iso()
