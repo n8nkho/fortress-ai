@@ -86,6 +86,13 @@
       "default": 0.05,
       "apply_via": "data/si_capability/overrides.json",
       "notes": "Fraction to lift dynamic aspire targets each singularity compound cycle."
+    },
+    "max_rolling_drawdown_pct": {
+      "kind": "tunable",
+      "bounds": { "min": 0.05, "max": 0.25 },
+      "default": 0.12,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Portfolio rolling drawdown ceiling — blocks aspire target lifts when breached (SI-HOLD)."
     }
   }
 }

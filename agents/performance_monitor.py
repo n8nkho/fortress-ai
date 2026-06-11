@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post-change monitoring — revert tunables if metrics degrade (best-effort)."""
+"""Post-change monitoring — revert tunables if rolling expectancy regresses (best-effort)."""
 from __future__ import annotations
 
 import json
@@ -18,7 +18,8 @@ def _data_dir() -> Path:
 
 class PerformanceMonitor:
     REVERT_TRIGGERS = {
-        "win_rate_drop_vs_target": 0.10,
+        "min_rolling_expectancy_usd": -0.05,
+        "expectancy_regression_usd": 0.03,
         "max_drawdown_threshold": 0.15,
         "min_monitoring_days": 7,
     }
@@ -62,9 +63,21 @@ class PerformanceMonitor:
             return False
 
         perf = self.get_performance_since(applied)
-        wr = perf.get("win_rate")
-        if wr is not None and wr < (0.80 - float(self.REVERT_TRIGGERS["win_rate_drop_vs_target"])):
+        exp = perf.get("rolling_expectancy_usd")
+        baseline = outcome.get("baseline_expectancy_usd")
+        min_exp = float(self.REVERT_TRIGGERS["min_rolling_expectancy_usd"])
+        regress = float(self.REVERT_TRIGGERS["expectancy_regression_usd"])
+
+        if exp is not None:
+            if float(exp) < min_exp:
+                return True
+            if baseline is not None and float(baseline) - float(exp) >= regress:
+                return True
+
+        mdd = perf.get("max_drawdown_fraction")
+        if mdd is not None and float(mdd) >= float(self.REVERT_TRIGGERS["max_drawdown_threshold"]):
             return True
+
         return False
 
     def revert_change(self, outcome: dict[str, Any]) -> dict[str, Any]:
@@ -75,7 +88,7 @@ class PerformanceMonitor:
         rev = {
             "proposal_id": outcome.get("proposal_id"),
             "reverted_at": datetime.now(timezone.utc).isoformat(),
-            "reason": "performance_monitor_threshold",
+            "reason": "performance_monitor_expectancy_regression",
         }
         p = _data_dir() / "reversions.jsonl"
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +97,7 @@ class PerformanceMonitor:
         return rev
 
     def monitor_active_changes(self) -> list[dict[str, Any]]:
-        """Check tracked outcomes; revert when triggers fire (win rate only when present)."""
+        """Check tracked outcomes; revert when rolling expectancy or drawdown triggers fire."""
         out: list[dict[str, Any]] = []
         for oc in self.load_active_outcomes():
             if self.should_revert(oc):

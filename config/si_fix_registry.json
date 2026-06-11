@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-11T13:46:50.679389-04:00"
+      "registered_at_utc": "2026-06-11T14:49:21.162158-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -546,6 +546,20 @@
       "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "critical"
+    },
+    "si_singularity_phase3_escalate": {
+      "title": "Phase 3 singularity escalate \u2014 bridge e2e, drawdown guard, expectancy revert",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "SI-HOLD",
+        "drawdown_guard",
+        "classic_queue_pushed",
+        "performance_monitor_expectancy_regression"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
     }
   }
 }
