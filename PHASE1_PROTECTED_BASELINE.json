@@ -1,11 +1,11 @@
 {
   "description": "Phase 1 protected-path baseline. git blob SHA-1 (git hash-object) per file at the committed HEAD when the daily integrity check was set up. The 7am check compares these against the current GitHub HEAD of each repo. Any change = drift to flag.",
   "captured_at": "2026-06-11T13:54:00-04:00",
-  "note_revision": "Updated 2026-06-11 post Phase 3 merge. fortress-ai main=0f4fc95 (Phase 3 merged; protected blobs unchanged). trading-bot master=cd2c24d and is now the GitHub DEFAULT branch (main/master split reconciled). Phase 1+2+3 all verified clean.",
+  "note_revision": "Updated 2026-06-11 post Phase 3 merge. fortress-ai main=60884111 (Phase 3 merged; protected blobs unchanged). trading-bot master=cd2c24d and is now the GitHub DEFAULT branch (main/master split reconciled). Phase 1+2+3 all verified clean. (HEAD bumped after docs sync 6088411; protected blobs unchanged)",
   "repos": {
     "fortress-ai": {
       "branch": "main",
-      "head": "0f4fc95091894949bb0de6ab00537aaf23fe1754",
+      "head": "60884111bb4f864696fd02d1441761f79a035973",
       "protected_files": {
         "utils/pre_trade_gate.py": "dea2b8a98348fc1539e267982829270318ab2b9a",
         "utils/operator_halt.py": "0ffd62255949a533232162f924396395228dcf00",
