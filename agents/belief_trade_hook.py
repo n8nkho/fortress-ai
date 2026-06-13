@@ -132,6 +132,16 @@ def process_external_ledger(observation: dict[str, Any] | None = None) -> dict[s
             conf = float(row.get("entry_signal_confidence") or row.get("confidence") or 0.5)
             hold_h = float(row.get("hold_duration_hours") or 0.0)
             reg = str(row.get("regime_at_entry") or regime)
+            slot_key = None
+            vix_reg = None
+            try:
+                from utils.market_consciousness import assemble_consciousness_inputs, vix_regime as _vr
+
+                mc = assemble_consciousness_inputs()
+                slot_key = (mc.get("temporal") or {}).get("slot_key")
+                vix_reg = mc.get("vix_regime") or _vr((mc.get("market_tape") or {}).get("vix_last"))
+            except Exception:
+                pass
             add_or_update_belief(
                 symbol=sym or "UNKNOWN",
                 regime_at_entry=reg,
@@ -140,6 +150,8 @@ def process_external_ledger(observation: dict[str, Any] | None = None) -> dict[s
                 pnl=pnl,
                 pnl_pct=pnl_pct_f,
                 hold_duration_hours=hold_h,
+                slot_key=slot_key,
+                vix_regime=vix_reg,
             )
         except Exception:
             errors.append(traceback.format_exc()[:400])

@@ -17,3 +17,6 @@ REPO=/home/ubuntu/fortress-ai
 
 # Weekly hourly market knowledge rebuild (Sunday 7:00 AM ET)
 0 7 * * 0 cd $REPO && bash scripts/cron_run.sh hourly_knowledge python3 scripts/build_hourly_market_knowledge.py --skip-download >> $REPO/logs/cron_master.log 2>&1
+
+# Session intent at RTH open (Mon–Fri 9:35 AM ET)
+35 9 * * 1-5 cd $REPO && bash scripts/cron_run.sh session_intent python3 scripts/refresh_session_intent.py --force >> $REPO/logs/cron_master.log 2>&1

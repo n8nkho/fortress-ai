@@ -295,6 +295,17 @@ def build_prompt(
     regime_l = infer_regime(observation)
     strat_l = infer_strategy(observation, state)
     learned = format_beliefs_prompt_section(regime_l, strat_l)
+    try:
+        from utils.market_consciousness import assemble_consciousness_inputs
+        from utils.belief_manager import format_beliefs_for_consciousness_context
+
+        mc = assemble_consciousness_inputs()
+        if mc.get("enabled"):
+            clearn = format_beliefs_for_consciousness_context(mc, limit=5)
+            if clearn.strip():
+                learned = clearn
+    except Exception:
+        pass
     dom_ingest = format_domain_ingest_prompt_section(observation)
     consciousness = ""
     try:

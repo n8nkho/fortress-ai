@@ -105,6 +105,13 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
     except Exception as e:
         out["proactive_si"] = {"error": str(e)[:120]}
 
+    try:
+        from utils.session_intent import ensure_session_intent
+
+        out["session_intent"] = ensure_session_intent()
+    except Exception as e:
+        out["session_intent"] = {"error": str(e)[:120]}
+
     from utils.si_recommendation_queue import process_scan_to_queue, status_dict
 
     out["queue"] = process_scan_to_queue(scan)

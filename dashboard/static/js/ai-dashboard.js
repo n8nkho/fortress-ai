@@ -78,6 +78,7 @@ document.addEventListener("alpine:init", () => {
       learning: { decisions_logged: 0, beliefs_keys: 0 },
       domain_intel: {},
       belief_memory: { total_beliefs: 0, top_beliefs: [], recent_beliefs: [] },
+      market_consciousness: { enabled: false },
       ingest_health: {},
     },
 
@@ -727,6 +728,19 @@ document.addEventListener("alpine:init", () => {
         : "last refreshed: —";
     },
 
+    consciousnessAgeLabel() {
+      void this.ageTick;
+      return this.consciousnessLastRefresh
+        ? `refreshed ${this.panelAgeLabel(this.consciousnessLastRefresh)}`
+        : "refreshed —";
+    },
+
+    fmtAlphaPct(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return "—";
+      return (n >= 0 ? "+" : "") + n.toFixed(2) + "pp";
+    },
+
     ingestPanelAgeLabel() {
       void this.ageTick;
       return this.ingestPanelLastRefresh
@@ -749,6 +763,7 @@ document.addEventListener("alpine:init", () => {
           ...this.state,
           belief_memory: bm,
           domain_intel: di,
+          market_consciousness: j.market_consciousness || this.state.market_consciousness,
           beliefs: j.beliefs || this.state.beliefs,
           learning: j.learning || this.state.learning,
           screener: j.screener || this.state.screener,
@@ -759,6 +774,13 @@ document.addEventListener("alpine:init", () => {
         };
         this.mediumTierLastRefresh = Date.now();
         this.beliefPanelLastRefresh = Date.now();
+        try {
+          const cr = await fetch("/api/ai/market_consciousness");
+          if (cr.ok) {
+            this.state.market_consciousness = await cr.json();
+            this.consciousnessLastRefresh = Date.now();
+          }
+        } catch (_) {}
         this.$nextTick(() => this.renderDashboardCharts());
       } catch (_) {}
     },

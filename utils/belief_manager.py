@@ -111,6 +111,8 @@ def add_or_update_belief(
     pnl: float,
     pnl_pct: float | None,
     hold_duration_hours: float,
+    slot_key: str | None = None,
+    vix_regime: str | None = None,
 ) -> dict[str, Any]:
     """Insert or merge belief; refute opposite-outcome rows for same regime+strategy."""
     bucket = _outcome_bucket(float(pnl), pnl_pct)
@@ -183,6 +185,10 @@ def add_or_update_belief(
         "refutation_count": 0,
         "last_updated_at": now,
     }
+    if slot_key:
+        row["slot_key"] = slot_key
+    if vix_regime:
+        row["vix_regime"] = vix_regime
     rows.append(row)
     save_beliefs(rows)
     return row
@@ -286,6 +292,49 @@ def get_beliefs_for_context(regime: str, strategy: str, *, limit: int = 5) -> li
 
     rel.sort(key=_ctx_rank)
     return rel[: max(0, int(limit))]
+
+
+def get_beliefs_for_consciousness(consciousness: dict[str, Any], *, limit: int = 5) -> list[dict[str, Any]]:
+    """Beliefs ranked by regime + optional slot/vix tags from consciousness bundle."""
+    rows = [r for r in load_beliefs() if isinstance(r, dict)]
+    if not rows:
+        return []
+    temporal = consciousness.get("temporal") or {}
+    slot_key = str(temporal.get("slot_key") or "")
+    vix_reg = str(consciousness.get("vix_regime") or "")
+    tape = consciousness.get("market_tape") or {}
+    regime_hint = str(tape.get("tape_trend") or "mixed")
+
+    def _score(b: dict[str, Any]) -> tuple[int, float]:
+        s = 0
+        if str(b.get("regime_at_entry") or "").lower() in regime_hint.lower():
+            s += 2
+        if slot_key and str(b.get("slot_key") or "") == slot_key:
+            s += 3
+        if vix_reg and str(b.get("vix_regime") or "") == vix_reg:
+            s += 2
+        if not _is_historical_seed(b):
+            s += 1
+        return (-s, -float(b.get("confidence_score") or 0))
+
+    ranked = sorted(rows, key=_score)
+    return ranked[: max(0, int(limit))]
+
+
+def format_beliefs_for_consciousness_context(consciousness: dict[str, Any], *, limit: int = 5) -> str:
+    if str(os.getenv("FORTRESS_BELIEF_INJECT", "1")).strip().lower() in {"0", "false", "no", "off"}:
+        return ""
+    beliefs = get_beliefs_for_consciousness(consciousness, limit=limit)
+    if not beliefs:
+        return "LEARNED BELIEFS: None matched to current consciousness context."
+    lines = []
+    for b in beliefs:
+        conf = float(b.get("confidence_score") or 0)
+        desc = str(b.get("pattern_description") or "")[:200]
+        slot = b.get("slot_key")
+        tag = f" slot={slot}" if slot else ""
+        lines.append(f"- [{conf:.2f}]{tag} {desc}")
+    return "LEARNED BELIEFS (consciousness-matched):\n" + "\n".join(lines)
 
 
 def format_beliefs_prompt_section(regime: str, strategy: str) -> str:

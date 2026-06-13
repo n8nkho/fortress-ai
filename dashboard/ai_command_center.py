@@ -913,6 +913,12 @@ def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
         "weekly_budget": weekly_llm_budget_status(),
     }
     try:
+        from utils.market_consciousness import consciousness_dashboard_snapshot
+
+        payload["market_consciousness"] = consciousness_dashboard_snapshot()
+    except Exception as exc:
+        payload["market_consciousness"] = {"enabled": False, "error": str(exc)[:120]}
+    try:
         from utils.trading_diagnostics import build_trading_diagnostics
 
         payload["trading_diagnostics"] = build_trading_diagnostics(days=14)
@@ -1113,6 +1119,18 @@ def api_dashboard_belief_memory():
 def api_dashboard_ingest_health():
     """Ingest pipeline health JSON (also at /api/ai/ingest_health)."""
     return _ingest_health_json_response()
+
+
+@app.route("/api/dashboard/market_consciousness")
+@app.route("/api/ai/market_consciousness")
+def api_market_consciousness():
+    try:
+        from utils.market_consciousness import consciousness_dashboard_snapshot
+
+        return jsonify(_json_sanitize_for_api(consciousness_dashboard_snapshot()))
+    except Exception as e:
+        logger.exception("market_consciousness snapshot failed")
+        return jsonify({"enabled": False, "error": str(e)[:120]}), 500
 
 
 @app.route("/api/trading/diagnostics")

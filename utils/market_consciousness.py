@@ -182,28 +182,92 @@ def assemble_consciousness_inputs(*, now: datetime | None = None) -> dict[str, A
     except Exception:
         pass
 
+    tape_live = tape if tape.get("ok") else {}
+    if vix_live:
+        tape_live = {**tape_live, "vix_last": vix_live}
+
+    analogue_days: list[dict[str, Any]] = []
+    analogue_text = ""
+    try:
+        from utils.analogue_days import analogue_summary, find_analogue_days
+
+        analogue_days = find_analogue_days(k=5, live_tape=tape_live)
+        analogue_text = analogue_summary(analogue_days)
+    except Exception:
+        pass
+
+    events: dict[str, Any] = {}
+    try:
+        from utils.market_event_calendar import event_summary
+
+        events = event_summary()
+    except Exception:
+        pass
+
+    counterfactual: dict[str, Any] = {}
+    try:
+        from utils.consciousness_counterfactual import hours_remaining_rth, slot_counterfactual_hint
+
+        counterfactual = slot_counterfactual_hint(
+            historical_profile=historical.get("SPY"),
+            hours_remaining=hours_remaining_rth(temporal),
+        )
+    except Exception:
+        pass
+
+    session_intent: dict[str, Any] = {}
+    try:
+        from utils.session_intent import ensure_session_intent, load_session_intent
+
+        ensure_session_intent()
+        session_intent = load_session_intent()
+    except Exception:
+        pass
+
+    posture: dict[str, Any] = {}
+    try:
+        from utils.consciousness_posture import compute_consciousness_posture
+
+        partial = {
+            "temporal": temporal,
+            "historical_hour_profile": historical,
+            "market_tape": tape_live if tape.get("ok") else tape,
+            "self_state": _self_state(),
+        }
+        posture = compute_consciousness_posture(partial, {"vix_last": vix_live})
+    except Exception:
+        pass
+
     return {
         "enabled": True,
         "temporal": temporal,
         "historical_hour_profile": historical,
         "session_diary": diary,
+        "session_intent": session_intent,
+        "analogue_days": analogue_days,
+        "analogue_day_summary": analogue_text,
+        "market_events": events,
+        "counterfactual_hint": counterfactual,
+        "consciousness_posture": posture,
         "knowledge_built_at": kb.get("built_at"),
         "knowledge_years": kb.get("years") or 5,
         "vix_regime": vix_regime(vix_live),
         "market_tape": {
             "benchmark": tape.get("benchmark"),
             "change_1d_pct": tape.get("change_1d_pct"),
+            "change_5d_pct": tape.get("change_5d_pct"),
             "tape_trend": tape.get("tape_trend"),
             "strong_tape_1d": tape.get("strong_tape_1d"),
+            "vix_last": vix_live,
         }
         if tape.get("ok")
-        else {"ok": False, "error": tape.get("error")},
+        else {"ok": False, "error": tape.get("error"), "vix_last": vix_live},
         "self_state": _self_state(),
         "analogue_summary": analogues,
     }
 
 
-def format_consciousness_prompt_section(*, max_chars: int = 900) -> str:
+def format_consciousness_prompt_section(*, max_chars: int = 1200) -> str:
     """Prompt block for LLM agents — MARKET CONSCIOUSNESS."""
     bundle = assemble_consciousness_inputs()
     if not bundle.get("enabled"):
@@ -212,6 +276,10 @@ def format_consciousness_prompt_section(*, max_chars: int = 900) -> str:
         return ""
     compact = {
         "temporal": bundle.get("temporal"),
+        "session_intent": {
+            k: (bundle.get("session_intent") or {}).get(k)
+            for k in ("plan_line", "participation_target", "posture_hint", "avoid", "priorities")
+        },
         "historical_hour_profile": bundle.get("historical_hour_profile"),
         "market_tape": bundle.get("market_tape"),
         "self_state": {
@@ -219,14 +287,17 @@ def format_consciousness_prompt_section(*, max_chars: int = 900) -> str:
             for k in ("session_realized_usd", "alpha_vs_spy_pct", "halted")
             if isinstance(bundle.get("self_state"), dict)
         },
+        "analogue_day_summary": bundle.get("analogue_day_summary"),
         "analogue_summary": bundle.get("analogue_summary"),
+        "counterfactual_hint": (bundle.get("counterfactual_hint") or {}).get("hint"),
+        "market_events": (bundle.get("market_events") or {}).get("events"),
         "session_diary": {
             k: bundle.get("session_diary", {}).get(k)
             for k in ("entries_executed", "exits_executed", "activity_by_slot", "recent")
             if isinstance(bundle.get("session_diary"), dict)
         },
     }
-    text = "MARKET_CONSCIOUSNESS (5yr hourly memory + live tape + self-state):\n" + json.dumps(
+    text = "MARKET_CONSCIOUSNESS (memory + intent + analogues + self-state):\n" + json.dumps(
         compact,
         separators=(",", ":"),
         default=str,
@@ -244,8 +315,47 @@ def attach_to_shared_context(ctx: dict[str, Any]) -> dict[str, Any]:
         "temporal": bundle.get("temporal"),
         "historical_hour_profile": bundle.get("historical_hour_profile"),
         "analogue_summary": bundle.get("analogue_summary"),
+        "analogue_day_summary": bundle.get("analogue_day_summary"),
         "session_diary": bundle.get("session_diary"),
+        "session_intent": bundle.get("session_intent"),
+        "market_events": bundle.get("market_events"),
+        "counterfactual_hint": bundle.get("counterfactual_hint"),
+        "consciousness_posture": bundle.get("consciousness_posture"),
         "alpha_vs_spy_pct": (bundle.get("self_state") or {}).get("alpha_vs_spy_pct"),
         "market_tape": bundle.get("market_tape"),
     }
     return ctx
+
+
+def consciousness_dashboard_snapshot() -> dict[str, Any]:
+    """Full bundle for dashboard API."""
+    bundle = assemble_consciousness_inputs()
+    kb_age_days: float | None = None
+    try:
+        from utils.system_time import now, parse_iso
+
+        built = parse_iso(str(bundle.get("knowledge_built_at") or ""))
+        if built is not None:
+            kb_age_days = round((now() - built).total_seconds() / 86400.0, 1)
+    except Exception:
+        pass
+    beliefs: list[dict[str, Any]] = []
+    try:
+        from utils.belief_manager import get_beliefs_for_consciousness
+
+        beliefs = get_beliefs_for_consciousness(bundle, limit=5)
+    except Exception:
+        pass
+    proactive: dict[str, Any] = {}
+    try:
+        from utils.consciousness_posture import proactive_si_trigger
+
+        proactive = proactive_si_trigger(bundle)
+    except Exception:
+        pass
+    return {
+        **bundle,
+        "kb_age_days": kb_age_days,
+        "matched_beliefs": beliefs,
+        "proactive_si_trigger": proactive,
+    }
