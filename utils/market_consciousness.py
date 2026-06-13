@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo
 
 _ET = ZoneInfo("America/New_York")
 _WD = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+_VIX_LOW = 18.0
+_VIX_HIGH = 25.0
 
 
 def _root() -> Path:
@@ -77,9 +79,31 @@ def current_temporal_slot(*, now: datetime | None = None) -> dict[str, Any]:
     }
 
 
-def slot_profile(kb: dict[str, Any], symbol: str, slot_key: str | None) -> dict[str, Any] | None:
+def vix_regime(vix: float | None) -> str | None:
+    if vix is None or vix <= 0:
+        return None
+    if vix < _VIX_LOW:
+        return "low"
+    if vix <= _VIX_HIGH:
+        return "mid"
+    return "high"
+
+
+def slot_profile(
+    kb: dict[str, Any],
+    symbol: str,
+    slot_key: str | None,
+    *,
+    vix: float | None = None,
+) -> dict[str, Any] | None:
     if not slot_key:
         return None
+    reg = vix_regime(vix)
+    if reg:
+        reg_slots = ((kb.get("slots_regime") or {}).get(symbol) or {}).get(reg) or {}
+        row = reg_slots.get(slot_key)
+        if isinstance(row, dict) and int(row.get("sample_count") or 0) >= 8:
+            return dict(row)
     slots = (kb.get("slots") or {}).get(symbol) or {}
     row = slots.get(slot_key)
     if not isinstance(row, dict):
@@ -117,10 +141,20 @@ def assemble_consciousness_inputs(*, now: datetime | None = None) -> dict[str, A
     kb = load_knowledge_base()
     slot_key = temporal.get("slot_key")
     symbols = kb.get("symbols") or ["SPY", "QQQ", "SMH"]
+    vix_live: float | None = None
+    try:
+        import yfinance as yf
+
+        vix_live = float(yf.Ticker("^VIX").fast_info.get("last_price") or 0) or None
+    except Exception:
+        pass
     historical: dict[str, Any] = {}
     for sym in symbols[:4]:
-        prof = slot_profile(kb, sym, slot_key)
+        prof = slot_profile(kb, sym, slot_key, vix=vix_live)
         if prof:
+            prof = dict(prof)
+            if vix_live and vix_regime(vix_live):
+                prof["vix_regime"] = vix_regime(vix_live)
             historical[sym] = prof
 
     tape: dict[str, Any] = {}
@@ -133,17 +167,29 @@ def assemble_consciousness_inputs(*, now: datetime | None = None) -> dict[str, A
 
     analogues: list[str] = []
     for sym, prof in historical.items():
+        reg = prof.get("vix_regime")
+        reg_tag = f" vix={reg}" if reg else ""
         analogues.append(
-            f"{sym}@{slot_key}: avg {prof.get('mean_return_pct'):+.3f}%/hr "
+            f"{sym}@{slot_key}{reg_tag}: avg {prof.get('mean_return_pct'):+.3f}%/hr "
             f"(win {prof.get('win_rate_long', 0)*100:.0f}%, n={prof.get('sample_count')})"
         )
+
+    diary: dict[str, Any] = {}
+    try:
+        from utils.session_diary import session_diary_summary
+
+        diary = session_diary_summary()
+    except Exception:
+        pass
 
     return {
         "enabled": True,
         "temporal": temporal,
         "historical_hour_profile": historical,
+        "session_diary": diary,
         "knowledge_built_at": kb.get("built_at"),
         "knowledge_years": kb.get("years") or 5,
+        "vix_regime": vix_regime(vix_live),
         "market_tape": {
             "benchmark": tape.get("benchmark"),
             "change_1d_pct": tape.get("change_1d_pct"),
@@ -174,6 +220,11 @@ def format_consciousness_prompt_section(*, max_chars: int = 900) -> str:
             if isinstance(bundle.get("self_state"), dict)
         },
         "analogue_summary": bundle.get("analogue_summary"),
+        "session_diary": {
+            k: bundle.get("session_diary", {}).get(k)
+            for k in ("entries_executed", "exits_executed", "activity_by_slot", "recent")
+            if isinstance(bundle.get("session_diary"), dict)
+        },
     }
     text = "MARKET_CONSCIOUSNESS (5yr hourly memory + live tape + self-state):\n" + json.dumps(
         compact,
@@ -193,6 +244,8 @@ def attach_to_shared_context(ctx: dict[str, Any]) -> dict[str, Any]:
         "temporal": bundle.get("temporal"),
         "historical_hour_profile": bundle.get("historical_hour_profile"),
         "analogue_summary": bundle.get("analogue_summary"),
+        "session_diary": bundle.get("session_diary"),
         "alpha_vs_spy_pct": (bundle.get("self_state") or {}).get("alpha_vs_spy_pct"),
+        "market_tape": bundle.get("market_tape"),
     }
     return ctx

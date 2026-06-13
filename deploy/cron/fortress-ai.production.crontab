@@ -14,3 +14,6 @@ REPO=/home/ubuntu/fortress-ai
 
 # EOD research cycle — hypothesis promote/kill + scenario stress apply (Mon–Fri 6:00 PM ET)
 0 18 * * 1-5 cd $REPO && flock -n /tmp/fortress-research-cycle.lock bash scripts/eod_research_cycle.sh >> $REPO/logs/research_cycle.log 2>&1
+
+# Weekly hourly market knowledge rebuild (Sunday 7:00 AM ET)
+0 7 * * 0 cd $REPO && bash scripts/cron_run.sh hourly_knowledge python3 scripts/build_hourly_market_knowledge.py --skip-download >> $REPO/logs/cron_master.log 2>&1

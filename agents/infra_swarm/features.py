@@ -242,7 +242,7 @@ def build_symbol_features(
             spread_bps = max(0.0, (hi - lo) / float(last) * 10_000.0)
         except Exception:
             spread_bps = None
-    return {
+    out = {
         "symbol": sym,
         "layer": layer,
         "company_context": ctx,
@@ -264,12 +264,18 @@ def build_symbol_features(
         "stack_direction": shared.get("stack_direction"),
         "infra_breadth": shared.get("infra_breadth"),
         "vix_last": shared.get("vix_last"),
+        "anchor_r5m": shared.get("anchor_r5m"),
         "side": side,
         "qty": int(pos.get("qty") or 0),
         "unrealized_usd": unrealized,
         "unrealized_pct": unrealized_pct,
         "spread_bps": spread_bps,
     }
-    out["anchor_r5m"] = shared.get("anchor_r5m")
     enrich_features_with_anticipation(out, component="infra_swarm")
+    try:
+        from utils.consciousness_posture import enrich_features_with_consciousness_posture
+
+        enrich_features_with_consciousness_posture(out, shared)
+    except Exception:
+        pass
     return out

@@ -544,11 +544,51 @@ def scan_market_relative_performance() -> list[dict[str, Any]]:
         return []
 
 
+def scan_consciousness_kb_stale() -> list[dict[str, Any]]:
+    """Flag missing or stale hourly knowledge base used by market consciousness."""
+    findings: list[dict[str, Any]] = []
+    try:
+        from agents.historical_seeder.paths import hourly_knowledge_path
+        from utils.system_time import now, parse_iso
+
+        p = hourly_knowledge_path()
+        if not p.is_file():
+            findings.append(
+                {
+                    "code": "consciousness_kb_missing",
+                    "severity": "high",
+                    "component": "market_consciousness",
+                    "recommendation": "Run scripts/build_hourly_market_knowledge.py to seed hourly memory.",
+                    "si_action": "build_hourly_knowledge",
+                }
+            )
+            return findings
+        doc = json.loads(p.read_text(encoding="utf-8"))
+        built = parse_iso(str(doc.get("built_at") or ""))
+        if built is None:
+            return findings
+        age_days = (now() - built).total_seconds() / 86400.0
+        if age_days > 8:
+            findings.append(
+                {
+                    "code": "consciousness_kb_stale",
+                    "severity": "medium",
+                    "component": "market_consciousness",
+                    "recommendation": f"Hourly knowledge base is {age_days:.0f} days old; rebuild weekly.",
+                    "si_action": "rebuild_hourly_knowledge",
+                    "age_days": round(age_days, 1),
+                }
+            )
+    except Exception:
+        pass
+    return findings
+
+
 def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     unified = scan_unified_agent()
     skim = scan_skim_swarm()
     infra = scan_infra_swarm()
-    findings = unified + skim + infra + scan_edge_scorecard(component="skim_swarm") + scan_edge_scorecard(component="infra_swarm") + scan_market_relative_performance()
+    findings = unified + skim + infra + scan_edge_scorecard(component="skim_swarm") + scan_edge_scorecard(component="infra_swarm") + scan_market_relative_performance() + scan_consciousness_kb_stale()
     ts = now_iso()
     out = {
         "timestamp": ts,

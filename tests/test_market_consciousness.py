@@ -28,7 +28,7 @@ class TestHourlyKnowledge(unittest.TestCase):
         ts = pd.to_datetime(dates, utc=True)
         close = [100 + i * 0.1 for i in range(12)]
         df = pd.DataFrame({"ts": ts, "close": close})
-        stats = build_symbol_slot_stats(df)
+        stats, _reg = build_symbol_slot_stats(df)
         self.assertIn("Tue-14", stats)
         self.assertGreaterEqual(stats["Tue-14"]["sample_count"], 8)
 

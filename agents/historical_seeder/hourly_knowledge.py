@@ -110,25 +110,30 @@ def _synthetic_slot_returns_from_daily(
     return out
 
 
-def build_symbol_slot_stats(
-    df: pd.DataFrame,
-    *,
-    extra_slot_returns: dict[str, list[float]] | None = None,
-) -> dict[str, dict[str, Any]]:
-    if df.empty or len(df) < 2:
+def _vix_regime(vix: float) -> str:
+    if vix < 18.0:
+        return "low"
+    if vix <= 25.0:
+        return "mid"
+    return "high"
+
+
+def _load_vix_by_date() -> dict[str, float]:
+    df = _read_daily_csv(prices_dir() / "VIX_daily.csv")
+    if df.empty:
         return {}
-    df = df.copy()
-    df["ret_pct"] = df["close"].pct_change() * 100.0
-    df = df.iloc[1:]
-    slots: dict[str, list[float]] = {}
+    out: dict[str, float] = {}
     for _, row in df.iterrows():
-        key = _slot_key(row["ts"])
-        if not key:
-            continue
-        slots.setdefault(key, []).append(float(row["ret_pct"]))
-    if extra_slot_returns:
-        for key, rets in extra_slot_returns.items():
-            slots.setdefault(key, []).extend(rets)
+        d = pd.Timestamp(row["date"]).strftime("%Y-%m-%d")
+        out[d] = float(row["close"])
+    return out
+
+
+def _date_et_from_ts(ts: pd.Timestamp) -> str:
+    return ts.tz_convert(_ET).strftime("%Y-%m-%d")
+
+
+def _aggregate_slot_stats(slots: dict[str, list[float]]) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for key, rets in slots.items():
         if len(rets) < 8:
@@ -144,6 +149,47 @@ def build_symbol_slot_stats(
     return out
 
 
+def build_symbol_slot_stats(
+    df: pd.DataFrame,
+    *,
+    extra_slot_returns: dict[str, list[float]] | None = None,
+    vix_by_date: dict[str, float] | None = None,
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, dict[str, Any]]]]:
+    if df.empty or len(df) < 2:
+        empty_reg: dict[str, dict[str, dict[str, Any]]] = {"low": {}, "mid": {}, "high": {}}
+        return {}, empty_reg
+    df = df.copy()
+    df["ret_pct"] = df["close"].pct_change() * 100.0
+    df = df.iloc[1:]
+    slots: dict[str, list[float]] = {}
+    reg_slots: dict[str, dict[str, list[float]]] = {"low": {}, "mid": {}, "high": {}}
+    vix_map = vix_by_date or {}
+
+    def _append(key: str, ret: float, day: str) -> None:
+        slots.setdefault(key, []).append(ret)
+        vix = vix_map.get(day, 20.0)
+        reg = _vix_regime(vix)
+        reg_slots[reg].setdefault(key, []).append(ret)
+
+    for _, row in df.iterrows():
+        key = _slot_key(row["ts"])
+        if not key:
+            continue
+        day = _date_et_from_ts(row["ts"])
+        _append(key, float(row["ret_pct"]), day)
+
+    if extra_slot_returns:
+        for key, rets in extra_slot_returns.items():
+            slots.setdefault(key, []).extend(rets)
+        for key, rets in (extra_slot_returns or {}).items():
+            wd = key.split("-")[0] if "-" in key else ""
+            for ret in rets:
+                reg_slots["mid"].setdefault(key, []).append(ret)
+
+    regime_out = {reg: _aggregate_slot_stats(rs) for reg, rs in reg_slots.items()}
+    return _aggregate_slot_stats(slots), regime_out
+
+
 def build_hourly_knowledge(
     *,
     symbols: list[str] | None = None,
@@ -151,7 +197,9 @@ def build_hourly_knowledge(
     hourly_dir().mkdir(parents=True, exist_ok=True)
     sym_list = symbols or [p.stem.replace("_hourly", "") for p in sorted(hourly_dir().glob("*_hourly.csv"))]
     slot_map: dict[str, dict[str, dict[str, Any]]] = {}
+    regime_map: dict[str, dict[str, dict[str, dict[str, Any]]]] = {}
     row_counts: dict[str, int] = {}
+    vix_by_date = _load_vix_by_date()
     for sym in sym_list:
         path = hourly_dir() / f"{sym}_hourly.csv"
         df = _read_hourly_csv(path)
@@ -161,9 +209,10 @@ def build_hourly_knowledge(
         weights = _hour_weight_profile(df)
         before = df["ts"].min() if not df.empty else None
         extra = _synthetic_slot_returns_from_daily(daily_df, weights, before=before)
-        stats = build_symbol_slot_stats(df, extra_slot_returns=extra)
+        stats, reg_stats = build_symbol_slot_stats(df, extra_slot_returns=extra, vix_by_date=vix_by_date)
         if stats:
             slot_map[sym] = stats
+            regime_map[sym] = reg_stats
 
     doc: dict[str, Any] = {
         "version": 1,
@@ -172,10 +221,12 @@ def build_hourly_knowledge(
         "years": int(os.environ.get("FORTRESS_HOURLY_KNOWLEDGE_YEARS", "5") or 5),
         "hourly_window_days": 729,
         "daily_extension": True,
-        "description": "5-year RTH slot profile: true hourly (~2y) + daily-synthesized prior years",
+        "regime_vix_bands": {"low": "<18", "mid": "18-25", "high": ">25"},
+        "description": "5-year RTH slot profile: true hourly (~2y) + daily-synthesized prior years; VIX regimes",
         "symbols": list(slot_map.keys()),
         "row_counts": row_counts,
         "slots": slot_map,
+        "slots_regime": regime_map,
     }
     return doc
 

@@ -213,7 +213,7 @@ def build_symbol_features(
             spread_bps = max(0.0, (hi - lo) / float(last) * 10_000.0)
         except Exception:
             spread_bps = None
-    return {
+    out = {
         "symbol": sym,
         "company_context": ctx,
         "company_name": ctx.get("name"),
@@ -238,4 +238,10 @@ def build_symbol_features(
         "spread_bps": spread_bps,
     }
     enrich_features_with_anticipation(out, component="skim_swarm")
+    try:
+        from utils.consciousness_posture import enrich_features_with_consciousness_posture
+
+        enrich_features_with_consciousness_posture(out, shared)
+    except Exception:
+        pass
     return out

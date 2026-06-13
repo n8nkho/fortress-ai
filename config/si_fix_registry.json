@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-12T20:43:12.809485-04:00"
+      "registered_at_utc": "2026-06-12T20:52:46.081329-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -625,6 +625,22 @@
         "historical_hour_profile",
         "MARKET_CONSCIOUSNESS",
         "market_hourly_knowledge"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "consciousness_proactive_posture": {
+      "title": "Consciousness posture loop: swarm score/threshold + session diary + proactive SI",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "consciousness_posture",
+        "participation_boost",
+        "session_diary",
+        "proactive_si",
+        "consciousness_participation_gap",
+        "slots_regime"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

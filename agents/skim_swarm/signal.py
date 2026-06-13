@@ -12,6 +12,10 @@ from agents.skim_swarm.eod import (
 )
 from agents.skim_swarm.company_context import context_score_adjustment
 from agents.skim_swarm.symbol_learning import entry_blocked_by_causation, get_params
+from utils.consciousness_posture import (
+    apply_entry_threshold_delta,
+    consciousness_score_adjustment,
+)
 from utils.movement_anticipation import (
     anticipation_score_adjustment,
     enrich_features_with_anticipation,
@@ -87,6 +91,8 @@ def compute_score(features: dict[str, Any]) -> float:
     score += float(params.get("score_bias") or 0)
     ant = features.get("movement_anticipation")
     score += anticipation_score_adjustment(ant if isinstance(ant, dict) else None)
+    posture = features.get("consciousness_posture")
+    score += consciousness_score_adjustment(posture if isinstance(posture, dict) else None)
     return max(-1.0, min(1.0, score))
 
 
@@ -194,6 +200,7 @@ def decide(
     sym = str(features.get("symbol") or "")
     side = str(features.get("side") or symbol_state.get("side") or "flat")
     score = compute_score(features)
+    posture = features.get("consciousness_posture") if isinstance(features.get("consciousness_posture"), dict) else None
     target = adaptive_target_usd(features)
     ant = features.get("movement_anticipation") if isinstance(features.get("movement_anticipation"), dict) else None
     phase = describe_eod_phase()
@@ -225,6 +232,13 @@ def decide(
             "bias": ant.get("bias"),
             "confidence": ant.get("confidence"),
             "hypothesis_id": ant.get("hypothesis_id"),
+        }
+    posture = features.get("consciousness_posture") if isinstance(features.get("consciousness_posture"), dict) else None
+    if posture and posture.get("enabled") and posture.get("mode") != "neutral":
+        out["consciousness_posture"] = {
+            "mode": posture.get("mode"),
+            "score_delta": posture.get("score_delta"),
+            "entry_threshold_delta": posture.get("entry_threshold_delta"),
         }
 
     if is_force_flatten_window() or phase == "force_flatten":
@@ -446,6 +460,9 @@ def decide(
     pd = params.get("pattern_deltas") or {}
     enter_long = float(params["enter_long"])
     enter_short = float(params["enter_short"])
+    enter_long, enter_short = apply_entry_threshold_delta(
+        enter_long, enter_short, posture if side == "flat" else None
+    )
     stop_usd_val = stop_loss_usd(target, stop_target_mult_effective=stop_mult)
     if sym in high_vol_symbols():
         enter_long += 0.05

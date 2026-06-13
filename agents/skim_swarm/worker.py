@@ -155,6 +155,19 @@ def run_symbol_cycle(
         features=features,
     )
 
+    try:
+        from utils.session_diary import record_swarm_event
+
+        record_swarm_event(
+            component="skim_swarm",
+            symbol=sym,
+            decision=decision,
+            act_result=act_result,
+            features=features,
+        )
+    except Exception:
+        pass
+
     beta = features.get("company_beta")
     params = learned.get("params") or {}
     tm = float(params.get("target_mult") or 1.0)

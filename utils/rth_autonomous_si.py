@@ -98,6 +98,13 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
         _persist_cycle_report(out)
         return out
 
+    try:
+        from utils.consciousness_posture import maybe_run_proactive_si
+
+        out["proactive_si"] = maybe_run_proactive_si(force=force)
+    except Exception as e:
+        out["proactive_si"] = {"error": str(e)[:120]}
+
     from utils.si_recommendation_queue import process_scan_to_queue, status_dict
 
     out["queue"] = process_scan_to_queue(scan)
