@@ -170,6 +170,24 @@ def observe() -> dict[str, Any]:
         out["positions"] = []
         out["note"] = "Alpaca keys missing — observation macro-only"
 
+    try:
+        from utils.market_consciousness import assemble_consciousness_inputs
+
+        mc = assemble_consciousness_inputs()
+        if mc.get("enabled"):
+            out["market_consciousness"] = {
+                "temporal": mc.get("temporal"),
+                "historical_hour_profile": mc.get("historical_hour_profile"),
+                "analogue_summary": mc.get("analogue_summary"),
+                "market_tape": mc.get("market_tape"),
+                "self_state": {
+                    k: (mc.get("self_state") or {}).get(k)
+                    for k in ("session_realized_usd", "alpha_vs_spy_pct", "halted")
+                },
+            }
+    except Exception:
+        pass
+
     # Trim for prompt budget
     blob = json.dumps(out, default=str)
     max_chars = int(os.environ.get("FORTRESS_AI_MAX_OBS_CHARS", "3500"))
@@ -278,9 +296,18 @@ def build_prompt(
     strat_l = infer_strategy(observation, state)
     learned = format_beliefs_prompt_section(regime_l, strat_l)
     dom_ingest = format_domain_ingest_prompt_section(observation)
+    consciousness = ""
+    try:
+        from utils.market_consciousness import format_consciousness_prompt_section
+
+        consciousness = format_consciousness_prompt_section()
+    except Exception:
+        pass
     aux_blocks = "\n\n" + learned
     if dom_ingest.strip():
         aux_blocks += "\n\n" + dom_ingest
+    if consciousness.strip():
+        aux_blocks += "\n\n" + consciousness
     return f"""You are Fortress AI. Respond with ONE JSON object only (no markdown).
 
 CURRENT_STATE:{obs}

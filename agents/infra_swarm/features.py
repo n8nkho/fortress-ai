@@ -183,6 +183,12 @@ def build_shared_context(bars: dict[str, pd.DataFrame]) -> dict[str, Any]:
     active = [s for s in candidate_pool() if s in ctx["symbols"]]
     pos_n = sum(1 for s in active if (ctx["symbols"][s].get("r5m") or 0) > 0)
     ctx["infra_breadth"] = pos_n / max(len(active), 1)
+    try:
+        from utils.market_consciousness import attach_to_shared_context
+
+        ctx = attach_to_shared_context(ctx)
+    except Exception:
+        pass
     return ctx
 
 

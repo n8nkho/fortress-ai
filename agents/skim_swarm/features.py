@@ -159,6 +159,12 @@ def build_shared_context(bars: dict[str, pd.DataFrame]) -> dict[str, Any]:
         ctx["vix_last"] = float(vix.fast_info.get("last_price") or 0)
     except Exception:
         ctx["vix_last"] = None
+    try:
+        from utils.market_consciousness import attach_to_shared_context
+
+        ctx = attach_to_shared_context(ctx)
+    except Exception:
+        pass
     return ctx
 
 

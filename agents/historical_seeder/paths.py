@@ -31,3 +31,11 @@ def pattern_results_path() -> Path:
 
 def ingest_health_path() -> Path:
     return repo_root() / "data" / "domain_intelligence" / "ingest_health.json"
+
+
+def hourly_dir() -> Path:
+    return repo_root() / "data" / "historical" / "hourly"
+
+
+def hourly_knowledge_path() -> Path:
+    return hourly_dir() / "market_hourly_knowledge.json"
