@@ -121,6 +121,13 @@
       "default": 7,
       "apply_via": "data/si_capability/overrides.json",
       "notes": "Days before PerformanceMonitor may revert an active change (max 7 = cannot delay monitoring)."
+    },
+    "strong_tape_min_exits": {
+      "kind": "tunable",
+      "bounds": { "min": 4, "max": 12 },
+      "default": 6,
+      "apply_via": "data/si_capability/overrides.json",
+      "notes": "Minimum combined swarm exits expected on strong-tape days (SPY 1d >= 0.35%) for participation objective."
     }
   }
 }

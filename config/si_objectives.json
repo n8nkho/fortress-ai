@@ -98,6 +98,28 @@
       "priority": "high",
       "description": "Classic must produce a fill within adaptive recency window (days).",
       "target_aspire": 3.0
+    },
+    {
+      "id": "portfolio_session_alpha_vs_spy",
+      "component": "portfolio_session",
+      "metric": "alpha_vs_spy_pct",
+      "target_min": -0.25,
+      "window_sessions": 1,
+      "min_exits": 0,
+      "priority": "high",
+      "description": "Session return vs SPY 1d — negative alpha on strong tape triggers SI review.",
+      "target_aspire": 0.0
+    },
+    {
+      "id": "portfolio_participation_on_strong_tape",
+      "component": "portfolio_session",
+      "metric": "participation_shortfall_exits",
+      "target_max": 0.0,
+      "window_sessions": 1,
+      "min_exits": 0,
+      "priority": "high",
+      "description": "On strong tape days, swarm exit count should meet minimum participation floor.",
+      "target_aspire": 0.0
     }
   ]
 }

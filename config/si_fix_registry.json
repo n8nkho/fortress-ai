@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-11T15:03:34.114790-04:00"
+      "registered_at_utc": "2026-06-12T20:37:52.594734-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -588,6 +588,33 @@
       },
       "agent_review_if_unmitigated": false,
       "effort": "low",
+      "impact": "high"
+    },
+    "market_relative_si_benchmark": {
+      "title": "Market-relative SI \u2014 session alpha vs SPY and strong-tape participation",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "market_relative_underperformance",
+        "market_participation_gap",
+        "alpha_vs_spy_pct",
+        "portfolio_session_alpha_vs_spy"
+      ],
+      "auto_tunable": {
+        "strong_tape_min_exits": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "edge_autofix_min_exits": {
+          "tier": 0,
+          "direction": "bounded"
+        },
+        "rolling_edge_autofix_strength": {
+          "tier": 0,
+          "direction": "bounded"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
       "impact": "high"
     }
   }

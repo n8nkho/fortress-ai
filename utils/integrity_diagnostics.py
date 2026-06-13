@@ -534,11 +534,21 @@ def scan_positions_from_decisions(*, rows: list[dict[str, Any]] | None = None) -
     return findings
 
 
+def scan_market_relative_performance() -> list[dict[str, Any]]:
+    """Compare session portfolio PnL vs SPY benchmark — feeds SI queue on tape divergence."""
+    try:
+        from utils.market_benchmark import market_relative_findings
+
+        return market_relative_findings()
+    except Exception:
+        return []
+
+
 def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     unified = scan_unified_agent()
     skim = scan_skim_swarm()
     infra = scan_infra_swarm()
-    findings = unified + skim + infra + scan_edge_scorecard(component="skim_swarm") + scan_edge_scorecard(component="infra_swarm")
+    findings = unified + skim + infra + scan_edge_scorecard(component="skim_swarm") + scan_edge_scorecard(component="infra_swarm") + scan_market_relative_performance()
     ts = now_iso()
     out = {
         "timestamp": ts,

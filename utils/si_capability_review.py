@@ -219,6 +219,15 @@ def collect_metrics() -> dict[str, Any]:
         "classic_fortress": classic_rolling_metrics(window_sessions=10),
         "ts": now_iso(),
     }
+    try:
+        from utils.market_benchmark import build_portfolio_session_metrics, fetch_benchmark_context
+
+        bench = fetch_benchmark_context()
+        metrics["market_benchmark"] = bench
+        metrics["portfolio_session"] = build_portfolio_session_metrics(benchmark=bench)
+    except Exception as e:
+        metrics["market_benchmark"] = {"ok": False, "error": str(e)[:120]}
+        metrics["portfolio_session"] = {"component": "portfolio_session", "benchmark_ok": False}
     return metrics
 
 
@@ -226,6 +235,14 @@ def _metric_value(metrics: dict[str, Any], component: str, metric: str) -> float
     if component == "si_meta" and metric == "intervention_success_rate":
         st = load_state()
         return float(st.get("intervention_success_rate")) if st.get("intervention_success_rate") is not None else None
+    if component == "portfolio_session":
+        port = metrics.get("portfolio_session") or {}
+        if metric == "alpha_vs_spy_pct":
+            val = port.get("alpha_vs_spy_pct")
+            return float(val) if val is not None else None
+        if metric == "participation_shortfall_exits":
+            val = port.get("participation_shortfall_exits")
+            return float(val) if val is not None else None
     comp = metrics.get(component) or {}
     val = comp.get(metric)
     if val is None:
@@ -264,9 +281,12 @@ def evaluate_objective_gaps(metrics: dict[str, Any]) -> list[dict[str, Any]]:
                     target_max = obj["target_max"]
                 except Exception:
                     pass
-        elif comp != "si_meta":
+        elif comp != "si_meta" and comp != "portfolio_session":
             exits = int(comp_metrics.get("rolling_exits") or 0)
             if exits < min_exits:
+                continue
+        elif comp == "portfolio_session":
+            if not comp_metrics.get("benchmark_ok"):
                 continue
         val = _metric_value(metrics, comp, metric)
         if val is None:
@@ -372,6 +392,30 @@ def propose_capability_updates(
                     "current": cur_cadence,
                     "proposed": round(new_cadence, 4),
                     "reason": "Objective gaps open — increase review cadence.",
+                }
+            )
+
+    if any(g.get("objective_id") == "portfolio_participation_on_strong_tape" for g in gaps):
+        cur_min = float(get_capability("edge_autofix_min_exits", 4) or 4)
+        new_min = _clamp_capability("edge_autofix_min_exits", max(3, cur_min - 1))
+        if new_min < cur_min - 0.5:
+            proposals.append(
+                {
+                    "capability": "edge_autofix_min_exits",
+                    "current": cur_min,
+                    "proposed": int(new_min),
+                    "reason": "Strong tape participation gap — allow edge autofix with fewer session exits.",
+                }
+            )
+        cur_strength = float(get_capability("rolling_edge_autofix_strength", 0.55) or 0.55)
+        new_strength = _clamp_capability("rolling_edge_autofix_strength", min(1.0, cur_strength + 0.08))
+        if new_strength > cur_strength + 0.04:
+            proposals.append(
+                {
+                    "capability": "rolling_edge_autofix_strength",
+                    "current": cur_strength,
+                    "proposed": round(new_strength, 4),
+                    "reason": "Strong tape with low participation — scale rolling edge autofix.",
                 }
             )
 
@@ -482,6 +526,20 @@ def propose_classic_recommendations(
                 "component": "classic_fortress",
                 "action": "classic_param_tune",
                 "detail": "Negative classic expectancy — run orchestrator tune / recursive_evolution.",
+            }
+        )
+    if "portfolio_session_alpha_vs_spy" in gap_ids or "portfolio_participation_on_strong_tape" in gap_ids:
+        port = metrics.get("portfolio_session") or {}
+        bench = metrics.get("market_benchmark") or {}
+        recs.append(
+            {
+                "component": "portfolio_session",
+                "action": "market_relative_review",
+                "detail": (
+                    f"Tape {bench.get('benchmark')} 1d={bench.get('change_1d_pct')}% "
+                    f"alpha={port.get('alpha_vs_spy_pct')}pp exits={port.get('session_exit_count')} — "
+                    "audit skim denylist/pause_entries/pattern disables; classic screener throughput."
+                ),
             }
         )
     return recs

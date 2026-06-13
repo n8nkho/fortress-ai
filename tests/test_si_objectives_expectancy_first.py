@@ -17,6 +17,8 @@ _PRIMARY_EXPECTANCY = (
     "rolling_fills",
     "avg_candidates_per_screen",
     "days_since_last_fill",
+    "alpha_vs_spy_pct",
+    "participation_shortfall_exits",
 )
 
 
