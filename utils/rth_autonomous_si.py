@@ -25,9 +25,9 @@ def rth_intraday_si_enabled() -> bool:
 
 def rth_cycle_interval_sec() -> int:
     try:
-        return max(300, int(os.environ.get("FORTRESS_RTH_SI_INTERVAL_SEC", "1800") or 1800))
+        return max(300, int(os.environ.get("FORTRESS_RTH_SI_INTERVAL_SEC", "900") or 900))
     except ValueError:
-        return 1800
+        return 900
 
 
 def si_mutations_frozen() -> dict[str, Any] | None:

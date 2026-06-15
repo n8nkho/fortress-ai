@@ -204,7 +204,76 @@ def implementation_runs_dir() -> Path:
 
 
 def _cursor_bin() -> str:
-    return shutil.which("cursor") or "cursor"
+    """Legacy helper — prefer _cursor_agent_argv()."""
+    argv = _cursor_agent_argv("status")
+    return argv[0]
+
+
+def _cursor_agent_argv(prompt: str) -> list[str]:
+    """
+    Resolve cursor-agent invocation for headless SI runs.
+    Prefers cursor-agent ( ~/.local/bin ) over cursor remote-cli subcommand.
+    """
+    override = (os.environ.get("FORTRESS_SI_CURSOR_BIN") or "").strip()
+    home = Path.home()
+    candidates: list[str] = []
+    if override:
+        candidates.append(override)
+    candidates.extend(
+        [
+            str(home / ".local/bin/cursor-agent"),
+            str(home / ".local/bin/agent"),
+        ]
+    )
+    for name in ("cursor-agent", "agent", "cursor"):
+        found = shutil.which(name)
+        if found and found not in candidates:
+            candidates.append(found)
+    try:
+        server_glob = sorted(
+            (home / ".cursor-server/bin").glob("*/bin/remote-cli/cursor"),
+            reverse=True,
+        )
+        for p in server_glob:
+            candidates.append(str(p))
+    except Exception:
+        pass
+
+    trust = str(os.environ.get("FORTRESS_SI_CURSOR_TRUST", "1")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    suffix = ["--print", "--output-format", "text"]
+    if trust:
+        suffix.insert(0, "--trust")
+
+    for raw in candidates:
+        if not raw:
+            continue
+        path = Path(raw)
+        bin_path = str(path) if path.is_file() else (shutil.which(raw) or "")
+        if not bin_path or not Path(bin_path).is_file():
+            continue
+        name = Path(bin_path).name
+        if name in ("cursor-agent", "agent"):
+            return [bin_path, *suffix, prompt]
+        if name == "cursor":
+            return [bin_path, "agent", *suffix, prompt]
+
+    raise FileNotFoundError("cursor_cli_not_found")
+
+
+def cursor_agent_resolved() -> dict[str, Any]:
+    """Probe cursor CLI resolution for operator dashboards."""
+    try:
+        argv = _cursor_agent_argv("probe")
+        return {"ok": True, "bin": argv[0], "mode": "cursor-agent" if Path(argv[0]).name != "cursor" else "cursor_subcommand"}
+    except FileNotFoundError:
+        return {"ok": False, "error": "cursor_cli_not_found"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120]}
 
 
 def _load_item(item_id: str) -> dict[str, Any]:
@@ -396,6 +465,52 @@ def auto_assess_item(item_id: str) -> dict[str, Any]:
     return item
 
 
+def auto_approve_enabled() -> bool:
+    """When on, pending_human_go items auto-queue for implementation (no manual go)."""
+    return str(os.environ.get("FORTRESS_SI_AUTO_APPROVE", "1")).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+def auto_promote_pending_human_go(*, limit: int = 5) -> list[dict[str, Any]]:
+    """Promote assessed human-go items to auto_implement_queued."""
+    if not auto_approve_enabled() or not auto_code_enabled():
+        return []
+
+    from utils.si_recommendation_queue import (
+        DISPOSITION_AUTO_IMPLEMENT_QUEUED,
+        DISPOSITION_PENDING_HUMAN,
+        list_pending,
+    )
+
+    promoted: list[dict[str, Any]] = []
+    for item in list_pending(disposition=DISPOSITION_PENDING_HUMAN, limit=limit):
+        assessment = item.get("agent_assessment") or {}
+        if not assessment.get("worth_implementing"):
+            if not assessment:
+                try:
+                    item = auto_assess_item(str(item["id"]))
+                    assessment = item.get("agent_assessment") or {}
+                except Exception:
+                    continue
+            if not assessment.get("worth_implementing"):
+                continue
+        item["human_go"] = {
+            "approved": True,
+            "note": "auto_approved",
+            "decided_utc": now_iso(),
+        }
+        item["disposition"] = DISPOSITION_AUTO_IMPLEMENT_QUEUED
+        item["implementation_ready"] = True
+        item["updated_utc"] = now_iso()
+        _save_item(item)
+        promoted.append({"id": item.get("id"), "code": item.get("code"), "title": item.get("title")})
+    return promoted
+
+
 def auto_assess_pending(*, limit: int = 5) -> list[dict[str, Any]]:
     from utils.si_recommendation_queue import DISPOSITION_PENDING_AGENT, list_pending
 
@@ -530,16 +645,15 @@ def _auto_push(repo: Path) -> tuple[bool, str]:
 def _run_cursor_agent(prompt: str, *, cwd: Path) -> tuple[int, str]:
     api_key = (os.environ.get("CURSOR_API_KEY") or os.environ.get("FORTRESS_SI_CURSOR_API_KEY") or "").strip()
     env = os.environ.copy()
+    local_bin = str(Path.home() / ".local/bin")
+    if local_bin not in (env.get("PATH") or "").split(":"):
+        env["PATH"] = f"{local_bin}:{env.get('PATH', '')}"
     if api_key:
         env["CURSOR_API_KEY"] = api_key
-    cmd = [
-        _cursor_bin(),
-        "agent",
-        "--print",
-        "--output-format",
-        "text",
-        prompt,
-    ]
+    try:
+        cmd = _cursor_agent_argv(prompt)
+    except FileNotFoundError:
+        return -1, "cursor_cli_not_found"
     try:
         r = subprocess.run(
             cmd,
@@ -733,13 +847,17 @@ def run_autonomous_code_si_cycle(*, assess_limit: int = 5, implement_limit: int 
         return frozen
 
     assessed = auto_assess_pending(limit=assess_limit)
+    promoted = auto_promote_pending_human_go(limit=assess_limit)
     implemented = auto_implement_queued(limit=implement_limit)
     return {
         "ok": True,
         "ts": now_iso(),
         "assessed": len(assessed),
         "assessments": assessed,
+        "auto_approved": len(promoted),
+        "auto_approved_items": promoted,
         "implemented": len(implemented),
         "implementations": implemented,
+        "cursor_cli": cursor_agent_resolved(),
         "remaining_today_cap": max(0, max_implementations_per_day() - _implementation_attempts_today()),
     }

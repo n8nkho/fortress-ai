@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# RTH loop — run autonomous SI every 30 minutes during US equity regular session.
+# RTH loop — run autonomous SI every 15 minutes during US equity regular session.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

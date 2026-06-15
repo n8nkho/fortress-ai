@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-15T14:48:22.048223-04:00"
+      "registered_at_utc": "2026-06-15T14:56:46.661061-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -682,6 +682,19 @@
         "adaptive_max_open",
         "max_open_positions",
         "participation_boost"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "si_cursor_cli_resolver": {
+      "title": "Resolve cursor-agent CLI for headless autonomous code SI",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "cursor_cli_resolved",
+        "si_auto_code",
+        "cursor_agent_trust"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

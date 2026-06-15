@@ -72,6 +72,28 @@ class TestSiCodeImplementation(unittest.TestCase):
         out = run_autonomous_code_si_cycle()
         self.assertEqual(out.get("skipped"), "auto_code_disabled")
 
+    def test_cursor_agent_resolves_local_bin(self):
+        from utils.si_code_implementation import _cursor_agent_argv
+
+        fake = Path(self._td.name) / "cursor-agent"
+        fake.write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
+        fake.chmod(0o755)
+        with patch.dict(os.environ, {"FORTRESS_SI_CURSOR_BIN": str(fake), "FORTRESS_SI_CURSOR_TRUST": "1"}):
+            argv = _cursor_agent_argv("hello")
+        self.assertEqual(argv[0], str(fake))
+        self.assertIn("--trust", argv)
+        self.assertIn("--print", argv)
+
+    def test_cursor_agent_resolved_probe(self):
+        from utils.si_code_implementation import cursor_agent_resolved
+
+        with patch(
+            "utils.si_code_implementation._cursor_agent_argv",
+            return_value=["/home/ubuntu/.local/bin/cursor-agent", "--trust", "--print", "probe"],
+        ):
+            doc = cursor_agent_resolved()
+        self.assertTrue(doc.get("ok"))
+
     def test_implement_dry_run(self):
         from utils.si_recommendation_queue import upsert_from_finding
 
