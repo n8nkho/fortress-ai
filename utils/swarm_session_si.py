@@ -206,9 +206,18 @@ def adapt_swarm_session(
     if not negative_edge and not over_churn:
         mode = "normal"
         policy = _default_policy()
+        adaptive_doc: dict[str, Any] = {}
+        try:
+            from utils.adaptive_max_open import compute_adaptive_max_open
+
+            adaptive_doc = compute_adaptive_max_open(component)
+        except Exception:
+            pass
         policy.update(
             {
                 "mode": mode,
+                "max_open_adaptive": adaptive_doc.get("effective"),
+                "max_open_boost": adaptive_doc.get("boost"),
                 "session_exits": exits,
                 "session_wins": wins,
                 "session_losses": losses,
@@ -218,6 +227,13 @@ def adapt_swarm_session(
                 "notes": ["swarm_session_recovered"] if prev.get("mode") != "normal" else [],
             }
         )
+        if adaptive_doc.get("markers"):
+            notes_list = list(policy.get("notes") or [])
+            notes_list.append(
+                f"adaptive_max_open={adaptive_doc.get('effective')} "
+                f"({','.join(adaptive_doc.get('markers') or [])})"
+            )
+            policy["notes"] = notes_list[-8:]
     else:
         if severe:
             mode = "critical"
@@ -285,16 +301,27 @@ def adapt_swarm_session(
 
 
 def effective_max_open(component: str) -> int:
-    cfg = _config(component)
-    base = int(cfg.max_open_positions())
+    from utils.adaptive_max_open import adaptive_max_open_value
+
+    adaptive = adaptive_max_open_value(component)
     pol = load_session_policy(component)
+    mode = str(pol.get("mode") or "normal")
     eff = pol.get("max_open_effective")
-    if eff is None:
-        return base
-    try:
-        return max(1, min(base, int(eff)))
-    except (TypeError, ValueError):
-        return base
+
+    if eff is not None:
+        try:
+            return max(1, min(adaptive, int(eff)))
+        except (TypeError, ValueError):
+            pass
+
+    if mode == "normal":
+        return adaptive
+
+    reductions = {"critical": 3, "churn": 2, "tight": 1}
+    red = reductions.get(mode, 0)
+    if red:
+        return max(2, adaptive - red)
+    return adaptive
 
 
 def effective_max_l1_gross(component: str) -> int:

@@ -20,6 +20,7 @@ class TestSwarmSessionSI(unittest.TestCase):
         os.environ["FORTRESS_SKIM_CHURN_MIN_EXITS"] = "8"
         os.environ["FORTRESS_SKIM_SESSION_EXPECTANCY_MIN_USD"] = "-0.05"
         os.environ["FORTRESS_SKIM_MAX_OPEN_POSITIONS"] = "6"
+        os.environ["FORTRESS_ADAPTIVE_MAX_OPEN"] = "0"
 
     def _write_learned(self, component: str, symbol: str, *, exits: int, wins: int, losses: int, pnl: float):
         learned = Path(self._td.name) / "skim_swarm" / "learned"

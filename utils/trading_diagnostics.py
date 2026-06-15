@@ -232,6 +232,15 @@ def _summarize_skim_decisions(rows: list[dict], *, days: int = 14) -> dict[str, 
     }
 
 
+def _skim_effective_max_open() -> int | None:
+    try:
+        from utils.swarm_session_si import effective_max_open
+
+        return effective_max_open("skim_swarm")
+    except Exception:
+        return None
+
+
 def build_trading_diagnostics(*, days: int = 14) -> dict[str, Any]:
     from utils.ai_pnl_ledger import summarize_ledger
     from utils.api_costs import weekly_llm_budget_status
@@ -276,6 +285,7 @@ def build_trading_diagnostics(*, days: int = 14) -> dict[str, Any]:
         "skim_swarm": {
             "dry_run": skim_dry_run(),
             "max_open_positions": max_open_positions(),
+            "max_open_effective": _skim_effective_max_open(),
             "daily_stop_usd": daily_stop_usd(),
             "day_realized_pnl": swarm_st.get("day_realized_pnl"),
             "swarm_halted": bool(swarm_st.get("halted")),

@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-15T11:05:08.625357-04:00"
+      "registered_at_utc": "2026-06-15T14:48:22.048223-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -669,6 +669,19 @@
         "recursive_guard",
         "consciousness_recursion",
         "per_symbol_yfinance"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "adaptive_max_open_positions": {
+      "title": "Adaptive max-open scales participation on strong tape up to ceiling",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "adaptive_max_open",
+        "max_open_positions",
+        "participation_boost"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
