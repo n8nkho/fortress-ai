@@ -35,32 +35,28 @@ def _fetch_bars_yfinance(symbols: list[str], *, now: float, out: dict[str, pd.Da
     need = [s for s in symbols if s not in out]
     if not need:
         return
-    yf_need = [_YF_TICKER.get(s, s) for s in need]
-    tickers = " ".join(yf_need)
-    yf_to_sym = {yf: need[i] for i, yf in enumerate(yf_need)}
-    try:
-        raw = yf.download(tickers, period="1d", interval="1m", group_by="ticker", progress=False, threads=True)
-    except Exception as e:
-        logger.warning("yfinance bar download failed: %s", e)
-        return
-    if raw is None or raw.empty:
-        return
-    if len(need) == 1:
-        sym = need[0]
-        if not raw.empty:
-            out[sym] = raw.copy()
-            _bar_cache[sym] = (now, raw.copy())
-        return
-    for yf_sym, sym in yf_to_sym.items():
+    for sym in need:
+        yf_sym = _YF_TICKER.get(sym, sym)
         try:
-            if yf_sym not in raw.columns.get_level_values(0):
-                continue
-            df = raw[yf_sym].dropna(how="all")
-            if not df.empty:
-                out[sym] = df
-                _bar_cache[sym] = (now, df)
-        except Exception:
+            raw = yf.download(
+                yf_sym,
+                period="1d",
+                interval="1m",
+                progress=False,
+                threads=False,
+            )
+        except Exception as e:
+            logger.warning("yfinance bar failed %s: %s", sym, e)
             continue
+        if raw is None or raw.empty:
+            logger.warning("yfinance no bars for %s", sym)
+            continue
+        from utils.yfinance_bars import flatten_intraday_df
+
+        df = flatten_intraday_df(raw, sym)
+        if not df.empty:
+            out[sym] = df
+            _bar_cache[sym] = (now, df)
 
 
 def _fetch_bars_alpaca(symbols: list[str], *, now: float, out: dict[str, pd.DataFrame]) -> None:

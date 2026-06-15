@@ -18,6 +18,9 @@ _ET = ZoneInfo("America/New_York")
 _WD = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 _VIX_LOW = 18.0
 _VIX_HIGH = 25.0
+_ASSEMBLE_GUARD = False
+_CONSCIOUSNESS_CACHE: dict[str, Any] = {"ts": 0.0, "bundle": {}}
+_CONSCIOUSNESS_CACHE_TTL = float(os.environ.get("FORTRESS_CONSCIOUSNESS_CACHE_SEC", "45") or 45)
 
 
 def _root() -> Path:
@@ -132,11 +135,37 @@ def _self_state() -> dict[str, Any]:
     return out
 
 
-def assemble_consciousness_inputs(*, now: datetime | None = None) -> dict[str, Any]:
+def assemble_consciousness_inputs(*, now: datetime | None = None, use_cache: bool = True) -> dict[str, Any]:
     """Full consciousness bundle for agents and SI (compact JSON-serializable)."""
+    global _ASSEMBLE_GUARD
     if not _enabled():
         return {"enabled": False}
 
+    if use_cache and _CONSCIOUSNESS_CACHE.get("bundle"):
+        import time
+
+        age = time.time() - float(_CONSCIOUSNESS_CACHE.get("ts") or 0)
+        if age < _CONSCIOUSNESS_CACHE_TTL:
+            return dict(_CONSCIOUSNESS_CACHE["bundle"])
+
+    if _ASSEMBLE_GUARD:
+        return {"enabled": True, "recursive_guard": True, "temporal": current_temporal_slot(now=now)}
+
+    _ASSEMBLE_GUARD = True
+    try:
+        bundle = _assemble_consciousness_inputs_uncached(now=now)
+    finally:
+        _ASSEMBLE_GUARD = False
+
+    if bundle.get("enabled"):
+        import time
+
+        _CONSCIOUSNESS_CACHE["ts"] = time.time()
+        _CONSCIOUSNESS_CACHE["bundle"] = bundle
+    return bundle
+
+
+def _assemble_consciousness_inputs_uncached(*, now: datetime | None = None) -> dict[str, Any]:
     temporal = current_temporal_slot(now=now)
     kb = load_knowledge_base()
     slot_key = temporal.get("slot_key")
@@ -217,9 +246,8 @@ def assemble_consciousness_inputs(*, now: datetime | None = None) -> dict[str, A
 
     session_intent: dict[str, Any] = {}
     try:
-        from utils.session_intent import ensure_session_intent, load_session_intent
+        from utils.session_intent import load_session_intent
 
-        ensure_session_intent()
         session_intent = load_session_intent()
     except Exception:
         pass

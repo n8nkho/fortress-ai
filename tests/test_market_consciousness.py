@@ -100,6 +100,12 @@ class TestMarketConsciousness(unittest.TestCase):
     def test_slot_profile_miss(self):
         self.assertIsNone(slot_profile({"slots": {}}, "SPY", "Mon-09"))
 
+    def test_assemble_no_recursion_with_session_intent(self):
+        with patch("utils.session_intent.load_session_intent", return_value={"plan_line": "test"}):
+            bundle = assemble_consciousness_inputs(use_cache=False)
+        self.assertTrue(bundle.get("enabled"))
+        self.assertNotIn("recursive_guard", bundle)
+
 
 if __name__ == "__main__":
     unittest.main()

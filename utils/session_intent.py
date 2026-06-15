@@ -38,9 +38,9 @@ def intent_enabled() -> bool:
 def generate_session_intent(*, consciousness: dict[str, Any] | None = None) -> dict[str, Any]:
     """Heuristic session plan from consciousness bundle — no LLM required."""
     if consciousness is None:
-        from utils.market_consciousness import assemble_consciousness_inputs
+        from utils.market_consciousness import _assemble_consciousness_inputs_uncached
 
-        consciousness = assemble_consciousness_inputs()
+        consciousness = _assemble_consciousness_inputs_uncached()
 
     from utils.market_event_calendar import event_summary
 

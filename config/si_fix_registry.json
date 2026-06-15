@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-12T21:00:00.244725-04:00"
+      "registered_at_utc": "2026-06-15T11:05:08.625357-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -660,6 +660,19 @@
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "medium",
+      "impact": "high"
+    },
+    "consciousness_recursion_swarm_stall": {
+      "title": "Fix consciousness assemble recursion stalling swarm cycles",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "recursive_guard",
+        "consciousness_recursion",
+        "per_symbol_yfinance"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
       "impact": "high"
     }
   }
