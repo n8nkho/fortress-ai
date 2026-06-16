@@ -134,6 +134,18 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
         "ts": ov["updated_utc"],
     }
     save_runtime_overrides(component, ov)
+    try:
+        from utils.si_capability_review import collect_metrics
+        from utils.si_intervention_log import record_intervention
+
+        record_intervention(
+            component=component,
+            action="edge_autofix",
+            metrics_snapshot=collect_metrics(),
+            detail={"changes": changes, "payoff_ratio": pay_f},
+        )
+    except Exception:
+        pass
     return {"component": component, "changes": changes, "toxic_patterns": toxic}
 
 
@@ -257,6 +269,8 @@ def _tighten_unified_entries() -> dict[str, Any] | None:
 
 def batch_symbol_improvement(component: str, *, min_exits: int = 3) -> dict[str, Any]:
     """Force per-symbol improve_from_history on symbols bleeding this session."""
+    from utils.session_loser_pause import apply_session_loser_pause
+
     learned_dir = _swarm_dir(component) / "learned"
     if not learned_dir.is_dir():
         return {"improved": []}
@@ -278,9 +292,31 @@ def batch_symbol_improvement(component: str, *, min_exits: int = 3) -> dict[str,
         if exits < min_exits or pnl >= 0:
             continue
         try:
+            from utils.session_loser_pause import apply_session_loser_pause_to_params
+
+            params = doc.setdefault("params", {})
+            if apply_session_loser_pause_to_params(params, stats, component=component):
+                doc["params"] = params
+                if component == "skim_swarm":
+                    from agents.skim_swarm.symbol_learning import save_learned
+
+                    save_learned(sym, doc)
+                else:
+                    from agents.infra_swarm.symbol_learning import save_learned
+
+                    save_learned(sym, doc)
+        except Exception:
+            pass
+        try:
             r = improve_from_history(sym, force=True)
             if r:
                 improved.append(sym)
         except Exception:
             continue
+    try:
+        paused = apply_session_loser_pause(component)
+        if paused.get("paused"):
+            improved.extend([p["symbol"] for p in paused["paused"] if p["symbol"] not in improved])
+    except Exception:
+        pass
     return {"component": component, "improved": improved}

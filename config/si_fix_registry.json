@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-15T14:56:46.661061-04:00"
+      "registered_at_utc": "2026-06-16T13:55:57.882116-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -700,6 +700,83 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"
+    },
+    "session_loser_pause": {
+      "title": "Auto-pause entries on session loser symbols",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "session_loser_pause",
+        "pause_entries"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "winning_pattern_gate": {
+      "title": "Block lifetime-negative patterns; ease winning patterns",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "lifetime_pattern_negative",
+        "winning_pattern_gate"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "skim_session_expectancy_gap": {
+      "title": "Skim rolling session expectancy below target",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "session_loser_pause",
+        "winning_pattern_gate",
+        "swarm_session_adapt"
+      ],
+      "auto_tunable": {
+        "cooldown_mult": 0.1
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "skim_payoff_ratio_gap": {
+      "title": "Skim payoff ratio below 1.0",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "edge_autofix",
+        "winning_pattern_gate"
+      ],
+      "auto_tunable": {
+        "cooldown_mult": 0.08
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "si_intervention_effectiveness_gap": {
+      "title": "SI interventions not improving rolling expectancy",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_intervention_recorded",
+        "intervention_success_rate"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "portfolio_swarm_bias": {
+      "title": "Reduce skim wave when infra is edge sleeve",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "portfolio_swarm_bias",
+        "skim_wave_reduced"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     }
   }
 }

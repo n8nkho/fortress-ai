@@ -112,6 +112,16 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
     except Exception as e:
         out["session_intent"] = {"error": str(e)[:120]}
 
+    try:
+        from utils.session_loser_pause import apply_session_loser_pause
+
+        out["session_loser_pause"] = {
+            "skim_swarm": apply_session_loser_pause("skim_swarm"),
+            "infra_swarm": apply_session_loser_pause("infra_swarm"),
+        }
+    except Exception as e:
+        out["session_loser_pause"] = {"error": str(e)[:120]}
+
     from utils.si_recommendation_queue import process_scan_to_queue, status_dict
 
     out["queue"] = process_scan_to_queue(scan)

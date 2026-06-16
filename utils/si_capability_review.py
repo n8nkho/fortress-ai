@@ -594,6 +594,14 @@ def _update_intervention_effectiveness(
             improved += 1
 
     rate = (improved / scored) if scored else None
+    try:
+        from utils.si_intervention_log import intervention_success_rate
+
+        logged_rate = intervention_success_rate(metrics)
+        if logged_rate is not None:
+            rate = logged_rate
+    except Exception:
+        pass
     state["intervention_success_rate"] = round(rate, 4) if rate is not None else state.get("intervention_success_rate")
     state["interventions"] = interventions
     state["last_metrics"] = metrics
@@ -623,6 +631,18 @@ def _append_review_log(doc: dict[str, Any]) -> None:
         f.write(json.dumps(doc, default=str) + "\n")
 
 
+def _objective_gap_code(gap: dict[str, Any]) -> str:
+    oid = str(gap.get("objective_id") or "")
+    mapping = {
+        "skim_session_expectancy": "skim_session_expectancy_gap",
+        "skim_payoff_ratio": "skim_payoff_ratio_gap",
+        "si_intervention_effectiveness": "si_intervention_effectiveness_gap",
+        "classic_candidate_throughput": "classic_candidate_throughput_gap",
+        "classic_fill_recency": "classic_fill_recency_gap",
+    }
+    return mapping.get(oid, "si_objective_gap")
+
+
 def _upsert_capability_queue_findings(gaps: list[dict[str, Any]], applied: list[dict[str, Any]]) -> None:
     if not gaps and not applied:
         return
@@ -630,18 +650,21 @@ def _upsert_capability_queue_findings(gaps: list[dict[str, Any]], applied: list[
         from utils.si_recommendation_queue import upsert_from_finding
 
         for gap in gaps[:5]:
+            code = _objective_gap_code(gap)
             upsert_from_finding(
                 {
-                    "code": "si_objective_gap",
+                    "code": code,
                     "severity": "high" if gap.get("priority") == "critical" else "medium",
                     "component": gap.get("component"),
                     "objective_id": gap.get("objective_id"),
                     "metric": gap.get("metric"),
                     "value": gap.get("value"),
                     "target_min": gap.get("target_min"),
+                    "target_max": gap.get("target_max"),
                     "recommendation": (
                         f"Objective {gap.get('objective_id')} missed: "
-                        f"{gap.get('metric')}={gap.get('value')} < {gap.get('target_min')}."
+                        f"{gap.get('metric')}={gap.get('value')} "
+                        f"target={gap.get('target_min') or gap.get('target_max')}."
                     ),
                     "si_action": "si_capability_review",
                 },

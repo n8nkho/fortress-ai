@@ -149,6 +149,15 @@ def _try_entry(
     if pattern in (params.get("disable_patterns") or []):
         out["reasoning"] = f"pattern_disabled:{pattern}"
         return out
+    try:
+        from utils.winning_pattern_gate import winning_pattern_entry_blocked
+
+        blocked_wp, wp_reason = winning_pattern_entry_blocked(pattern, component="skim_swarm")
+        if blocked_wp:
+            out["reasoning"] = wp_reason
+            return out
+    except Exception:
+        pass
     if side == "long" and params.get("pause_long"):
         out["reasoning"] = "pause_long"
         return out
@@ -472,6 +481,19 @@ def decide(
     spy_r5 = _f(features.get("spy_r5m"))
 
     rip_thresh = enter_short + float(pd.get("rip_fade") or 0)
+    pb_thresh = enter_long + float(pd.get("pullback_uptrend") or 0)
+    ml_thresh = enter_long + 0.12 + float(pd.get("momentum_long") or 0)
+    ms_thresh = enter_short - 0.12 + float(pd.get("momentum_short") or 0)
+    try:
+        from utils.winning_pattern_gate import winning_pattern_score_adjustment
+
+        rip_thresh -= winning_pattern_score_adjustment("rip_fade")
+        pb_thresh -= winning_pattern_score_adjustment("pullback_uptrend")
+        ml_thresh -= winning_pattern_score_adjustment("momentum_long")
+        ms_thresh -= winning_pattern_score_adjustment("momentum_short")
+    except Exception:
+        pass
+
     if score <= rip_thresh and r5 < 0 and r1 > -0.0015:
         hit = _try_entry(
             out,
@@ -490,7 +512,6 @@ def decide(
         if hit is not None:
             return hit
 
-    pb_thresh = enter_long + float(pd.get("pullback_uptrend") or 0)
     if score >= pb_thresh and r5 > 0 and r1 < 0.0015:
         hit = _try_entry(
             out,
@@ -509,7 +530,6 @@ def decide(
         if hit is not None:
             return hit
 
-    ml_thresh = enter_long + 0.12 + float(pd.get("momentum_long") or 0)
     if score >= ml_thresh and r5 > 0.0008:
         hit = _try_entry(
             out,
@@ -528,7 +548,6 @@ def decide(
         if hit is not None:
             return hit
 
-    ms_thresh = enter_short - 0.12 + float(pd.get("momentum_short") or 0)
     if score <= ms_thresh and r5 < -0.0008:
         hit = _try_entry(
             out,

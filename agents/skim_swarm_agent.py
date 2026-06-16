@@ -158,6 +158,14 @@ def run_loop(iterations: int | None = None) -> None:
         configured = list(syms)
         owned = set(configured) | held_position_symbols(swarm_data_dir() / "state")
         syms = wave_symbols(configured, positions, context=["SPY", "SOXX"], owned_symbols=owned)
+        try:
+            from utils.portfolio_swarm_bias import filter_skim_wave_symbols
+
+            syms, bias_meta = filter_skim_wave_symbols(syms, owned_symbols=owned)
+            if bias_meta:
+                print(json.dumps(bias_meta, default=str), flush=True)
+        except Exception:
+            pass
         context_syms = list(dict.fromkeys(syms + ["SPY", "SOXX"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)

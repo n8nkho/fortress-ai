@@ -115,6 +115,16 @@ def _adapt_side_pauses(params: dict[str, Any], stats: dict[str, Any], notes: lis
 
 def _adapt_symbol_pause(params: dict[str, Any], stats: dict[str, Any], notes: list[str]) -> None:
     """Full entry pause for this symbol when session expectancy is clearly negative."""
+    try:
+        from utils.session_loser_pause import apply_session_loser_pause_to_params
+
+        reason = apply_session_loser_pause_to_params(params, stats, component="skim_swarm")
+        if reason:
+            notes.append(f"auto_pause_entries {reason}")
+            return
+    except Exception:
+        pass
+
     exits = int(stats.get("exits") or 0)
     wins = int(stats.get("wins") or 0)
     losses = int(stats.get("losses") or 0)
