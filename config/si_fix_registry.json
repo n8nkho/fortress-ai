@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-16T13:55:57.882116-04:00"
+      "registered_at_utc": "2026-06-16T14:12:48.334427-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -777,6 +777,18 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "medium"
+    },
+    "systemd_env_load_dry_run": {
+      "title": "Systemd .env load for live swarm dry_run",
+      "kind": "ops",
+      "mitigation_markers": [
+        "dry_run_blocked",
+        "env_load_override"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
     }
   }
 }
