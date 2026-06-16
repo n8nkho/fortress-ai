@@ -576,33 +576,23 @@ def _update_intervention_effectiveness(
     state: dict[str, Any],
 ) -> dict[str, Any]:
     """Track whether prior capability changes correlated with metric improvement."""
-    last = state.get("last_metrics") if isinstance(state.get("last_metrics"), dict) else {}
     interventions = list(state.get("interventions") or [])[-40:]
 
     if applied:
         interventions.append({"ts": now_iso(), "applied": applied, "metrics_snapshot": metrics})
 
-    improved = 0
-    scored = 0
-    for comp in ("skim_swarm", "infra_swarm", "classic_fortress"):
-        cur_exp = (metrics.get(comp) or {}).get("rolling_expectancy_usd")
-        prev_exp = (last.get(comp) or {}).get("rolling_expectancy_usd")
-        if cur_exp is None or prev_exp is None:
-            continue
-        scored += 1
-        if float(cur_exp) > float(prev_exp):
-            improved += 1
-
-    rate = (improved / scored) if scored else None
+    rate = None
     try:
         from utils.si_intervention_log import intervention_success_rate
 
-        logged_rate = intervention_success_rate(metrics)
-        if logged_rate is not None:
-            rate = logged_rate
+        rate = intervention_success_rate(metrics)
     except Exception:
         pass
-    state["intervention_success_rate"] = round(rate, 4) if rate is not None else state.get("intervention_success_rate")
+    if rate is not None:
+        state["intervention_success_rate"] = round(rate, 4)
+    else:
+        # Insufficient actionable interventions — do not persist a false 0%.
+        state.pop("intervention_success_rate", None)
     state["interventions"] = interventions
     state["last_metrics"] = metrics
     return state
@@ -692,13 +682,16 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
     proposals = propose_capability_updates(metrics, gaps)
     classic_recs = propose_classic_recommendations(metrics, gaps)
     applied: list[dict[str, Any]] = apply_capability_updates(proposals) if apply else []
+    classic_si: dict[str, Any] = {}
 
     try:
-        from utils.classic_bridge import push_findings_to_classic_queue
+        from utils.classic_bridge import push_findings_to_classic_queue, trigger_classic_si_cycle
 
         push_findings_to_classic_queue(gaps, classic_recs)
-    except Exception:
-        pass
+        if any(str(g.get("component") or "") == "classic_fortress" for g in gaps):
+            classic_si = trigger_classic_si_cycle()
+    except Exception as e:
+        classic_si = {"ok": False, "error": str(e)[:120]}
 
     state = load_state()
     state = _update_intervention_effectiveness(metrics, applied, state)
@@ -721,6 +714,7 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
         "metrics": metrics,
         "objective_gaps": gaps,
         "classic_recommendations": classic_recs,
+        "classic_si": classic_si,
         "proposals": proposals,
         "applied": applied,
         "singularity": singularity,

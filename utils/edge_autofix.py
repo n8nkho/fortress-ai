@@ -134,18 +134,19 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
         "ts": ov["updated_utc"],
     }
     save_runtime_overrides(component, ov)
-    try:
-        from utils.si_capability_review import collect_metrics
-        from utils.si_intervention_log import record_intervention
+    if changes:
+        try:
+            from utils.si_capability_review import collect_metrics
+            from utils.si_intervention_log import record_intervention
 
-        record_intervention(
-            component=component,
-            action="edge_autofix",
-            metrics_snapshot=collect_metrics(),
-            detail={"changes": changes, "payoff_ratio": pay_f},
-        )
-    except Exception:
-        pass
+            record_intervention(
+                component=component,
+                action="edge_autofix",
+                metrics_snapshot=collect_metrics(),
+                detail={"changes": changes, "payoff_ratio": pay_f},
+            )
+        except Exception:
+            pass
     return {"component": component, "changes": changes, "toxic_patterns": toxic}
 
 

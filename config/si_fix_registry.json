@@ -268,7 +268,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-16T14:12:48.334427-04:00"
+      "registered_at_utc": "2026-06-16T15:27:22.707837-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -789,6 +789,18 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"
+    },
+    "si_intervention_success_rate_noise": {
+      "title": "Intervention success rate excludes no-op session heartbeats",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_intervention_recorded",
+        "intervention_success_rate"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     }
   }
 }

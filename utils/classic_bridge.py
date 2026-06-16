@@ -405,6 +405,43 @@ def _load_trading_bot_queue_module(tb: Path):
     return mod
 
 
+def trigger_classic_si_cycle(*, assess_limit: int = 5, apply_limit: int = 2) -> dict[str, Any]:
+    """Run trading-bot classic autonomous SI (assess queue + screener relax)."""
+    import json
+    import subprocess
+    import sys
+
+    tb = resolve_trading_bot_root()
+    if not tb:
+        return {"ok": False, "skipped": "trading_bot_missing"}
+    py = tb / "venv" / "bin" / "python"
+    if not py.is_file():
+        py = Path(sys.executable)
+    script = (
+        "from utils.classic_si_autonomous import run_classic_si_cycle; "
+        "import json; "
+        f"print(json.dumps(run_classic_si_cycle(assess_limit={assess_limit}, apply_limit={apply_limit})))"
+    )
+    try:
+        proc = subprocess.run(
+            [str(py), "-c", script],
+            cwd=str(tb),
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if proc.returncode != 0:
+            return {
+                "ok": False,
+                "error": (proc.stderr or proc.stdout or "classic_si_failed")[:200],
+            }
+        line = (proc.stdout or "").strip().splitlines()[-1]
+        return json.loads(line) if line else {"ok": False, "error": "empty_output"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
 def push_findings_to_classic_queue(
     gaps: list[dict[str, Any]],
     recommendations: list[dict[str, Any]] | None = None,

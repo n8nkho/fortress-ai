@@ -8,6 +8,9 @@ from typing import Any
 
 from utils.system_time import now_iso
 
+# Heartbeat / no-op actions must not count as interventions for success-rate scoring.
+_NO_OP_ACTIONS = frozenset({"swarm_session_normal"})
+
 
 def _data_dir() -> Path:
     raw = (os.environ.get("FORTRESS_AI_DATA_DIR") or "").strip()
@@ -60,12 +63,25 @@ def _read_tail(path: Path, *, max_bytes: int = 256_000) -> list[dict[str, Any]]:
     return out
 
 
+def _expectancy_usd(comp_metrics: dict[str, Any]) -> float | None:
+    """Prefer rolling expectancy; fall back to session when rolling window is empty."""
+    for key in ("rolling_expectancy_usd", "session_expectancy_usd"):
+        val = comp_metrics.get(key)
+        if val is None:
+            continue
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
 def intervention_success_rate(
     metrics: dict[str, Any],
     *,
     lookback: int = 12,
 ) -> float | None:
-    """Fraction of recent interventions followed by improved rolling expectancy."""
+    """Fraction of recent actionable interventions followed by improved expectancy."""
     rows = _read_tail(intervention_log_path())[-lookback:]
     if not rows:
         return None
@@ -73,16 +89,19 @@ def intervention_success_rate(
     improved = 0
     scored = 0
     for row in rows:
+        action = str(row.get("action") or "")
+        if action in _NO_OP_ACTIONS:
+            continue
         comp = str(row.get("component") or "")
         if not comp or comp == "si_meta":
             continue
         before = (row.get("metrics_snapshot") or {}).get(comp) or {}
-        before_exp = before.get("rolling_expectancy_usd")
-        after_exp = (metrics.get(comp) or {}).get("rolling_expectancy_usd")
+        before_exp = _expectancy_usd(before)
+        after_exp = _expectancy_usd(metrics.get(comp) or {})
         if before_exp is None or after_exp is None:
             continue
         scored += 1
-        if float(after_exp) > float(before_exp):
+        if after_exp > before_exp + 1e-9:
             improved += 1
     if not scored:
         return None

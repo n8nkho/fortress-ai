@@ -294,18 +294,25 @@ def adapt_swarm_session(
     policy["updated_utc"] = datetime.now(timezone.utc).isoformat()
     save_session_policy(component, policy)
 
-    try:
-        from utils.si_capability_review import collect_metrics
-        from utils.si_intervention_log import record_intervention
+    prev_mode = str(prev.get("mode") or "normal")
+    new_mode = str(policy.get("mode") or "normal")
+    if new_mode != prev_mode or new_mode != "normal":
+        try:
+            from utils.si_capability_review import collect_metrics
+            from utils.si_intervention_log import record_intervention
 
-        record_intervention(
-            component=component,
-            action=f"swarm_session_{policy.get('mode')}",
-            metrics_snapshot=collect_metrics(),
-            detail={"mode": policy.get("mode"), "max_open_effective": policy.get("max_open_effective")},
-        )
-    except Exception:
-        pass
+            record_intervention(
+                component=component,
+                action=f"swarm_session_{new_mode}",
+                metrics_snapshot=collect_metrics(),
+                detail={
+                    "mode": new_mode,
+                    "prev_mode": prev_mode,
+                    "max_open_effective": policy.get("max_open_effective"),
+                },
+            )
+        except Exception:
+            pass
 
     if policy.get("mode") != "normal":
         pass  # policy persisted in session_policy.json for integrity + agents
