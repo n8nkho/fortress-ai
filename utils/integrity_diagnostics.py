@@ -142,9 +142,17 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
         if "estimated_notional_exceeds_cap" in detail and action == "exit_position":
             recent_exit_notional_blocks += 1
 
+    dup_deployed = False
+    try:
+        from utils.si_fix_deployment import is_deployed
+
+        dup_deployed = is_deployed("duplicate_entry_accumulation")
+    except Exception:
+        dup_deployed = False
+
     for sym, n in enter_by_sym.items():
         recent_n = int(recent_enter_by_sym.get(sym) or 0)
-        if recent_n >= 3:
+        if recent_n >= 3 and not (dup_deployed and already_holding_blocks >= 1):
             findings.append(
                 {
                     "code": "duplicate_entry_accumulation",
@@ -443,11 +451,12 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
                 "max_open_blocks_sampled": max_open_blocks,
                 "executed_blocks_sampled": executed_blocks,
                 "recommendation": (
-                    "Skim blocked primarily on max_open_positions with zero executions — "
-                    "shared account slots likely consumed by non-skim holdings; close orphans "
-                    "or raise adaptive max-open only after infra/skim attribution review."
+                    "Skim blocked primarily on max_open_positions with zero executions on the "
+                    "Fortress AI account — slots may be consumed by infra swarm, unified AI, or "
+                    "orphan Fortress positions (not Classic; separate account). Review attribution "
+                    "before raising adaptive max-open."
                 ),
-                "si_action": "review_shared_account_capacity",
+                "si_action": "review_fortress_intra_stack_capacity",
             }
         )
 

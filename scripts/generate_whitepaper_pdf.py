@@ -2,6 +2,7 @@
 """Generate PDF from docs/FORTRESS_AI_WHITEPAPER.md."""
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -27,10 +28,17 @@ def ascii_safe(text: str) -> str:
     return text
 
 
+def flatten_code_tags(html: str) -> str:
+    """fpdf2 write_html does not support nested <code> inside table cells."""
+    return re.sub(r"</?code>", "", html)
+
+
 def md_to_html(text: str) -> str:
     import markdown
 
-    return markdown.markdown(text, extensions=["tables", "fenced_code", "nl2br"])
+    return flatten_code_tags(
+        markdown.markdown(text, extensions=["tables", "fenced_code", "nl2br"])
+    )
 
 
 def build_pdf(html: str, out: Path) -> None:

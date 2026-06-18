@@ -75,11 +75,11 @@
       "impact": "info"
     },
     "skim_swarm_capacity_saturated": {
-      "title": "Skim saturated on shared-account max-open slots",
+      "title": "Skim saturated on Fortress AI max-open slots (intra-stack)",
       "kind": "tunable",
       "mitigation_markers": [
         "max_open_positions",
-        "review_shared_account_capacity"
+        "review_fortress_intra_stack_capacity"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": true,
@@ -280,7 +280,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-17T21:39:17.853720-04:00"
+      "registered_at_utc": "2026-06-17T23:23:54.926567-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -464,6 +464,18 @@
       },
       "agent_review_if_unmitigated": false,
       "effort": "medium",
+      "impact": "high"
+    },
+    "classic_pnl_ledger_stale": {
+      "title": "Classic canonical pnl_ledger.jsonl stale (Classic account only)",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "classic_pnl_ledger_stale",
+        "investigate_classic_ledger_staleness"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "low",
       "impact": "high"
     },
     "si_adaptive_classic_recency": {

@@ -79,8 +79,8 @@ def detect_wave_anomalies(
         )
 
     # Orphans = positions THIS swarm owns that fell out of its universe. Foreign
-    # positions opened by a sibling swarm on the shared account are intentionally
-    # excluded (owned_symbols scope) so swarms do not liquidate each other.
+    # positions opened by a sibling swarm on the shared Fortress AI account are
+    # intentionally excluded (owned_symbols scope) so swarms do not liquidate each other.
     orphans = [
         s
         for s in open_syms
@@ -109,7 +109,10 @@ def detect_wave_anomalies(
                 "severity": "info",
                 "component": component,
                 "symbols": foreign,
-                "recommendation": "Position owned by sibling swarm on shared account; not managed here.",
+                "recommendation": (
+                    "Position owned by sibling swarm on the shared Fortress AI account; "
+                    "not managed here."
+                ),
                 "si_action": "scope_owned_positions",
             }
         )

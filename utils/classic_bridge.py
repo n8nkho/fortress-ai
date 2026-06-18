@@ -405,7 +405,7 @@ def classic_rolling_metrics(*, window_sessions: int = 10) -> dict[str, Any]:
         "rolling_expectancy_usd": round(expectancy, 4) if expectancy is not None else None,
         "avg_candidates_per_screen": avg_candidates,
         "screens_sampled": len(screens),
-        "days_since_last_fill": days_since_activity if days_since_activity is not None else days_since_fill,
+        "days_since_last_fill": days_since_fill,
         "days_since_last_exit": days_since_fill,
         "days_since_last_entry": days_since_entry,
         "days_since_last_activity": days_since_activity,
