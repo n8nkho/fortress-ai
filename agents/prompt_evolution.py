@@ -250,6 +250,18 @@ Respond with JSON:
         if not ok2:
             raise ValueError(why)
 
+        proposal_id = str(p.get("proposal_id") or "pending")
+        try:
+            from utils.prompt_walk_forward_gate import ensure_gate_before_promotion
+
+            ensure_gate_before_promotion(
+                proposal_id,
+                metadata={"source": "prompt_evolution.approve_pending"},
+            )
+        except RuntimeError as exc:
+            append_log({"action": "approve_blocked_walk_forward", "proposal_id": proposal_id, "error": str(exc)})
+            raise RuntimeError(str(exc)) from exc
+
         oid = str(uuid.uuid4())
         save_overlay(
             {
@@ -337,6 +349,17 @@ Respond with JSON:
             ok, why = validate_appendix_text(cand)
             if not ok:
                 raise ValueError(why)
+            proposal_id = str(ab.get("from_proposal_id") or "ab_candidate")
+            try:
+                from utils.prompt_walk_forward_gate import ensure_gate_before_promotion
+
+                ensure_gate_before_promotion(
+                    proposal_id,
+                    metadata={"source": "prompt_evolution.end_ab_test", "winner": "B"},
+                )
+            except RuntimeError as exc:
+                append_log({"action": "ab_promote_blocked_walk_forward", "error": str(exc)})
+                raise RuntimeError(str(exc)) from exc
             save_overlay(
                 {
                     "id": str(uuid.uuid4()),

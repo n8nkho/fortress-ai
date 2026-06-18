@@ -539,3 +539,101 @@ def push_findings_to_classic_queue(
         upserted.append(upsert_from_finding(finding, source="capability_review"))
 
     return upserted
+
+
+def push_fortress_beliefs_to_classic_queue(*, limit: int = 5) -> list[dict[str, Any]]:
+    """
+    Export high-confidence Fortress AI beliefs into Classic SI queue for human review.
+    Never auto-applied (source=fortress_ai_belief).
+    """
+    tb = resolve_trading_bot_root()
+    if not tb:
+        return []
+    beliefs_path = _repo_root() / "data" / "beliefs" / "beliefs.json"
+    if not beliefs_path.is_file():
+        return []
+    try:
+        doc = json.loads(beliefs_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    rows = doc if isinstance(doc, list) else doc.get("beliefs") if isinstance(doc, dict) else []
+    if not isinstance(rows, list):
+        return []
+    ranked = sorted(
+        [r for r in rows if isinstance(r, dict)],
+        key=lambda r: float(r.get("confidence") or 0.0),
+        reverse=True,
+    )[: max(1, limit)]
+
+    try:
+        tb_queue = _load_trading_bot_queue_module(tb)
+        upsert_from_finding = tb_queue.upsert_from_finding
+    except Exception:
+        return []
+
+    upserted: list[dict[str, Any]] = []
+    for row in ranked:
+        regime = str(row.get("regime") or row.get("regime_label") or "any")
+        strategy = str(row.get("strategy") or row.get("strategy_label") or "any")
+        finding = {
+            "code": "fortress_ai_belief_share",
+            "severity": "medium",
+            "component": "fortress_ai",
+            "title": f"Fortress belief: {regime}/{strategy}",
+            "recommendation": (
+                f"Belief confidence={row.get('confidence')} lesson={str(row.get('lesson') or row.get('text') or '')[:400]}. "
+                "Review for Classic applicability — does not auto-apply."
+            ),
+            "kind": "monitor",
+            "effort": "low",
+            "impact": "medium",
+            "belief": row,
+        }
+        upserted.append(upsert_from_finding(finding, source="fortress_ai_belief"))
+    return upserted
+
+
+def push_classic_open_findings_to_fortress_queue(*, limit: int = 5) -> list[dict[str, Any]]:
+    """Import open Classic SI items into fortress-ai queue for agent/human review (batch, not live sync)."""
+    tb = resolve_trading_bot_root()
+    if not tb:
+        return []
+    qpath = tb / "data" / "si_recommendation_queue.json"
+    if not qpath.is_file():
+        return []
+    try:
+        doc = json.loads(qpath.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    items = doc.get("items") if isinstance(doc, dict) else []
+    if not isinstance(items, list):
+        return []
+
+    try:
+        from utils.si_recommendation_queue import upsert_from_finding
+    except Exception:
+        return []
+
+    upserted: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if item.get("status") != "open":
+            continue
+        if str(item.get("component") or "") not in ("classic_fortress", "fortress_ai"):
+            continue
+        finding = {
+            "code": f"classic_mirror_{item.get('code')}",
+            "severity": item.get("severity") or "medium",
+            "component": "classic_fortress",
+            "title": f"Classic queue mirror: {item.get('title') or item.get('code')}",
+            "recommendation": str(item.get("recommendation") or "")[:2000],
+            "kind": "monitor",
+            "effort": "low",
+            "impact": "medium",
+            "classic_item_id": item.get("id"),
+        }
+        upserted.append(upsert_from_finding(finding, source="cross_stack_belief"))
+        if len(upserted) >= limit:
+            break
+    return upserted

@@ -29,6 +29,12 @@ DISPOSITION_PENDING_HUMAN = "pending_human_go"
 DISPOSITION_AUTO_IMPLEMENT_QUEUED = "auto_implement_queued"
 DISPOSITION_DISMISSED = "dismissed"
 
+CROSS_STACK_SOURCES = frozenset({"cross_stack_belief", "fortress_ai_belief", "capability_review"})
+
+
+def is_cross_stack_source(source: str) -> bool:
+    return str(source or "") in CROSS_STACK_SOURCES
+
 STATUS_OPEN = "open"
 STATUS_CLOSED = "closed"
 STATUS_IMPLEMENTED = "implemented"
@@ -272,7 +278,9 @@ def upsert_from_finding(
 
     disposition = DISPOSITION_PENDING_AGENT
     sev = str(finding.get("severity") or "")
-    if sev == "info":
+    if is_cross_stack_source(source):
+        disposition = DISPOSITION_PENDING_AGENT
+    elif sev == "info":
         disposition = DISPOSITION_AUTO_RESOLVED
     elif mitigation_active(code, scan or {"findings": [finding]}):
         disposition = DISPOSITION_AUTO_RESOLVED
@@ -313,6 +321,7 @@ def upsert_from_finding(
             "disposition": disposition,
             "source": source,
             "finding": finding,
+            "cross_stack": is_cross_stack_source(source),
         }
     )
 

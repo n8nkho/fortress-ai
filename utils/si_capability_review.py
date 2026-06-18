@@ -685,11 +685,28 @@ def run_capability_review_cycle(*, apply: bool = True) -> dict[str, Any]:
     classic_si: dict[str, Any] = {}
 
     try:
-        from utils.classic_bridge import push_findings_to_classic_queue, trigger_classic_si_cycle
+        from utils.classic_bridge import (
+            push_classic_open_findings_to_fortress_queue,
+            push_findings_to_classic_queue,
+            push_fortress_beliefs_to_classic_queue,
+            trigger_classic_si_cycle,
+        )
 
         push_findings_to_classic_queue(gaps, classic_recs)
+        belief_upserts = push_fortress_beliefs_to_classic_queue(limit=5)
+        classic_to_fortress = push_classic_open_findings_to_fortress_queue(limit=5)
         if any(str(g.get("component") or "") == "classic_fortress" for g in gaps):
             classic_si = trigger_classic_si_cycle()
+        elif belief_upserts or classic_to_fortress:
+            classic_si = trigger_classic_si_cycle()
+        else:
+            classic_si = {}
+        if belief_upserts or classic_to_fortress:
+            classic_si = {
+                **(classic_si if isinstance(classic_si, dict) else {}),
+                "belief_upserts": len(belief_upserts),
+                "classic_to_fortress_upserts": len(classic_to_fortress),
+            }
     except Exception as e:
         classic_si = {"ok": False, "error": str(e)[:120]}
 
