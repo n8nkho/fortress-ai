@@ -1,0 +1,172 @@
+{
+  "version": 5,
+  "session_date_et": "2026-06-16",
+  "params": {
+    "enter_long_delta": 0.0,
+    "enter_short_delta": 0.0,
+    "target_mult": 1.0,
+    "cooldown_mult": 1.0,
+    "score_bias": 0.0,
+    "short_spy_filter": 0.0,
+    "pause_long": false,
+    "pause_short": false,
+    "pause_entries": false,
+    "pattern_deltas": {
+      "layer_catch_up_long": 0.0,
+      "layer_catch_up_short": 0.0,
+      "layer_rip_fade": 0.0,
+      "equipment_capex_confirm": 0.0,
+      "power_parity": 0.0,
+      "stack_momentum_long": 0.0
+    }
+  },
+  "session_stats": {
+    "decisions": 2,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "lifetime_stats": {
+    "decisions": 0,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "pattern_stats": {
+    "layer_catch_up_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_catch_up_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "equipment_capex_confirm": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "power_parity": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "stack_momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "lifetime_pattern_stats": {
+    "layer_catch_up_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_catch_up_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "equipment_capex_confirm": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "power_parity": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "stack_momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "session_overlay": {
+    "enter_long_delta_boost": 0.0,
+    "enter_short_delta_boost": 0.0,
+    "target_mult_overlay": 1.0,
+    "stop_mult_overlay": 1.0,
+    "spread_bps_mult": 1.0
+  },
+  "block_streaks": {
+    "max_open_positions": 2
+  },
+  "recent_exit_streak": {
+    "stop_loss": 0,
+    "target_hit": 0,
+    "last_pattern": null
+  },
+  "shadow": {
+    "variant": "tighter_stop",
+    "target_mult_delta": -0.08,
+    "live_pnl_usd": 0.0,
+    "shadow_pnl_usd": 0.0,
+    "live_exits": 0,
+    "shadow_exits": 0
+  },
+  "adaptation_log": [],
+  "causation": {
+    "lifetime_exits": 0,
+    "keys": {},
+    "eliminated_keys": [],
+    "top_winners": [],
+    "top_losers": []
+  },
+  "last_entry_pattern": null,
+  "last_entry_side": null,
+  "last_entry_spy_r5m": null,
+  "last_entry_context": null,
+  "last_improvement_utc": null,
+  "notes": [],
+  "symbol": "AVGO",
+  "updated_utc": "2026-06-16T18:00:09.779661+00:00"
+}

@@ -1,0 +1,20 @@
+{
+  "anomalies": [],
+  "last_wave": 619,
+  "updated_utc": "2026-06-18T13:33:05.377281+00:00",
+  "last_findings": [
+    {
+      "code": "swarm_foreign_position_skipped",
+      "severity": "info",
+      "component": "skim_swarm",
+      "symbols": [
+        "ASML",
+        "IWM",
+        "MDT",
+        "QQQ"
+      ],
+      "recommendation": "Position owned by sibling swarm on shared account; not managed here.",
+      "si_action": "scope_owned_positions"
+    }
+  ]
+}

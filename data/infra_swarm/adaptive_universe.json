@@ -1,0 +1,42 @@
+{
+  "active": [
+    "ARM",
+    "TSM",
+    "ON",
+    "EQIX",
+    "NVDA",
+    "AMD",
+    "SMCI",
+    "ANET",
+    "COHR",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "VRT",
+    "MU"
+  ],
+  "updated_utc": "2026-06-18T13:33:27.170781+00:00",
+  "scores": {
+    "ARM": 0.01,
+    "TSM": 0.3133,
+    "ON": 0.01,
+    "EQIX": 0.0,
+    "NVDA": 0.02,
+    "AMD": 0.0,
+    "SMCI": 0.02,
+    "ANET": 0.0,
+    "COHR": 0.01,
+    "AMAT": 0.0,
+    "LRCX": 0.0,
+    "KLAC": 0.01,
+    "VRT": 0.0,
+    "MU": 0.0
+  },
+  "layer_counts": {
+    "L1": 4,
+    "L2": 3,
+    "L3": 3,
+    "L4": 4
+  },
+  "candidate_pool_size": 16
+}

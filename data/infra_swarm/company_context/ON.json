@@ -1,0 +1,15 @@
+{
+  "symbol": "ON",
+  "summary": "ON Semiconductor Corporation provides intelligent sensing and power solutions in Hong Kong, Singapore, the United Kingdom, the United States, and internationally. It operates through three segments: Power Solutions Group, Analog and Mixed-Signal Group, and Intelligent Sensing Group. The Power Solutions Group segment offers discrete, module, and integrated semiconductor devices designed to enable power conversion, including power switching, signal conditioning, and circuit protection technologies. Its Analog and Mixed-Signal Group segment designs and develops analog and mixed-signal solutions, including power management, sensor interface, connectivity, and standard products for automotive, industrial automation, AI data centers, computing, and mobile end markets. The Intelligent Sensing Group segment develops complementary metal-oxide-semiconductor image sensors, image signal processors, ",
+  "type": "equity",
+  "name": "ON Semiconductor Corporation",
+  "sector": "Technology",
+  "industry": "Semiconductors",
+  "market_cap": 44959260672,
+  "beta": 1.977,
+  "pe_ratio": 85.025734,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "peers": [],
+  "updated_utc": "2026-06-17T18:00:45.121992+00:00"
+}

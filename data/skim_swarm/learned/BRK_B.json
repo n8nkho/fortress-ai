@@ -1,0 +1,387 @@
+{
+  "version": 5,
+  "session_date_et": "2026-06-18",
+  "params": {
+    "enter_long_delta": 0.0,
+    "enter_short_delta": 0.0,
+    "target_mult": 1.0,
+    "cooldown_mult": 1.0,
+    "score_bias": 0.0,
+    "short_spy_filter": 0.0,
+    "pause_long": false,
+    "pause_short": false,
+    "pause_entries": false,
+    "pattern_deltas": {
+      "rip_fade": 0.0,
+      "pullback_uptrend": 0.0,
+      "momentum_long": 0.0,
+      "momentum_short": 0.0
+    }
+  },
+  "session_stats": {
+    "decisions": 4,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "lifetime_stats": {
+    "decisions": 0,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "pattern_stats": {
+    "rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "pullback_uptrend": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "lifetime_pattern_stats": {
+    "rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "pullback_uptrend": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "session_overlay": {
+    "enter_long_delta_boost": 0.0,
+    "enter_short_delta_boost": 0.0,
+    "target_mult_overlay": 1.0,
+    "stop_mult_overlay": 1.0,
+    "spread_bps_mult": 1.0
+  },
+  "block_streaks": {
+    "opening_blackout": 4
+  },
+  "recent_exit_streak": {
+    "stop_loss": 0,
+    "target_hit": 0,
+    "last_pattern": null
+  },
+  "shadow": {
+    "variant": "tighter_stop",
+    "target_mult_delta": -0.08,
+    "live_pnl_usd": 0.0,
+    "shadow_pnl_usd": 0.0,
+    "live_exits": 0,
+    "shadow_exits": 0
+  },
+  "adaptation_log": [
+    {
+      "ts": "2026-06-16T19:22:20.717857+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:23:18.290670+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:24:15.816734+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:25:13.513784+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:26:10.882549+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:27:08.469850+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:28:06.109662+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:29:03.537013+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:30:03.430097+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:31:00.740107+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:31:58.525828+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:32:56.789956+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:33:54.380647+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:34:51.886207+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:35:49.467671+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:36:47.505274+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:37:45.030991+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:38:42.366595+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:39:40.129081+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:40:37.523184+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:41:35.002182+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:42:32.521925+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:43:30.005351+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:44:27.559191+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:45:25.577982+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:46:22.870099+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:47:20.459621+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:48:18.064333+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:49:15.857063+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:50:13.838921+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:51:11.494147+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:52:09.053715+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:53:06.589563+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:54:04.405793+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:55:02.298486+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:55:59.885236+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:56:57.671504+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:57:55.218644+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:58:52.857255+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:59:50.601106+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    }
+  ],
+  "causation": {
+    "lifetime_exits": 0,
+    "keys": {},
+    "eliminated_keys": [],
+    "top_winners": [],
+    "top_losers": []
+  },
+  "last_entry_pattern": null,
+  "last_entry_side": null,
+  "last_entry_spy_r5m": null,
+  "last_entry_context": null,
+  "last_improvement_utc": null,
+  "notes": [],
+  "symbol": "BRK.B",
+  "updated_utc": "2026-06-18T13:33:57.051263+00:00"
+}

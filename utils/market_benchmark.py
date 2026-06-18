@@ -149,6 +149,23 @@ def build_portfolio_session_metrics(
     participation_shortfall = 0
     if bench.get("strong_tape_1d") and exit_count < min_participation:
         participation_shortfall = min_participation - exit_count
+    summary: dict[str, Any] = {}
+    try:
+        from utils.portfolio_session.reporting import log_entry_block_report
+        from utils.portfolio_session.session_summary import generate_summary
+
+        summary = generate_summary()
+        log_entry_block_report(
+            summary,
+            portfolio={
+                "session_exit_count": exit_count,
+                "session_realized_usd": net_usd,
+            },
+            benchmark=bench,
+        )
+    except Exception:
+        pass
+    entry_block_breakdown = summary.get("entry_block_breakdown") or {}
     return {
         "component": "portfolio_session",
         "reference_equity_usd": eq,
@@ -163,6 +180,7 @@ def build_portfolio_session_metrics(
         "alpha_vs_spy_pct": alpha,
         "participation_shortfall_exits": participation_shortfall,
         "rolling_exits": exit_count,
+        "entry_block_breakdown": entry_block_breakdown,
         "benchmark_ok": bool(bench.get("ok")),
         "benchmark_error": bench.get("error"),
     }
@@ -204,6 +222,7 @@ def market_relative_findings(
                     "benchmark_change_1d_pct": spy_1d,
                     "session_realized_usd": net,
                     "session_exit_count": exits,
+                    "entry_block_breakdown": port.get("entry_block_breakdown") or {},
                 },
             }
         )

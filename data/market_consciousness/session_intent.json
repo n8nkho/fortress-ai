@@ -1,0 +1,19 @@
+{
+  "session_date_et": "2026-06-18",
+  "generated_at": "2026-06-18T09:31:41.132443-04:00",
+  "participation_target": "elevated",
+  "posture_hint": "participation_boost",
+  "plan_line": "Participation: elevated; posture: participation_boost; tape uptrend (+0.85% 1d)",
+  "avoid": [
+    "first_15m_chase"
+  ],
+  "priorities": [
+    "SMH/QQQ_residual_leaders"
+  ],
+  "events": [],
+  "analogue_count": 5,
+  "markers": [
+    "session_intent",
+    "participation_boost"
+  ]
+}

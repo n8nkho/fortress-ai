@@ -1,0 +1,124 @@
+{
+  "updated_utc": "2026-06-16T13:59:28.761308-04:00",
+  "session_date_et": "2026-06-16",
+  "metrics": {
+    "component": "portfolio_session",
+    "reference_equity_usd": 100000.0,
+    "session_realized_usd": 0.0,
+    "session_return_pct": 0.0,
+    "session_exit_count": 0,
+    "benchmark_symbol": "SPY",
+    "benchmark_change_1d_pct": -0.3617,
+    "benchmark_change_5d_pct": 2.0419,
+    "benchmark_tape_trend": "uptrend",
+    "strong_tape_1d": false,
+    "alpha_vs_spy_pct": 0.3617,
+    "participation_shortfall_exits": 0,
+    "rolling_exits": 0,
+    "entry_blocks_active": {
+      "denylist": {
+        "active": true,
+        "symbols": [
+          "AAPL",
+          "AIQ",
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "ARM",
+          "AVGO",
+          "BRK.B",
+          "COHR",
+          "CRWD",
+          "EQIX",
+          "GOOG",
+          "KLAC",
+          "LLY",
+          "LRCX",
+          "MA",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NVDA",
+          "ON",
+          "PLTR",
+          "SMCI",
+          "SPY",
+          "TSM",
+          "V",
+          "VRT"
+        ],
+        "count": 28
+      },
+      "pause_entries": {
+        "active": false,
+        "skim_swarm": false,
+        "infra_swarm": false,
+        "symbol_pauses": [],
+        "symbol_pause_count": 0
+      },
+      "pattern_disables": {
+        "active": false,
+        "entries": [],
+        "symbol_count": 0,
+        "pattern_count": 0
+      },
+      "any_active": true,
+      "marker": "entry_blocks_active"
+    },
+    "benchmark_ok": true,
+    "benchmark_error": null
+  },
+  "entry_blocks_active": {
+    "denylist": {
+      "active": true,
+      "symbols": [
+        "AAPL",
+        "AIQ",
+        "AMAT",
+        "AMD",
+        "AMZN",
+        "ANET",
+        "ARM",
+        "AVGO",
+        "BRK.B",
+        "COHR",
+        "CRWD",
+        "EQIX",
+        "GOOG",
+        "KLAC",
+        "LLY",
+        "LRCX",
+        "MA",
+        "MRVL",
+        "MSFT",
+        "MU",
+        "NVDA",
+        "ON",
+        "PLTR",
+        "SMCI",
+        "SPY",
+        "TSM",
+        "V",
+        "VRT"
+      ],
+      "count": 28
+    },
+    "pause_entries": {
+      "active": false,
+      "skim_swarm": false,
+      "infra_swarm": false,
+      "symbol_pauses": [],
+      "symbol_pause_count": 0
+    },
+    "pattern_disables": {
+      "active": false,
+      "entries": [],
+      "symbol_count": 0,
+      "pattern_count": 0
+    },
+    "any_active": true,
+    "marker": "entry_blocks_active"
+  },
+  "block_reason": null
+}

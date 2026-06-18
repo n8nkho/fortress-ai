@@ -1,0 +1,15 @@
+{
+  "symbol": "ARM",
+  "summary": "Arm Holdings plc researches, develops, licenses, and markets central processing unit (CPU) intellectual property (IP), graphics processing unit IP, systems IP, compute subsystems (CSS), and associated software, tools and related services. The company provides a product portfolio, including CPU IP, GPU and neural processing unit (NPU) accelerators, system IP such as interconnects, compute platform products including pre-integrated CSSs, and development tools and software. The company serves semiconductor companies, original equipment manufacturers (OEMs), cloud service providers (CSPs), and organizations developing chips for end markets such as smartphones, consumer electronics, industrial IoT, embedded systems, cloud data centers, networking, automotive, and robotics. It provides its products and services in the United States, China, Japan, Taiwan, Korea, and internationally. The company",
+  "type": "equity",
+  "name": "Arm Holdings plc",
+  "sector": "Technology",
+  "industry": "Semiconductors",
+  "market_cap": 453890736128,
+  "beta": 3.786,
+  "pe_ratio": 512.0,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "peers": [],
+  "updated_utc": "2026-06-17T18:00:44.720086+00:00"
+}

@@ -1,0 +1,387 @@
+{
+  "version": 5,
+  "session_date_et": "2026-06-18",
+  "params": {
+    "enter_long_delta": 0.0,
+    "enter_short_delta": 0.0,
+    "target_mult": 1.0,
+    "cooldown_mult": 1.0,
+    "score_bias": 0.0,
+    "short_spy_filter": 0.0,
+    "pause_long": false,
+    "pause_short": false,
+    "pause_entries": false,
+    "pattern_deltas": {
+      "rip_fade": 0.0,
+      "pullback_uptrend": 0.0,
+      "momentum_long": 0.0,
+      "momentum_short": 0.0
+    }
+  },
+  "session_stats": {
+    "decisions": 4,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "lifetime_stats": {
+    "decisions": 0,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "pattern_stats": {
+    "rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "pullback_uptrend": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "lifetime_pattern_stats": {
+    "rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "pullback_uptrend": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "momentum_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "session_overlay": {
+    "enter_long_delta_boost": 0.0,
+    "enter_short_delta_boost": 0.0,
+    "target_mult_overlay": 1.0,
+    "stop_mult_overlay": 1.0,
+    "spread_bps_mult": 1.0
+  },
+  "block_streaks": {
+    "opening_blackout": 4
+  },
+  "recent_exit_streak": {
+    "stop_loss": 0,
+    "target_hit": 0,
+    "last_pattern": null
+  },
+  "shadow": {
+    "variant": "tighter_stop",
+    "target_mult_delta": -0.08,
+    "live_pnl_usd": 0.0,
+    "shadow_pnl_usd": 0.0,
+    "live_exits": 0,
+    "shadow_exits": 0
+  },
+  "adaptation_log": [
+    {
+      "ts": "2026-06-16T19:22:20.719603+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:23:18.292054+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:24:15.820670+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:25:13.525906+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:26:10.890129+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:27:08.475521+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:28:06.112283+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:29:03.541002+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:30:03.424963+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:31:00.731723+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:31:58.522235+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:32:56.795760+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:33:54.384083+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:34:51.846680+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:35:49.472550+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:36:47.569568+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:37:45.041058+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:38:42.372061+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:39:40.130292+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:40:37.524831+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:41:34.997757+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:42:32.524469+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:43:30.007735+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:44:27.646848+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:45:25.590424+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:46:22.861761+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:47:20.463772+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:48:18.057911+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:49:15.849556+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:50:13.817178+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:51:11.532904+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:52:09.058389+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:53:06.616579+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:54:04.383656+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:55:02.307991+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:55:59.859640+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:56:57.660415+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:57:55.215078+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:58:52.859553+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-16T19:59:50.572145+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    }
+  ],
+  "causation": {
+    "lifetime_exits": 0,
+    "keys": {},
+    "eliminated_keys": [],
+    "top_winners": [],
+    "top_losers": []
+  },
+  "last_entry_pattern": null,
+  "last_entry_side": null,
+  "last_entry_spy_r5m": null,
+  "last_entry_context": null,
+  "last_improvement_utc": null,
+  "notes": [],
+  "symbol": "MSFT",
+  "updated_utc": "2026-06-18T13:33:57.059914+00:00"
+}

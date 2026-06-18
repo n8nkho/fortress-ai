@@ -66,6 +66,12 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "utils" / "swarm_pnl_ledger.py",
         _ROOT / "agents" / "skim_swarm" / "symbol_learning.py",
     ],
+    "market_relative_si_benchmark": [
+        _ROOT / "utils" / "market_benchmark.py",
+        _ROOT / "utils" / "portfolio_session" / "entry_manager.py",
+        _ROOT / "utils" / "portfolio_session" / "session_summary.py",
+        _ROOT / "utils" / "portfolio_session" / "reporting.py",
+    ],
 }
 
 

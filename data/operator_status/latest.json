@@ -1,0 +1,223 @@
+{
+  "ts": "2026-06-18T09:20:34.759583-04:00",
+  "system_tz": "America/New_York",
+  "services": {
+    "fortress-ai-skim-swarm": "active",
+    "fortress-ai-infra-swarm": "active",
+    "fortress-ai-dashboard": "active",
+    "fortress-ai-rth-intraday-si": "active",
+    "fortress-ai-operator-status": "active"
+  },
+  "portfolio": {
+    "open_positions": 0,
+    "skim_max_open_effective": 4,
+    "infra_max_open_effective": 6,
+    "adaptive_max_open": {
+      "skim": {
+        "enabled": true,
+        "base": 4,
+        "ceiling": 10,
+        "aggressive_ceiling": 20,
+        "boost": 0,
+        "effective": 4,
+        "markers": [
+          "neutral"
+        ]
+      },
+      "infra": {
+        "enabled": true,
+        "base": 4,
+        "ceiling": 10,
+        "aggressive_ceiling": 20,
+        "boost": 2,
+        "effective": 6,
+        "markers": [
+          "positive_session_exp",
+          "session_wr_ok"
+        ]
+      }
+    }
+  },
+  "skim": {
+    "pnl": {
+      "session_date_et": "2026-06-18",
+      "daily": {
+        "realized_usd": 0.0,
+        "unrealized_usd": 0.0,
+        "net_usd": 0.0,
+        "exit_count": 0,
+        "open_positions": 0
+      },
+      "cumulative": {
+        "realized_usd": 0.0,
+        "unrealized_usd": 0.0,
+        "net_usd": 0.0,
+        "exit_count": 0,
+        "open_positions": 0
+      },
+      "session_learned_realized_usd": 0.0,
+      "swarm_state_daily_realized_usd": 0.0,
+      "swarm_halted": false,
+      "halt_reason": null,
+      "open_positions_detail": [],
+      "per_symbol_realized": [],
+      "updated_utc": "2026-06-18T13:20:33.269074+00:00"
+    },
+    "blocks": {
+      "session_pnl_usd": 0.0,
+      "top_blocks": [
+        [
+          "max_open_positions",
+          153
+        ],
+        [
+          "no_edge",
+          91
+        ],
+        [
+          "manual_denylist",
+          66
+        ],
+        [
+          "eod_caution_no_new_entries",
+          45
+        ],
+        [
+          "orphan_symbol_outside_universe",
+          22
+        ]
+      ],
+      "waves": 29,
+      "swarm_halted": null
+    },
+    "session_policy": {
+      "mode": "normal",
+      "negative_edge": false,
+      "over_churn": false,
+      "pause_new_entries": false,
+      "max_open_effective": null,
+      "max_l1_gross_effective": null,
+      "enter_long_delta_boost": 0.0,
+      "enter_short_delta_boost": 0.0,
+      "cycle_interval_mult": 1.0,
+      "session_exits": 0,
+      "session_wins": 0,
+      "session_losses": 0,
+      "session_win_rate": null,
+      "session_expectancy_usd": null,
+      "session_pnl_usd": 0.0,
+      "notes": [
+        "adaptive_max_open=4 (neutral)"
+      ],
+      "max_open_adaptive": 4,
+      "max_open_boost": 0,
+      "updated_utc": "2026-06-17T20:00:04.447860+00:00"
+    }
+  },
+  "infra": {
+    "pnl": {
+      "session_date_et": "2026-06-18",
+      "daily": {
+        "realized_usd": 0.0,
+        "unrealized_usd": 0.0,
+        "net_usd": 0.0,
+        "exit_count": 0,
+        "open_positions": 0
+      },
+      "cumulative": {
+        "realized_usd": 12.845,
+        "unrealized_usd": 0.0,
+        "net_usd": 12.845,
+        "exit_count": 14,
+        "open_positions": 0
+      },
+      "session_learned_realized_usd": 0.0,
+      "swarm_state_daily_realized_usd": 0.0,
+      "swarm_halted": false,
+      "halt_reason": null,
+      "open_positions_detail": [],
+      "per_symbol_realized": [],
+      "updated_utc": "2026-06-18T13:20:33.662224+00:00"
+    },
+    "blocks": {
+      "session_pnl_usd": 0.0,
+      "top_blocks": [
+        [
+          "no_edge",
+          120
+        ],
+        [
+          "eod_caution_no_new_entries",
+          84
+        ],
+        [
+          "orphan_symbol_outside_universe",
+          23
+        ],
+        [
+          "executed",
+          20
+        ],
+        [
+          "max_open_positions",
+          12
+        ]
+      ],
+      "waves": 35,
+      "swarm_halted": false
+    },
+    "session_policy": {
+      "mode": "normal",
+      "negative_edge": false,
+      "over_churn": false,
+      "pause_new_entries": false,
+      "max_open_effective": null,
+      "max_l1_gross_effective": null,
+      "enter_long_delta_boost": 0.0,
+      "enter_short_delta_boost": 0.0,
+      "cycle_interval_mult": 1.0,
+      "session_exits": 14,
+      "session_wins": 10,
+      "session_losses": 4,
+      "session_win_rate": 0.7143,
+      "session_expectancy_usd": 0.9175,
+      "session_pnl_usd": 12.845,
+      "notes": [
+        "adaptive_max_open=6 (positive_session_exp,session_wr_ok)"
+      ],
+      "max_open_adaptive": 6,
+      "max_open_boost": 2,
+      "updated_utc": "2026-06-17T19:59:45.148088+00:00"
+    }
+  },
+  "si_queue": {
+    "pending_agent_review": 0,
+    "pending_human_go": 0,
+    "auto_implement_queued": 0,
+    "autonomous_code_si": {
+      "ok": true,
+      "ts": "2026-06-18T06:15:03.095852-04:00",
+      "assessed": 0,
+      "assessments": [],
+      "auto_approved": 0,
+      "auto_approved_items": [],
+      "implemented": 0,
+      "implementations": [],
+      "cursor_cli": {
+        "ok": true,
+        "bin": "/home/ubuntu/.local/bin/cursor-agent",
+        "mode": "cursor-agent"
+      },
+      "remaining_today_cap": 3
+    }
+  },
+  "auto_code": {
+    "enabled": true,
+    "cursor_cli": {
+      "ok": true,
+      "bin": "/home/ubuntu/.local/bin/cursor-agent",
+      "mode": "cursor-agent"
+    }
+  },
+  "anomalies": []
+}

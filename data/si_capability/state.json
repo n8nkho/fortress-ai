@@ -1,0 +1,2830 @@
+{
+  "interventions": [
+    {
+      "ts": "2026-06-16T14:03:52.697867-04:00",
+      "applied": [
+        {
+          "capability": "rth_review_cadence_mult",
+          "current": 1.0,
+          "proposed": 0.9,
+          "reason": "Objective gaps open \u2014 increase review cadence.",
+          "applied": 0.9
+        },
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 7.0,
+          "proposed": 6.4,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 6.4
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.05,
+          "proposed": 0.047,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.047
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:03:52.204279-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 752.0647,
+          "change_1d_pct": -0.3664,
+          "change_5d_pct": 2.0371,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3664,
+          "benchmark_change_5d_pct": 2.0371,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3664,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T14:09:55.275242-04:00",
+      "applied": [
+        {
+          "capability": "rth_review_cadence_mult",
+          "current": 0.9,
+          "proposed": 0.8,
+          "reason": "Objective gaps open \u2014 increase review cadence.",
+          "applied": 0.8
+        },
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 6.4,
+          "proposed": 5.8,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 5.8
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.047,
+          "proposed": 0.044,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.044
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:09:55.041830-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.985,
+          "change_1d_pct": -0.3769,
+          "change_5d_pct": 2.0263,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3769,
+          "benchmark_change_5d_pct": 2.0263,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3769,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T14:21:59.719012-04:00",
+      "applied": [
+        {
+          "capability": "rth_review_cadence_mult",
+          "current": 0.8,
+          "proposed": 0.7,
+          "reason": "Objective gaps open \u2014 increase review cadence.",
+          "applied": 0.7
+        },
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 5.8,
+          "proposed": 5.28,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 5.28
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.044,
+          "proposed": 0.0414,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0414
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:21:59.393345-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.96,
+          "change_1d_pct": -0.3802,
+          "change_5d_pct": 2.0229,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3802,
+          "benchmark_change_5d_pct": 2.0229,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3802,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T14:32:34.211399-04:00",
+      "applied": [
+        {
+          "capability": "rth_review_cadence_mult",
+          "current": 0.7,
+          "proposed": 0.6,
+          "reason": "Objective gaps open \u2014 increase review cadence.",
+          "applied": 0.6
+        },
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 5.28,
+          "proposed": 4.76,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 4.76
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0414,
+          "proposed": 0.0388,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0388
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:32:33.933265-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 752.015,
+          "change_1d_pct": -0.3729,
+          "change_5d_pct": 2.0304,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3729,
+          "benchmark_change_5d_pct": 2.0304,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3729,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T14:41:38.860021-04:00",
+      "applied": [
+        {
+          "capability": "rth_review_cadence_mult",
+          "current": 0.6,
+          "proposed": 0.5,
+          "reason": "Objective gaps open \u2014 increase review cadence.",
+          "applied": 0.5
+        },
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 4.76,
+          "proposed": 4.24,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 4.24
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0388,
+          "proposed": 0.0362,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0362
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:41:38.509974-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.965,
+          "change_1d_pct": -0.3796,
+          "change_5d_pct": 2.0236,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3796,
+          "benchmark_change_5d_pct": 2.0236,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3796,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T14:49:13.420479-04:00",
+      "applied": [
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 4.24,
+          "proposed": 3.72,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 3.72
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0362,
+          "proposed": 0.0336,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0336
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:49:13.112990-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.99,
+          "change_1d_pct": -0.3762,
+          "change_5d_pct": 2.027,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3762,
+          "benchmark_change_5d_pct": 2.027,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3762,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T14:56:48.094289-04:00",
+      "applied": [
+        {
+          "capability": "classic_fill_recency_days_max",
+          "current": 3.72,
+          "proposed": 3.2,
+          "reason": "Classic fill recency gap \u2014 tighten adaptive day threshold.",
+          "applied": 3.2
+        },
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0336,
+          "proposed": 0.031,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.031
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T14:56:47.752996-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.94,
+          "change_1d_pct": -0.3829,
+          "change_5d_pct": 2.0202,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.3829,
+          "benchmark_change_5d_pct": 2.0202,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.3829,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T15:04:22.873525-04:00",
+      "applied": [
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.031,
+          "proposed": 0.0284,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0284
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T15:04:22.545025-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.76,
+          "change_1d_pct": -0.4067,
+          "change_5d_pct": 1.9958,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.4067,
+          "benchmark_change_5d_pct": 1.9958,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.4067,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T15:11:57.299340-04:00",
+      "applied": [
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0284,
+          "proposed": 0.0258,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0258
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T15:11:56.964927-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.13,
+          "change_1d_pct": -0.4902,
+          "change_5d_pct": 1.9103,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.4902,
+          "benchmark_change_5d_pct": 1.9103,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.4902,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T15:19:31.972721-04:00",
+      "applied": [
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0258,
+          "proposed": 0.0232,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0232
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T15:19:31.702852-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 750.82,
+          "change_1d_pct": -0.5312,
+          "change_5d_pct": 1.8683,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.68,
+          "session_return_pct": 0.0007,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.5312,
+          "benchmark_change_5d_pct": 1.8683,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.5319,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-16T15:24:25.104676-04:00",
+      "applied": [
+        {
+          "capability": "unified_loser_trim_pct_equity",
+          "current": 0.0232,
+          "proposed": 0.0206,
+          "reason": "Portfolio drag \u2014 lower adaptive trim threshold (earlier action).",
+          "applied": 0.0206
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-04",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-03",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.8,
+          "screens_sampled": 10,
+          "days_since_last_fill": 21,
+          "latest_regime": "TRENDING_BULL"
+        },
+        "ts": "2026-06-16T15:24:23.730675-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-16",
+          "benchmark_last": 751.47,
+          "change_1d_pct": -0.4451,
+          "change_5d_pct": 1.9564,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 1.9325,
+          "session_return_pct": 0.0019,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": -0.4451,
+          "benchmark_change_5d_pct": 1.9564,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": false,
+          "alpha_vs_spy_pct": 0.447,
+          "participation_shortfall_exits": 0,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    },
+    {
+      "ts": "2026-06-18T09:31:38.805082-04:00",
+      "applied": [
+        {
+          "capability": "edge_autofix_min_exits",
+          "current": 4.0,
+          "proposed": 3,
+          "reason": "Strong tape participation gap \u2014 allow edge autofix with fewer session exits.",
+          "applied": 3
+        },
+        {
+          "capability": "rolling_edge_autofix_strength",
+          "current": 0.55,
+          "proposed": 0.63,
+          "reason": "Strong tape with low participation \u2014 scale rolling edge autofix.",
+          "applied": 0.63
+        }
+      ],
+      "metrics_snapshot": {
+        "skim_swarm": {
+          "component": "skim_swarm",
+          "window_sessions": 5,
+          "sessions": [],
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "rolling_expectancy_usd": null,
+          "rolling_payoff_ratio": null,
+          "rolling_win_rate": null
+        },
+        "infra_swarm": {
+          "component": "infra_swarm",
+          "window_sessions": 5,
+          "sessions": [
+            {
+              "session_date_et": "2026-06-17",
+              "realized_usd": 12.845,
+              "exit_count": 14
+            }
+          ],
+          "rolling_realized_usd": 12.845,
+          "rolling_exits": 14,
+          "rolling_expectancy_usd": 0.9175,
+          "rolling_payoff_ratio": 2.1717,
+          "rolling_win_rate": 0.7143
+        },
+        "unified_ai": {
+          "component": "unified_ai",
+          "window_sessions": 10,
+          "rolling_realized_usd": 0.0,
+          "rolling_exits": 0,
+          "sessions": [
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-05-29",
+              "realized_usd": 0.0
+            },
+            {
+              "session_date_et": "2026-06-17",
+              "realized_usd": 0.0
+            }
+          ]
+        },
+        "classic_fortress": {
+          "component": "classic_fortress",
+          "window_sessions": 10,
+          "data_dir": "/home/ubuntu/trading-bot/data",
+          "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+          "sessions": [
+            {
+              "session_date_et": "2026-04-27",
+              "realized_usd": 1.6333,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-04-28",
+              "realized_usd": 5.39,
+              "exit_count": 4,
+              "wins": 4
+            },
+            {
+              "session_date_et": "2026-04-29",
+              "realized_usd": 1.1575,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-01",
+              "realized_usd": 1.05,
+              "exit_count": 7,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-04",
+              "realized_usd": 16.88,
+              "exit_count": 6,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-05",
+              "realized_usd": 3.92,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-06",
+              "realized_usd": 19.48,
+              "exit_count": 3,
+              "wins": 3
+            },
+            {
+              "session_date_et": "2026-05-07",
+              "realized_usd": 17.04,
+              "exit_count": 1,
+              "wins": 1
+            },
+            {
+              "session_date_et": "2026-05-22",
+              "realized_usd": 22.345,
+              "exit_count": 5,
+              "wins": 5
+            },
+            {
+              "session_date_et": "2026-05-26",
+              "realized_usd": 4.995,
+              "exit_count": 1,
+              "wins": 1
+            }
+          ],
+          "screens": [
+            {
+              "session_date_et": "2026-06-18",
+              "candidates_found": 0,
+              "regime": "VOLATILE"
+            },
+            {
+              "session_date_et": "2026-06-17",
+              "candidates_found": 0,
+              "regime": "VOLATILE"
+            },
+            {
+              "session_date_et": "2026-06-16",
+              "candidates_found": 1,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-15",
+              "candidates_found": 4,
+              "regime": "TRENDING_BULL"
+            },
+            {
+              "session_date_et": "2026-06-12",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-11",
+              "candidates_found": 2,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-10",
+              "candidates_found": 0,
+              "regime": "TRENDING_BEAR"
+            },
+            {
+              "session_date_et": "2026-06-09",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-08",
+              "candidates_found": 0,
+              "regime": "RANGING"
+            },
+            {
+              "session_date_et": "2026-06-05",
+              "candidates_found": 0,
+              "regime": "TRENDING_BULL"
+            }
+          ],
+          "rolling_realized_usd": 93.8908,
+          "rolling_fills": 30,
+          "rolling_exits": 30,
+          "rolling_expectancy_usd": 3.1297,
+          "avg_candidates_per_screen": 0.7,
+          "screens_sampled": 10,
+          "days_since_last_fill": 23,
+          "days_since_last_exit": 23,
+          "days_since_last_entry": 2,
+          "days_since_last_activity": 2,
+          "has_open_position": true,
+          "latest_regime": "VOLATILE"
+        },
+        "ts": "2026-06-18T09:31:37.589972-04:00",
+        "market_benchmark": {
+          "ok": true,
+          "benchmark": "SPY",
+          "as_of": "2026-06-18",
+          "benchmark_last": 747.32,
+          "change_1d_pct": 0.8583,
+          "change_5d_pct": 1.2958,
+          "tape_trend": "uptrend",
+          "strong_tape_1d": true,
+          "error": null,
+          "source": "yfinance_delayed",
+          "disabled": false
+        },
+        "portfolio_session": {
+          "component": "portfolio_session",
+          "reference_equity_usd": 100000.0,
+          "session_realized_usd": 0.0,
+          "session_return_pct": 0.0,
+          "session_exit_count": 0,
+          "benchmark_symbol": "SPY",
+          "benchmark_change_1d_pct": 0.8583,
+          "benchmark_change_5d_pct": 1.2958,
+          "benchmark_tape_trend": "uptrend",
+          "strong_tape_1d": true,
+          "alpha_vs_spy_pct": -0.8583,
+          "participation_shortfall_exits": 6,
+          "rolling_exits": 0,
+          "benchmark_ok": true,
+          "benchmark_error": null
+        }
+      }
+    }
+  ],
+  "last_metrics": {
+    "skim_swarm": {
+      "component": "skim_swarm",
+      "window_sessions": 5,
+      "sessions": [],
+      "rolling_realized_usd": 0.0,
+      "rolling_exits": 0,
+      "rolling_expectancy_usd": null,
+      "rolling_payoff_ratio": null,
+      "rolling_win_rate": null
+    },
+    "infra_swarm": {
+      "component": "infra_swarm",
+      "window_sessions": 5,
+      "sessions": [
+        {
+          "session_date_et": "2026-06-17",
+          "realized_usd": 12.845,
+          "exit_count": 14
+        }
+      ],
+      "rolling_realized_usd": 12.845,
+      "rolling_exits": 14,
+      "rolling_expectancy_usd": 0.9175,
+      "rolling_payoff_ratio": 2.1717,
+      "rolling_win_rate": 0.7143
+    },
+    "unified_ai": {
+      "component": "unified_ai",
+      "window_sessions": 10,
+      "rolling_realized_usd": 0.0,
+      "rolling_exits": 0,
+      "sessions": [
+        {
+          "session_date_et": "2026-05-26",
+          "realized_usd": 0.0
+        },
+        {
+          "session_date_et": "2026-05-29",
+          "realized_usd": 0.0
+        },
+        {
+          "session_date_et": "2026-06-17",
+          "realized_usd": 0.0
+        }
+      ]
+    },
+    "classic_fortress": {
+      "component": "classic_fortress",
+      "window_sessions": 10,
+      "data_dir": "/home/ubuntu/trading-bot/data",
+      "ledger_path": "/home/ubuntu/trading-bot/data/pnl_ledger.jsonl",
+      "sessions": [
+        {
+          "session_date_et": "2026-04-27",
+          "realized_usd": 1.6333,
+          "exit_count": 1,
+          "wins": 1
+        },
+        {
+          "session_date_et": "2026-04-28",
+          "realized_usd": 5.39,
+          "exit_count": 4,
+          "wins": 4
+        },
+        {
+          "session_date_et": "2026-04-29",
+          "realized_usd": 1.1575,
+          "exit_count": 1,
+          "wins": 1
+        },
+        {
+          "session_date_et": "2026-05-01",
+          "realized_usd": 1.05,
+          "exit_count": 7,
+          "wins": 5
+        },
+        {
+          "session_date_et": "2026-05-04",
+          "realized_usd": 16.88,
+          "exit_count": 6,
+          "wins": 5
+        },
+        {
+          "session_date_et": "2026-05-05",
+          "realized_usd": 3.92,
+          "exit_count": 1,
+          "wins": 1
+        },
+        {
+          "session_date_et": "2026-05-06",
+          "realized_usd": 19.48,
+          "exit_count": 3,
+          "wins": 3
+        },
+        {
+          "session_date_et": "2026-05-07",
+          "realized_usd": 17.04,
+          "exit_count": 1,
+          "wins": 1
+        },
+        {
+          "session_date_et": "2026-05-22",
+          "realized_usd": 22.345,
+          "exit_count": 5,
+          "wins": 5
+        },
+        {
+          "session_date_et": "2026-05-26",
+          "realized_usd": 4.995,
+          "exit_count": 1,
+          "wins": 1
+        }
+      ],
+      "screens": [
+        {
+          "session_date_et": "2026-06-18",
+          "candidates_found": 0,
+          "regime": "VOLATILE"
+        },
+        {
+          "session_date_et": "2026-06-17",
+          "candidates_found": 0,
+          "regime": "VOLATILE"
+        },
+        {
+          "session_date_et": "2026-06-16",
+          "candidates_found": 1,
+          "regime": "TRENDING_BULL"
+        },
+        {
+          "session_date_et": "2026-06-15",
+          "candidates_found": 4,
+          "regime": "TRENDING_BULL"
+        },
+        {
+          "session_date_et": "2026-06-12",
+          "candidates_found": 0,
+          "regime": "RANGING"
+        },
+        {
+          "session_date_et": "2026-06-11",
+          "candidates_found": 2,
+          "regime": "RANGING"
+        },
+        {
+          "session_date_et": "2026-06-10",
+          "candidates_found": 0,
+          "regime": "TRENDING_BEAR"
+        },
+        {
+          "session_date_et": "2026-06-09",
+          "candidates_found": 0,
+          "regime": "RANGING"
+        },
+        {
+          "session_date_et": "2026-06-08",
+          "candidates_found": 0,
+          "regime": "RANGING"
+        },
+        {
+          "session_date_et": "2026-06-05",
+          "candidates_found": 0,
+          "regime": "TRENDING_BULL"
+        }
+      ],
+      "rolling_realized_usd": 93.8908,
+      "rolling_fills": 30,
+      "rolling_exits": 30,
+      "rolling_expectancy_usd": 3.1297,
+      "avg_candidates_per_screen": 0.7,
+      "screens_sampled": 10,
+      "days_since_last_fill": 23,
+      "days_since_last_exit": 23,
+      "days_since_last_entry": 2,
+      "days_since_last_activity": 2,
+      "has_open_position": true,
+      "latest_regime": "VOLATILE"
+    },
+    "ts": "2026-06-18T09:31:37.589972-04:00",
+    "market_benchmark": {
+      "ok": true,
+      "benchmark": "SPY",
+      "as_of": "2026-06-18",
+      "benchmark_last": 747.32,
+      "change_1d_pct": 0.8583,
+      "change_5d_pct": 1.2958,
+      "tape_trend": "uptrend",
+      "strong_tape_1d": true,
+      "error": null,
+      "source": "yfinance_delayed",
+      "disabled": false
+    },
+    "portfolio_session": {
+      "component": "portfolio_session",
+      "reference_equity_usd": 100000.0,
+      "session_realized_usd": 0.0,
+      "session_return_pct": 0.0,
+      "session_exit_count": 0,
+      "benchmark_symbol": "SPY",
+      "benchmark_change_1d_pct": 0.8583,
+      "benchmark_change_5d_pct": 1.2958,
+      "benchmark_tape_trend": "uptrend",
+      "strong_tape_1d": true,
+      "alpha_vs_spy_pct": -0.8583,
+      "participation_shortfall_exits": 6,
+      "rolling_exits": 0,
+      "benchmark_ok": true,
+      "benchmark_error": null
+    }
+  },
+  "system_tz": "America/New_York",
+  "updated_at": "2026-06-18T09:31:38.809148-04:00"
+}

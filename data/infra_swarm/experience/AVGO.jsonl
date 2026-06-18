@@ -1,0 +1,2 @@
+{"ts": "2026-06-16T17:59:22.990930+00:00", "event": "decision", "action": "wait", "executed": false, "reasoning": "max_open_positions", "score": -0.2848, "target_usd": 0.1207, "block_reason": "max_open_positions", "r5m": -0.0011839924224484877, "spy_r5m": null, "side": "flat"}
+{"ts": "2026-06-16T18:00:09.779404+00:00", "event": "decision", "action": "wait", "executed": false, "reasoning": "max_open_positions", "score": -0.1705, "target_usd": 0.1207, "block_reason": "max_open_positions", "r5m": -0.002050365385626529, "spy_r5m": null, "side": "flat"}

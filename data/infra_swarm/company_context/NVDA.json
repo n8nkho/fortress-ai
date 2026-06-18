@@ -1,0 +1,19 @@
+{
+  "name": "NVIDIA Corporation",
+  "type": "equity",
+  "sector": "Technology",
+  "industry": "Semiconductors",
+  "summary": "NVIDIA Corporation operates as a data center scale AI infrastructure company in the United States, Taiwan, China, Hong Kong, Europe, and internationally. It operates through Compute & Networking, and Graphics segments. The Compute & Networking segment provides data center accelerated computing and networking platforms and artificial intelligence solutions and software, and automotive platforms and autonomous and electric vehicle solutions, including software. The Graphics segment offers GeForce GPUs for gaming and PCs; Quadro/NVIDIA RTX GPUs for enterprise workstation graphics. The company's products are used in gaming, professional visualization, data center, and automotive markets. It sells its products to original equipment manufacturers, original device manufacturers, system integrators and distributors, independent software vendors, cloud service providers, add-in board manufacturer",
+  "peers": [
+    "SOXX",
+    "AVGO",
+    "MSFT"
+  ],
+  "symbol": "NVDA",
+  "market_cap": 5031307247616,
+  "beta": 2.202,
+  "pe_ratio": 31.810873,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "updated_utc": "2026-06-17T17:59:49.978531+00:00"
+}

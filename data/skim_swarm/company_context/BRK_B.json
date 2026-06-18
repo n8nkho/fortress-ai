@@ -1,0 +1,17 @@
+{
+  "name": "Berkshire Hathaway Inc. New",
+  "type": "equity",
+  "sector": "Financial Services",
+  "industry": "Insurance - Diversified",
+  "summary": "Berkshire Hathaway Inc., together with its subsidiaries, engages in the insurance, freight rail transportation, and utility businesses. The company provides property, casualty, life, accident, and health insurance and reinsurance; operates railroad systems in North America; generates, transmits, stores, and distributes electricity from natural gas, coal, wind, solar, hydroelectric, nuclear, and geothermal sources; operates natural gas distribution and storage facilities, interstate pipelines, liquefied natural gas facilities, and compressor and meter stations; and holds interest in coal mining assets. It manufactures boxed chocolates and other confectionery products; specialty chemicals, metal cutting tools, and components for aerospace and power generation applications; prefabricated and site-built residential homes, flooring products; insulation, roofing, and engineered products; build",
+  "peers": [
+    "SPY"
+  ],
+  "symbol": "BRK.B",
+  "market_cap": 1059522019328,
+  "beta": 0.617,
+  "pe_ratio": 14.615739,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "updated_utc": "2026-06-17T17:59:39.504135+00:00"
+}

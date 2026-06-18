@@ -280,7 +280,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-17T23:23:54.926567-04:00"
+      "registered_at_utc": "2026-06-18T09:33:40.236685-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -621,7 +621,9 @@
         "market_relative_underperformance",
         "market_participation_gap",
         "alpha_vs_spy_pct",
-        "portfolio_session_alpha_vs_spy"
+        "portfolio_session_alpha_vs_spy",
+        "entry_block_breakdown",
+        "Entry blocks active"
       ],
       "auto_tunable": {
         "strong_tape_min_exits": {

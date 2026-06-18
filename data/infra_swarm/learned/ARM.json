@@ -1,0 +1,439 @@
+{
+  "version": 5,
+  "session_date_et": "2026-06-18",
+  "params": {
+    "enter_long_delta": 0.0,
+    "enter_short_delta": 0.0,
+    "target_mult": 1.04,
+    "cooldown_mult": 0.9504,
+    "score_bias": 0.0,
+    "short_spy_filter": 0.0,
+    "pause_long": false,
+    "pause_short": false,
+    "pause_entries": false,
+    "pattern_deltas": {
+      "layer_catch_up_long": 0.0,
+      "layer_catch_up_short": 0.0,
+      "layer_rip_fade": 0.0,
+      "equipment_capex_confirm": 0.0,
+      "power_parity": 0.0,
+      "stack_momentum_long": 0.0
+    },
+    "disable_patterns": []
+  },
+  "session_stats": {
+    "decisions": 4,
+    "entries": 0,
+    "exits": 0,
+    "wins": 0,
+    "losses": 0,
+    "sum_pnl_usd": 0.0,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 0.0,
+    "short_pnl_usd": 0.0,
+    "long_exits": 0,
+    "short_exits": 0,
+    "long_wins": 0,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "lifetime_stats": {
+    "decisions": 416,
+    "entries": 20,
+    "exits": 1,
+    "wins": 1,
+    "losses": 0,
+    "sum_pnl_usd": 13.41,
+    "improvement_cycles": 0,
+    "long_pnl_usd": 13.41,
+    "short_pnl_usd": 0.0,
+    "long_exits": 1,
+    "short_exits": 0,
+    "long_wins": 1,
+    "long_losses": 0,
+    "short_wins": 0,
+    "short_losses": 0
+  },
+  "pattern_stats": {
+    "layer_catch_up_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_catch_up_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "equipment_capex_confirm": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "power_parity": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "stack_momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "lifetime_pattern_stats": {
+    "layer_catch_up_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_catch_up_short": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "layer_rip_fade": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "equipment_capex_confirm": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "power_parity": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    },
+    "stack_momentum_long": {
+      "exits": 0,
+      "wins": 0,
+      "losses": 0,
+      "sum_pnl_usd": 0.0
+    }
+  },
+  "session_overlay": {
+    "enter_long_delta_boost": 0.0,
+    "enter_short_delta_boost": 0.0,
+    "target_mult_overlay": 1.0,
+    "stop_mult_overlay": 1.0,
+    "spread_bps_mult": 1.0
+  },
+  "block_streaks": {
+    "opening_blackout": 4
+  },
+  "recent_exit_streak": {
+    "stop_loss": 0,
+    "target_hit": 0,
+    "last_pattern": null
+  },
+  "shadow": {
+    "variant": "tighter_stop",
+    "target_mult_delta": -0.08,
+    "live_pnl_usd": 0.0,
+    "shadow_pnl_usd": 0.0,
+    "live_exits": 0,
+    "shadow_exits": 0
+  },
+  "adaptation_log": [
+    {
+      "ts": "2026-06-17T19:14:33.824510+00:00",
+      "notes": [
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:18:03.633314+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:20:40.425670+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:21:32.462404+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:22:24.803446+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:23:17.081911+00:00",
+      "notes": [
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:28:31.320478+00:00",
+      "notes": [
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:30:17.449234+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:31:10.293802+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:32:02.538702+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:33:18.828340+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:33:43.552702+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:34:10.853477+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:34:35.675995+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:36:49.750340+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:37:41.529284+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:38:34.004925+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:39:27.055404+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:40:19.898402+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:41:12.396116+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:42:05.549777+00:00",
+      "notes": [
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:42:57.894462+00:00",
+      "notes": [
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:44:13.100424+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:45:29.018998+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:46:21.857785+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:47:14.481960+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:48:07.309136+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:48:59.813957+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:49:52.260124+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:50:45.104635+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:51:37.721444+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:52:30.409951+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:53:23.188710+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:54:15.883297+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:55:09.037047+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:56:01.346545+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:56:54.002785+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:57:46.730319+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:58:40.038943+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    },
+    {
+      "ts": "2026-06-17T19:59:33.037437+00:00",
+      "notes": [
+        "block_no_entry_loosen delta_boost L=-0.15",
+        "block_spread_widen mult=1.35"
+      ]
+    }
+  ],
+  "causation": {
+    "lifetime_exits": 0,
+    "keys": {},
+    "eliminated_keys": [],
+    "top_winners": [],
+    "top_losers": []
+  },
+  "last_entry_pattern": null,
+  "last_entry_side": null,
+  "last_entry_spy_r5m": null,
+  "last_entry_context": null,
+  "last_improvement_utc": "2026-06-17T15:59:26.785881+00:00",
+  "notes": [
+    "loosen_winner wr=1.00 pnl=13.41"
+  ],
+  "symbol": "ARM",
+  "updated_utc": "2026-06-18T13:33:30.020082+00:00"
+}

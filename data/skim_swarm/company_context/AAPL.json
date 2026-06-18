@@ -1,0 +1,19 @@
+{
+  "name": "Apple Inc.",
+  "type": "equity",
+  "sector": "Technology",
+  "industry": "Consumer Electronics",
+  "summary": "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories comprising AirPods, Apple Vision Pro, Apple TV, Apple Watch, Beats products, and HomePod, as well as Apple branded and third-party accessories. It also provides AppleCare support and cloud services; and operates various platforms, including the App Store that allow customers to discover and download applications and digital content, such as books, music, video, games, and podcasts, as well as advertising services include third-party licensing arrangements and its own advertising platforms. In addition, the company offers various subscription-based services, such as Apple Arcade, a game subscription service",
+  "peers": [
+    "MSFT",
+    "GOOG",
+    "AMZN"
+  ],
+  "symbol": "AAPL",
+  "market_cap": 4368460152832,
+  "beta": 1.086,
+  "pe_ratio": 36.008472,
+  "dividend_yield": 0.36,
+  "fetched_from": "yfinance",
+  "updated_utc": "2026-06-17T17:59:39.332225+00:00"
+}

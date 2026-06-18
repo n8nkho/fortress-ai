@@ -1,0 +1,17 @@
+{
+  "name": "Mastercard Incorporated",
+  "type": "equity",
+  "sector": "Financial Services",
+  "industry": "Credit Services",
+  "summary": "Mastercard Incorporated, a technology company, provides transaction processing and other payment-related products and services in the United States and internationally. The company offers products and services for account holders, merchants, financial institutions, digital partners, businesses, governments, and other organizations, such as programs that enable issuers to provide consumers with credits to defer payments; payment products and solutions that allow its customers to access funds in deposit and other accounts; prepaid programs services; consumer bill payment services; and commercial credit, debit, and prepaid payment products and solutions. It also provides solutions that enable businesses or governments to make payments to businesses, including Virtual Card Number, which is generated dynamically from an existing account and leverages the credit limit of the funding account; a",
+  "peers": [
+    "V"
+  ],
+  "symbol": "MA",
+  "market_cap": 440369381376,
+  "beta": 0.738,
+  "pe_ratio": 28.808672,
+  "dividend_yield": 0.69,
+  "fetched_from": "yfinance",
+  "updated_utc": "2026-06-17T17:59:40.152777+00:00"
+}

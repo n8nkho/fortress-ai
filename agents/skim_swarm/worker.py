@@ -156,6 +156,13 @@ def run_symbol_cycle(
     )
 
     try:
+        from utils.portfolio_session.entry_manager import record_entry_block
+
+        record_entry_block(decision, act_result, features=features)
+    except Exception:
+        pass
+
+    try:
         from utils.session_diary import record_swarm_event
 
         record_swarm_event(

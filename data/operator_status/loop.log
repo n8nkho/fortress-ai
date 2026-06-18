@@ -1,0 +1,1770 @@
+[2026-06-16T13:59:41-04:00] operator status cycle start
+**Operator status** — 2026-06-16T13:59:42.222495-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=6 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=None human=None auto=None
+**Auto-code:** ON | cursor=OK
+**Anomalies:** consciousness_kb_missing(high)
+[2026-06-16T13:59:41-04:00] operator status cycle ok
+[2026-06-16T14:09:51-04:00] operator status cycle start
+**Operator status** — 2026-06-16T14:09:55.900443-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=25, orphan_symbol_outside_universe=16, dry_run_blocked=12
+[2026-06-16T14:09:51-04:00] operator status cycle ok
+[2026-06-16T14:24:56-04:00] operator status cycle start
+**Operator status** — 2026-06-16T14:24:57.990991-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=142, manual_denylist=48, orphan_symbol_outside_universe=29
+[2026-06-16T14:24:56-04:00] operator status cycle ok
+[2026-06-16T14:39:58-04:00] operator status cycle start
+**Operator status** — 2026-06-16T14:40:00.254573-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=225, manual_denylist=75, orphan_symbol_outside_universe=35
+[2026-06-16T14:39:58-04:00] operator status cycle ok
+[2026-06-16T14:55:01-04:00] operator status cycle start
+**Operator status** — 2026-06-16T14:55:03.480426-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=288, manual_denylist=96, orphan_symbol_outside_universe=32
+[2026-06-16T14:55:01-04:00] operator status cycle ok
+[2026-06-16T15:10:04-04:00] operator status cycle start
+**Operator status** — 2026-06-16T15:10:06.196289-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=288, manual_denylist=96, orphan_symbol_outside_universe=32
+[2026-06-16T15:10:04-04:00] operator status cycle ok
+[2026-06-16T15:25:07-04:00] operator status cycle start
+**Operator status** — 2026-06-16T15:25:08.896259-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-16T15:25:07-04:00] operator status cycle ok
+[2026-06-16T15:40:10-04:00] operator status cycle start
+**Operator status** — 2026-06-16T15:40:11.636640-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-16T15:40:10-04:00] operator status cycle ok
+[2026-06-16T15:55:12-04:00] operator status cycle start
+**Operator status** — 2026-06-16T15:55:14.301047-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=234, manual_denylist=93, eod_caution_no_new_entries=45
+[2026-06-16T15:55:12-04:00] operator status cycle ok
+[2026-06-16T16:10:15-04:00] operator status cycle start
+**Operator status** — 2026-06-16T16:10:16.975130-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T16:10:15-04:00] operator status cycle ok
+[2026-06-16T16:25:18-04:00] operator status cycle start
+**Operator status** — 2026-06-16T16:25:19.647540-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T16:25:18-04:00] operator status cycle ok
+[2026-06-16T16:40:20-04:00] operator status cycle start
+**Operator status** — 2026-06-16T16:40:22.269303-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T16:40:20-04:00] operator status cycle ok
+[2026-06-16T16:55:23-04:00] operator status cycle start
+**Operator status** — 2026-06-16T16:55:24.890436-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T16:55:23-04:00] operator status cycle ok
+[2026-06-16T17:10:26-04:00] operator status cycle start
+**Operator status** — 2026-06-16T17:10:27.420479-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T17:10:26-04:00] operator status cycle ok
+[2026-06-16T17:25:28-04:00] operator status cycle start
+**Operator status** — 2026-06-16T17:25:30.069031-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T17:25:28-04:00] operator status cycle ok
+[2026-06-16T17:40:31-04:00] operator status cycle start
+**Operator status** — 2026-06-16T17:40:32.590396-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T17:40:31-04:00] operator status cycle ok
+[2026-06-16T17:55:33-04:00] operator status cycle start
+**Operator status** — 2026-06-16T17:55:35.112467-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T17:55:33-04:00] operator status cycle ok
+[2026-06-16T18:10:36-04:00] operator status cycle start
+**Operator status** — 2026-06-16T18:10:37.815950-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T18:10:36-04:00] operator status cycle ok
+[2026-06-16T18:25:39-04:00] operator status cycle start
+**Operator status** — 2026-06-16T18:25:40.462112-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T18:25:39-04:00] operator status cycle ok
+[2026-06-16T18:40:41-04:00] operator status cycle start
+**Operator status** — 2026-06-16T18:40:43.056944-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T18:40:41-04:00] operator status cycle ok
+[2026-06-16T18:55:44-04:00] operator status cycle start
+**Operator status** — 2026-06-16T18:55:45.473401-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T18:55:44-04:00] operator status cycle ok
+[2026-06-16T19:10:46-04:00] operator status cycle start
+**Operator status** — 2026-06-16T19:10:48.195058-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T19:10:46-04:00] operator status cycle ok
+[2026-06-16T19:25:49-04:00] operator status cycle start
+**Operator status** — 2026-06-16T19:25:50.935953-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T19:25:49-04:00] operator status cycle ok
+[2026-06-16T19:40:52-04:00] operator status cycle start
+**Operator status** — 2026-06-16T19:40:53.763853-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T19:40:52-04:00] operator status cycle ok
+[2026-06-16T19:55:55-04:00] operator status cycle start
+**Operator status** — 2026-06-16T19:55:56.810390-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T19:55:55-04:00] operator status cycle ok
+[2026-06-16T20:10:57-04:00] operator status cycle start
+**Operator status** — 2026-06-16T20:10:59.353878-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T20:10:57-04:00] operator status cycle ok
+[2026-06-16T20:26:00-04:00] operator status cycle start
+**Operator status** — 2026-06-16T20:26:02.057697-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T20:26:00-04:00] operator status cycle ok
+[2026-06-16T20:41:03-04:00] operator status cycle start
+**Operator status** — 2026-06-16T20:41:04.609595-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T20:41:03-04:00] operator status cycle ok
+[2026-06-16T20:56:05-04:00] operator status cycle start
+**Operator status** — 2026-06-16T20:56:07.378526-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T20:56:05-04:00] operator status cycle ok
+[2026-06-16T21:11:08-04:00] operator status cycle start
+**Operator status** — 2026-06-16T21:11:10.112220-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T21:11:08-04:00] operator status cycle ok
+[2026-06-16T21:26:11-04:00] operator status cycle start
+**Operator status** — 2026-06-16T21:26:12.920723-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T21:26:11-04:00] operator status cycle ok
+[2026-06-16T21:41:14-04:00] operator status cycle start
+**Operator status** — 2026-06-16T21:41:15.574799-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T21:41:14-04:00] operator status cycle ok
+[2026-06-16T21:56:16-04:00] operator status cycle start
+**Operator status** — 2026-06-16T21:56:18.157872-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T21:56:16-04:00] operator status cycle ok
+[2026-06-16T22:11:19-04:00] operator status cycle start
+**Operator status** — 2026-06-16T22:11:20.883525-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T22:11:19-04:00] operator status cycle ok
+[2026-06-16T22:26:21-04:00] operator status cycle start
+**Operator status** — 2026-06-16T22:26:23.494728-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T22:26:21-04:00] operator status cycle ok
+[2026-06-16T22:41:24-04:00] operator status cycle start
+**Operator status** — 2026-06-16T22:41:26.028460-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T22:41:24-04:00] operator status cycle ok
+[2026-06-16T22:56:27-04:00] operator status cycle start
+**Operator status** — 2026-06-16T22:56:28.631747-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T22:56:27-04:00] operator status cycle ok
+[2026-06-16T23:11:29-04:00] operator status cycle start
+**Operator status** — 2026-06-16T23:11:31.449654-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T23:11:29-04:00] operator status cycle ok
+[2026-06-16T23:26:32-04:00] operator status cycle start
+**Operator status** — 2026-06-16T23:26:34.246420-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T23:26:32-04:00] operator status cycle ok
+[2026-06-16T23:41:35-04:00] operator status cycle start
+**Operator status** — 2026-06-16T23:41:36.824720-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T23:41:35-04:00] operator status cycle ok
+[2026-06-16T23:56:37-04:00] operator status cycle start
+**Operator status** — 2026-06-16T23:56:39.348662-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-16T23:56:37-04:00] operator status cycle ok
+[2026-06-17T00:11:40-04:00] operator status cycle start
+**Operator status** — 2026-06-17T00:11:41.886364-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T00:11:40-04:00] operator status cycle ok
+[2026-06-17T00:26:43-04:00] operator status cycle start
+**Operator status** — 2026-06-17T00:26:44.515703-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T00:26:43-04:00] operator status cycle ok
+[2026-06-17T00:41:45-04:00] operator status cycle start
+**Operator status** — 2026-06-17T00:41:47.204792-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T00:41:45-04:00] operator status cycle ok
+[2026-06-17T00:56:48-04:00] operator status cycle start
+**Operator status** — 2026-06-17T00:56:49.741030-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T00:56:48-04:00] operator status cycle ok
+[2026-06-17T01:11:50-04:00] operator status cycle start
+**Operator status** — 2026-06-17T01:11:52.408260-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T01:11:50-04:00] operator status cycle ok
+[2026-06-17T01:26:53-04:00] operator status cycle start
+**Operator status** — 2026-06-17T01:26:54.950168-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T01:26:53-04:00] operator status cycle ok
+[2026-06-17T01:41:56-04:00] operator status cycle start
+**Operator status** — 2026-06-17T01:41:57.638891-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T01:41:56-04:00] operator status cycle ok
+[2026-06-17T01:56:58-04:00] operator status cycle start
+**Operator status** — 2026-06-17T01:57:00.191720-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T01:56:58-04:00] operator status cycle ok
+[2026-06-17T02:12:01-04:00] operator status cycle start
+**Operator status** — 2026-06-17T02:12:02.713472-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T02:12:01-04:00] operator status cycle ok
+[2026-06-17T02:27:03-04:00] operator status cycle start
+**Operator status** — 2026-06-17T02:27:05.288366-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T02:27:03-04:00] operator status cycle ok
+[2026-06-17T02:42:06-04:00] operator status cycle start
+**Operator status** — 2026-06-17T02:42:07.941688-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T02:42:06-04:00] operator status cycle ok
+[2026-06-17T02:57:09-04:00] operator status cycle start
+**Operator status** — 2026-06-17T02:57:10.527348-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T02:57:09-04:00] operator status cycle ok
+[2026-06-17T03:12:11-04:00] operator status cycle start
+**Operator status** — 2026-06-17T03:12:13.171703-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T03:12:11-04:00] operator status cycle ok
+[2026-06-17T03:27:14-04:00] operator status cycle start
+**Operator status** — 2026-06-17T03:27:15.723638-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T03:27:14-04:00] operator status cycle ok
+[2026-06-17T03:42:16-04:00] operator status cycle start
+**Operator status** — 2026-06-17T03:42:18.242556-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T03:42:16-04:00] operator status cycle ok
+[2026-06-17T03:57:19-04:00] operator status cycle start
+**Operator status** — 2026-06-17T03:57:20.801399-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T03:57:19-04:00] operator status cycle ok
+[2026-06-17T04:12:21-04:00] operator status cycle start
+**Operator status** — 2026-06-17T04:12:23.519998-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T04:12:21-04:00] operator status cycle ok
+[2026-06-17T04:27:24-04:00] operator status cycle start
+**Operator status** — 2026-06-17T04:27:26.256578-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T04:27:24-04:00] operator status cycle ok
+[2026-06-17T04:42:27-04:00] operator status cycle start
+**Operator status** — 2026-06-17T04:42:29.056940-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T04:42:27-04:00] operator status cycle ok
+[2026-06-17T04:57:30-04:00] operator status cycle start
+**Operator status** — 2026-06-17T04:57:31.636451-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T04:57:30-04:00] operator status cycle ok
+[2026-06-17T05:12:32-04:00] operator status cycle start
+**Operator status** — 2026-06-17T05:12:34.172069-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T05:12:32-04:00] operator status cycle ok
+[2026-06-17T05:27:35-04:00] operator status cycle start
+**Operator status** — 2026-06-17T05:27:36.729953-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T05:27:35-04:00] operator status cycle ok
+[2026-06-17T05:42:37-04:00] operator status cycle start
+**Operator status** — 2026-06-17T05:42:39.341173-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T05:42:37-04:00] operator status cycle ok
+[2026-06-17T05:57:40-04:00] operator status cycle start
+**Operator status** — 2026-06-17T05:57:41.915505-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T05:57:40-04:00] operator status cycle ok
+[2026-06-17T06:12:43-04:00] operator status cycle start
+**Operator status** — 2026-06-17T06:12:44.599641-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T06:12:43-04:00] operator status cycle ok
+[2026-06-17T06:27:45-04:00] operator status cycle start
+**Operator status** — 2026-06-17T06:27:47.492847-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T06:27:45-04:00] operator status cycle ok
+[2026-06-17T06:42:48-04:00] operator status cycle start
+**Operator status** — 2026-06-17T06:42:50.160230-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T06:42:48-04:00] operator status cycle ok
+[2026-06-17T06:57:51-04:00] operator status cycle start
+**Operator status** — 2026-06-17T06:57:52.650962-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T06:57:51-04:00] operator status cycle ok
+[2026-06-17T07:12:53-04:00] operator status cycle start
+**Operator status** — 2026-06-17T07:12:55.239403-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T07:12:53-04:00] operator status cycle ok
+[2026-06-17T07:27:56-04:00] operator status cycle start
+**Operator status** — 2026-06-17T07:27:57.626186-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T07:27:56-04:00] operator status cycle ok
+[2026-06-17T07:42:58-04:00] operator status cycle start
+**Operator status** — 2026-06-17T07:43:00.176622-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T07:42:58-04:00] operator status cycle ok
+[2026-06-17T07:58:01-04:00] operator status cycle start
+**Operator status** — 2026-06-17T07:58:02.859451-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T07:58:01-04:00] operator status cycle ok
+[2026-06-17T08:13:04-04:00] operator status cycle start
+**Operator status** — 2026-06-17T08:13:05.590952-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T08:13:04-04:00] operator status cycle ok
+[2026-06-17T08:28:06-04:00] operator status cycle start
+**Operator status** — 2026-06-17T08:28:08.210100-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T08:28:06-04:00] operator status cycle ok
+[2026-06-17T08:43:09-04:00] operator status cycle start
+**Operator status** — 2026-06-17T08:43:11.010429-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T08:43:09-04:00] operator status cycle ok
+[2026-06-17T08:58:12-04:00] operator status cycle start
+**Operator status** — 2026-06-17T08:58:13.721362-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T08:58:12-04:00] operator status cycle ok
+[2026-06-17T09:13:14-04:00] operator status cycle start
+**Operator status** — 2026-06-17T09:13:16.235209-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T09:13:14-04:00] operator status cycle ok
+[2026-06-17T09:28:17-04:00] operator status cycle start
+**Operator status** — 2026-06-17T09:28:18.821210-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=162, no_edge=104, manual_denylist=69
+[2026-06-17T09:28:17-04:00] operator status cycle ok
+[2026-06-17T09:43:20-04:00] operator status cycle start
+**Operator status** — 2026-06-17T09:43:21.545503-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** opening_blackout=90, manual_denylist=30, orphan_symbol_outside_universe=10
+[2026-06-17T09:43:20-04:00] operator status cycle ok
+[2026-06-17T09:58:22-04:00] operator status cycle start
+**Operator status** — 2026-06-17T09:58:24.210839-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** opening_blackout=144, max_open_positions=81, manual_denylist=75
+[2026-06-17T09:58:22-04:00] operator status cycle ok
+[2026-06-17T10:13:26-04:00] operator status cycle start
+**Operator status** — 2026-06-17T10:13:27.552897-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=225, manual_denylist=93, opening_blackout=54
+[2026-06-17T10:13:26-04:00] operator status cycle ok
+[2026-06-17T10:28:28-04:00] operator status cycle start
+**Operator status** — 2026-06-17T10:28:30.569905-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T10:28:28-04:00] operator status cycle ok
+[2026-06-17T10:43:31-04:00] operator status cycle start
+**Operator status** — 2026-06-17T10:43:33.575357-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T10:43:31-04:00] operator status cycle ok
+[2026-06-17T10:58:34-04:00] operator status cycle start
+**Operator status** — 2026-06-17T10:58:36.675397-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=288, manual_denylist=96, orphan_symbol_outside_universe=32
+[2026-06-17T10:58:34-04:00] operator status cycle ok
+[2026-06-17T11:13:37-04:00] operator status cycle start
+**Operator status** — 2026-06-17T11:13:39.774427-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T11:13:37-04:00] operator status cycle ok
+[2026-06-17T11:28:41-04:00] operator status cycle start
+**Operator status** — 2026-06-17T11:28:42.800374-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T11:28:41-04:00] operator status cycle ok
+[2026-06-17T11:43:44-04:00] operator status cycle start
+**Operator status** — 2026-06-17T11:43:46.040751-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T11:43:44-04:00] operator status cycle ok
+[2026-06-17T11:58:47-04:00] operator status cycle start
+**Operator status** — 2026-06-17T11:58:49.350836-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=4)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T11:58:47-04:00] operator status cycle ok
+[2026-06-17T12:13:50-04:00] operator status cycle start
+**Operator status** — 2026-06-17T12:13:52.956055-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=5)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.275 (2 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T12:13:50-04:00] operator status cycle ok
+[2026-06-17T12:28:54-04:00] operator status cycle start
+**Operator status** — 2026-06-17T12:28:56.877642-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=5)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.275 (2 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T12:28:54-04:00] operator status cycle ok
+[2026-06-17T12:43:58-04:00] operator status cycle start
+**Operator status** — 2026-06-17T12:44:01.235278-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=5)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.275 (2 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T12:43:58-04:00] operator status cycle ok
+[2026-06-17T12:59:03-04:00] operator status cycle start
+**Operator status** — 2026-06-17T12:59:05.357637-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=5)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.275 (2 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=279, manual_denylist=93, orphan_symbol_outside_universe=31
+[2026-06-17T12:59:03-04:00] operator status cycle ok
+[2026-06-17T13:14:07-04:00] operator status cycle start
+**Operator status** — 2026-06-17T13:14:09.398100-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=5)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.275 (2 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T13:14:07-04:00] operator status cycle ok
+[2026-06-17T13:29:11-04:00] operator status cycle start
+**Operator status** — 2026-06-17T13:29:13.748747-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=5)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.275 (2 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T13:29:11-04:00] operator status cycle ok
+[2026-06-17T13:44:15-04:00] operator status cycle start
+**Operator status** — 2026-06-17T13:44:18.223458-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.28 (3 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T13:44:15-04:00] operator status cycle ok
+[2026-06-17T13:59:20-04:00] operator status cycle start
+**Operator status** — 2026-06-17T13:59:22.619841-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $13.385 (5 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T13:59:20-04:00] operator status cycle ok
+[2026-06-17T14:14:24-04:00] operator status cycle start
+**Operator status** — 2026-06-17T14:14:27.074053-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $14.605 (7 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T14:14:24-04:00] operator status cycle ok
+[2026-06-17T14:29:29-04:00] operator status cycle start
+**Operator status** — 2026-06-17T14:29:31.711975-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 1 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $14.725 (8 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T14:29:29-04:00] operator status cycle ok
+[2026-06-17T14:44:33-04:00] operator status cycle start
+**Operator status** — 2026-06-17T14:44:36.401229-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $14.725 (8 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=270, manual_denylist=90, orphan_symbol_outside_universe=30
+[2026-06-17T14:44:33-04:00] operator status cycle ok
+[2026-06-17T14:59:38-04:00] operator status cycle start
+**Operator status** — 2026-06-17T14:59:41.263028-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $14.915 (9 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=261, manual_denylist=87, orphan_symbol_outside_universe=29
+[2026-06-17T14:59:38-04:00] operator status cycle ok
+[2026-06-17T15:14:43-04:00] operator status cycle start
+**Operator status** — 2026-06-17T15:14:46.164346-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.485 (12 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=261, manual_denylist=87, orphan_symbol_outside_universe=29
+[2026-06-17T15:14:43-04:00] operator status cycle ok
+[2026-06-17T15:29:48-04:00] operator status cycle start
+**Operator status** — 2026-06-17T15:29:51.001873-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.485 (12 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=261, manual_denylist=87, orphan_symbol_outside_universe=29
+[2026-06-17T15:29:48-04:00] operator status cycle ok
+[2026-06-17T15:44:53-04:00] operator status cycle start
+**Operator status** — 2026-06-17T15:44:56.112512-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=261, manual_denylist=87, orphan_symbol_outside_universe=29
+[2026-06-17T15:44:53-04:00] operator status cycle ok
+[2026-06-17T15:59:58-04:00] operator status cycle start
+**Operator status** — 2026-06-17T16:00:01.657396-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T15:59:58-04:00] operator status cycle ok
+[2026-06-17T16:15:04-04:00] operator status cycle start
+**Operator status** — 2026-06-17T16:15:07.278414-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T16:15:04-04:00] operator status cycle ok
+[2026-06-17T16:30:09-04:00] operator status cycle start
+**Operator status** — 2026-06-17T16:30:12.709765-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T16:30:09-04:00] operator status cycle ok
+[2026-06-17T16:45:15-04:00] operator status cycle start
+**Operator status** — 2026-06-17T16:45:17.955412-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T16:45:15-04:00] operator status cycle ok
+[2026-06-17T17:00:20-04:00] operator status cycle start
+**Operator status** — 2026-06-17T17:00:23.109316-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T17:00:20-04:00] operator status cycle ok
+[2026-06-17T17:15:25-04:00] operator status cycle start
+**Operator status** — 2026-06-17T17:15:28.142575-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T17:15:25-04:00] operator status cycle ok
+[2026-06-17T17:30:30-04:00] operator status cycle start
+**Operator status** — 2026-06-17T17:30:33.293999-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T17:30:30-04:00] operator status cycle ok
+[2026-06-17T17:45:35-04:00] operator status cycle start
+**Operator status** — 2026-06-17T17:45:38.454430-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T17:45:35-04:00] operator status cycle ok
+[2026-06-17T18:00:40-04:00] operator status cycle start
+**Operator status** — 2026-06-17T18:00:43.901264-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T18:00:40-04:00] operator status cycle ok
+[2026-06-17T18:15:46-04:00] operator status cycle start
+**Operator status** — 2026-06-17T18:15:49.223466-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T18:15:46-04:00] operator status cycle ok
+[2026-06-17T18:30:51-04:00] operator status cycle start
+**Operator status** — 2026-06-17T18:30:54.664542-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T18:30:51-04:00] operator status cycle ok
+[2026-06-17T18:45:57-04:00] operator status cycle start
+**Operator status** — 2026-06-17T18:45:59.792655-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T18:45:57-04:00] operator status cycle ok
+[2026-06-17T19:01:02-04:00] operator status cycle start
+**Operator status** — 2026-06-17T19:01:05.013593-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T19:01:02-04:00] operator status cycle ok
+[2026-06-17T19:16:07-04:00] operator status cycle start
+**Operator status** — 2026-06-17T19:16:10.280696-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T19:16:07-04:00] operator status cycle ok
+[2026-06-17T19:31:12-04:00] operator status cycle start
+**Operator status** — 2026-06-17T19:31:15.366829-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T19:31:12-04:00] operator status cycle ok
+[2026-06-17T19:46:17-04:00] operator status cycle start
+**Operator status** — 2026-06-17T19:46:20.515182-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T19:46:17-04:00] operator status cycle ok
+[2026-06-17T20:01:23-04:00] operator status cycle start
+**Operator status** — 2026-06-17T20:01:25.835326-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T20:01:23-04:00] operator status cycle ok
+[2026-06-17T20:16:28-04:00] operator status cycle start
+**Operator status** — 2026-06-17T20:16:31.024098-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T20:16:28-04:00] operator status cycle ok
+[2026-06-17T20:31:33-04:00] operator status cycle start
+**Operator status** — 2026-06-17T20:31:36.220089-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T20:31:33-04:00] operator status cycle ok
+[2026-06-17T20:46:38-04:00] operator status cycle start
+**Operator status** — 2026-06-17T20:46:41.411194-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T20:46:38-04:00] operator status cycle ok
+[2026-06-17T21:01:43-04:00] operator status cycle start
+**Operator status** — 2026-06-17T21:01:46.535055-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T21:01:43-04:00] operator status cycle ok
+[2026-06-17T21:16:48-04:00] operator status cycle start
+**Operator status** — 2026-06-17T21:16:51.607542-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T21:16:48-04:00] operator status cycle ok
+[2026-06-17T21:31:54-04:00] operator status cycle start
+**Operator status** — 2026-06-17T21:31:56.791847-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T21:31:54-04:00] operator status cycle ok
+[2026-06-17T21:46:59-04:00] operator status cycle start
+**Operator status** — 2026-06-17T21:47:02.485982-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T21:46:59-04:00] operator status cycle ok
+[2026-06-17T22:02:05-04:00] operator status cycle start
+**Operator status** — 2026-06-17T22:02:07.760068-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T22:02:05-04:00] operator status cycle ok
+[2026-06-17T22:17:10-04:00] operator status cycle start
+**Operator status** — 2026-06-17T22:17:13.017116-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T22:17:10-04:00] operator status cycle ok
+[2026-06-17T22:32:15-04:00] operator status cycle start
+**Operator status** — 2026-06-17T22:32:18.189361-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T22:32:15-04:00] operator status cycle ok
+[2026-06-17T22:47:21-04:00] operator status cycle start
+**Operator status** — 2026-06-17T22:47:23.777698-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T22:47:21-04:00] operator status cycle ok
+[2026-06-17T23:02:26-04:00] operator status cycle start
+**Operator status** — 2026-06-17T23:02:28.995688-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Anomalies:** duplicate_entry_accumulation(high)
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T23:02:26-04:00] operator status cycle ok
+[2026-06-17T23:17:31-04:00] operator status cycle start
+**Operator status** — 2026-06-17T23:17:34.095348-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T23:17:31-04:00] operator status cycle ok
+[2026-06-17T23:32:36-04:00] operator status cycle start
+**Operator status** — 2026-06-17T23:32:39.383162-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T23:32:36-04:00] operator status cycle ok
+[2026-06-17T23:47:41-04:00] operator status cycle start
+**Operator status** — 2026-06-17T23:47:44.541418-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $12.845 (14 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-17T23:47:41-04:00] operator status cycle ok
+[2026-06-18T00:02:46-04:00] operator status cycle start
+**Operator status** — 2026-06-18T00:02:49.273066-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T00:02:46-04:00] operator status cycle ok
+[2026-06-18T00:17:51-04:00] operator status cycle start
+**Operator status** — 2026-06-18T00:17:53.627984-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T00:17:51-04:00] operator status cycle ok
+[2026-06-18T00:32:55-04:00] operator status cycle start
+**Operator status** — 2026-06-18T00:32:58.016730-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T00:32:55-04:00] operator status cycle ok
+[2026-06-18T00:48:00-04:00] operator status cycle start
+**Operator status** — 2026-06-18T00:48:02.471359-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T00:48:00-04:00] operator status cycle ok
+[2026-06-18T01:03:04-04:00] operator status cycle start
+**Operator status** — 2026-06-18T01:03:06.877897-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T01:03:04-04:00] operator status cycle ok
+[2026-06-18T01:18:08-04:00] operator status cycle start
+**Operator status** — 2026-06-18T01:18:11.449019-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T01:18:08-04:00] operator status cycle ok
+[2026-06-18T01:33:13-04:00] operator status cycle start
+**Operator status** — 2026-06-18T01:33:15.839679-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T01:33:13-04:00] operator status cycle ok
+[2026-06-18T01:48:17-04:00] operator status cycle start
+**Operator status** — 2026-06-18T01:48:20.345502-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T01:48:17-04:00] operator status cycle ok
+[2026-06-18T02:03:22-04:00] operator status cycle start
+**Operator status** — 2026-06-18T02:03:24.669104-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T02:03:22-04:00] operator status cycle ok
+[2026-06-18T02:18:26-04:00] operator status cycle start
+**Operator status** — 2026-06-18T02:18:29.132636-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T02:18:26-04:00] operator status cycle ok
+[2026-06-18T02:33:31-04:00] operator status cycle start
+**Operator status** — 2026-06-18T02:33:33.515203-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T02:33:31-04:00] operator status cycle ok
+[2026-06-18T02:48:35-04:00] operator status cycle start
+**Operator status** — 2026-06-18T02:48:37.867011-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T02:48:35-04:00] operator status cycle ok
+[2026-06-18T03:03:39-04:00] operator status cycle start
+**Operator status** — 2026-06-18T03:03:42.236123-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T03:03:39-04:00] operator status cycle ok
+[2026-06-18T03:18:44-04:00] operator status cycle start
+**Operator status** — 2026-06-18T03:18:46.701084-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T03:18:44-04:00] operator status cycle ok
+[2026-06-18T03:33:48-04:00] operator status cycle start
+**Operator status** — 2026-06-18T03:33:51.255202-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T03:33:48-04:00] operator status cycle ok
+[2026-06-18T03:48:53-04:00] operator status cycle start
+**Operator status** — 2026-06-18T03:48:55.667370-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T03:48:53-04:00] operator status cycle ok
+[2026-06-18T04:03:57-04:00] operator status cycle start
+**Operator status** — 2026-06-18T04:04:00.086308-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T04:03:57-04:00] operator status cycle ok
+[2026-06-18T04:19:02-04:00] operator status cycle start
+**Operator status** — 2026-06-18T04:19:04.519374-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T04:19:02-04:00] operator status cycle ok
+[2026-06-18T04:34:06-04:00] operator status cycle start
+**Operator status** — 2026-06-18T04:34:09.199270-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T04:34:06-04:00] operator status cycle ok
+[2026-06-18T04:49:11-04:00] operator status cycle start
+**Operator status** — 2026-06-18T04:49:13.776648-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T04:49:11-04:00] operator status cycle ok
+[2026-06-18T05:04:16-04:00] operator status cycle start
+**Operator status** — 2026-06-18T05:04:18.381936-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T05:04:16-04:00] operator status cycle ok
+[2026-06-18T05:19:20-04:00] operator status cycle start
+**Operator status** — 2026-06-18T05:19:22.805853-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T05:19:20-04:00] operator status cycle ok
+[2026-06-18T05:34:24-04:00] operator status cycle start
+**Operator status** — 2026-06-18T05:34:27.171266-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T05:34:24-04:00] operator status cycle ok
+[2026-06-18T05:49:29-04:00] operator status cycle start
+**Operator status** — 2026-06-18T05:49:31.676968-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T05:49:29-04:00] operator status cycle ok
+[2026-06-18T06:04:33-04:00] operator status cycle start
+**Operator status** — 2026-06-18T06:04:36.071558-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=1 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T06:04:33-04:00] operator status cycle ok
+[2026-06-18T06:19:38-04:00] operator status cycle start
+**Operator status** — 2026-06-18T06:19:40.476040-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T06:19:38-04:00] operator status cycle ok
+[2026-06-18T06:34:42-04:00] operator status cycle start
+**Operator status** — 2026-06-18T06:34:45.025832-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T06:34:42-04:00] operator status cycle ok
+[2026-06-18T06:49:47-04:00] operator status cycle start
+**Operator status** — 2026-06-18T06:49:49.516511-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T06:49:47-04:00] operator status cycle ok
+[2026-06-18T07:04:51-04:00] operator status cycle start
+**Operator status** — 2026-06-18T07:04:53.977338-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T07:04:51-04:00] operator status cycle ok
+[2026-06-18T07:19:56-04:00] operator status cycle start
+**Operator status** — 2026-06-18T07:19:58.692361-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T07:19:56-04:00] operator status cycle ok
+[2026-06-18T07:35:00-04:00] operator status cycle start
+**Operator status** — 2026-06-18T07:35:03.163598-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T07:35:00-04:00] operator status cycle ok
+[2026-06-18T07:50:05-04:00] operator status cycle start
+**Operator status** — 2026-06-18T07:50:07.506577-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T07:50:05-04:00] operator status cycle ok
+[2026-06-18T08:05:09-04:00] operator status cycle start
+**Operator status** — 2026-06-18T08:05:12.033329-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T08:05:09-04:00] operator status cycle ok
+[2026-06-18T08:20:14-04:00] operator status cycle start
+**Operator status** — 2026-06-18T08:20:16.553634-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T08:20:14-04:00] operator status cycle ok
+[2026-06-18T08:35:18-04:00] operator status cycle start
+**Operator status** — 2026-06-18T08:35:21.055039-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T08:35:18-04:00] operator status cycle ok
+[2026-06-18T08:50:23-04:00] operator status cycle start
+**Operator status** — 2026-06-18T08:50:25.542835-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T08:50:23-04:00] operator status cycle ok
+[2026-06-18T09:05:27-04:00] operator status cycle start
+**Operator status** — 2026-06-18T09:05:30.090848-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T09:05:27-04:00] operator status cycle ok
+[2026-06-18T09:20:32-04:00] operator status cycle start
+**Operator status** — 2026-06-18T09:20:34.759583-04:00 (America/New_York)
+
+**Services:** swarm=active, swarm=active, dashboard=active, si=active, status=active
+**Open positions:** 0 (max skim=4 infra=6)
+**Session PnL:** skim $0.0 (0 exits) | infra $0.0 (0 exits)
+**SI queue:** agent=0 human=0 auto=0
+**Auto-code:** ON | cursor=OK
+**Top blocks (skim):** max_open_positions=153, no_edge=91, manual_denylist=66
+[2026-06-18T09:20:32-04:00] operator status cycle ok

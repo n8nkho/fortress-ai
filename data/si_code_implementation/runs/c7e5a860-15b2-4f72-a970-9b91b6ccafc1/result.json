@@ -1,0 +1,13 @@
+{
+  "ok": false,
+  "item_id": "c7e5a860-15b2-4f72-a970-9b91b6ccafc1",
+  "code": "duplicate_entry_accumulation",
+  "changed_repos": [
+    "fortress-ai"
+  ],
+  "e2e_ok": false,
+  "commits": {},
+  "pushes": {},
+  "agent_summary": "ing-bot/utils/order_sizer.py` \u2014 `plan_chunked_exit()` + `submit_chunked_sell_orders()` with random inter-chunk delays\n- `trading-bot/tests/test_order_sizer.py` \u2014 6 unit tests\n- Patches `orchestrator.py` `execute_sell_order()` to use chunked exits\n\n### Detectable markers\n\n| Marker | Where |\n|--------|-------|\n| `already_holding` | `position_manager.py` logs + `block_reason`; `unified_enter_guard.py` |\n| `chunked_exit` | `order_executor.py`, `legacy_flattener.py`, `risk_controller.py`, `act()` result |\n| `enter_cooldown` | `position_manager.py` logs + `block_reason` |\n| `entry_blocked_by_cooldown` | Log text in `position_manager.py`; `entry_blocked_by_cooldown()` in `unified_enter_guard.py` |\n\n### Behavior\n\n1. **Entry dedup** \u2014 When `POSITION_DEDUPLICATION_ENABLED=true` (default), `enter_position()` returns blocked if symbol is already held.\n2. **Chunked exits** \u2014 Exits exceeding `FORTRESS_MAX_ORDER_NOTIONAL_USD` split into child orders (e.g. 447 shares @ $200 with $3k cap \u2192 multiple 15-share orders).\n3. **Legacy flatten** \u2014 On agent boot and every 5 minutes, oversized positions are trimmed via chunked sells.\n\n`config/si_fix_registry.json` already lists all four markers for `duplicate_entry_accumulation` \u2014 no registry change needed.\n\n### Next step for SI runner\n\n1. Run `./scripts/e2e_verify.sh --no-ingest` in fortress-ai\n2. Run `python3 scripts/apply_trading_bot_order_sizer.py` for Classic exit chunking\n3. Commit after e2e passes (per your instruction, no commit was made here)\n",
+  "finished_utc": "2026-06-17T15:57:43.162618-04:00"
+}

@@ -1,0 +1,23 @@
+{
+  "mode": "normal",
+  "negative_edge": false,
+  "over_churn": false,
+  "pause_new_entries": false,
+  "max_open_effective": null,
+  "max_l1_gross_effective": null,
+  "enter_long_delta_boost": 0.0,
+  "enter_short_delta_boost": 0.0,
+  "cycle_interval_mult": 1.0,
+  "session_exits": 0,
+  "session_wins": 0,
+  "session_losses": 0,
+  "session_win_rate": null,
+  "session_expectancy_usd": null,
+  "session_pnl_usd": 0.0,
+  "notes": [
+    "adaptive_max_open=12 (strong_tape_1d,alpha_gap=-0.85,participation_boost,spy_lead_underparticipation)"
+  ],
+  "max_open_adaptive": 12,
+  "max_open_boost": 8,
+  "updated_utc": "2026-06-18T13:33:05.379162+00:00"
+}

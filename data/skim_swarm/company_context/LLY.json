@@ -1,0 +1,17 @@
+{
+  "name": "Eli Lilly and Company",
+  "type": "equity",
+  "sector": "Healthcare",
+  "industry": "Drug Manufacturers - General",
+  "summary": "Eli Lilly and Company discovers, develops, manufactures, and markets human pharmaceutical products in the United States, Europe, China, Japan, and internationally. The company offers cardiometabolic health products, including Basaglar, Humalog, Humalog Mix 75/25, Humalog U-100, Humalog U-200, Humalog Mix 50/50, insulin lispro, insulin lispro protamine, insulin lispro mix 75/25, Humulin, Humulin 70/30, Humulin N, Humulin R, Humulin U-500 for diabetes; Jardiance, Mounjaro, and Trulicity for type 2 diabetes; and Zepbound for obesity. It also provides oncology products, such as Cyramza for the second-line treatment of gastric cancer or gastro-esophageal junction adenocarcinoma; Erbitux for colorectal cancers and head and neck cancers; Inluriyo for breast cancer; Jaypirca for chronic lymphocytic leukemia or small lymphocytic lymphoma; Retevmo for the treatment of metastatic NSCLC; TYVYT for c",
+  "peers": [
+    "XLV"
+  ],
+  "symbol": "LLY",
+  "market_cap": 995941351424,
+  "beta": 0.517,
+  "pe_ratio": 39.646786,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "updated_utc": "2026-06-17T17:59:39.854478+00:00"
+}

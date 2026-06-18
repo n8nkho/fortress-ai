@@ -1,0 +1,15 @@
+{
+  "symbol": "TSM",
+  "summary": "Taiwan Semiconductor Manufacturing Company Limited, together with its subsidiaries, manufactures, packages, tests, and sells integrated circuits and other semiconductor devices in Taiwan, China, Europe, the Middle East, Africa, Japan, the United States, and internationally. It provides various wafer fabrication processes, such as processes to manufacture complementary metal- oxide-semiconductor (CMOS) logic, mixed-signal, radio frequency, embedded memory, bipolar CMOS mixed-signal, and others. The company also involved in providing customer and engineering support services; manufacturing of masks; investment in technology start-up companies; research, designing, developing, manufacturing, packaging, testing, and sale of color filters; and investment activities. Its products are used in high performance computing, smartphones, Internet of things, automotive, and digital consumer electroni",
+  "type": "equity",
+  "name": "Taiwan Semiconductor Manufactur",
+  "sector": "Technology",
+  "industry": "Semiconductors",
+  "market_cap": 2273983594496,
+  "beta": 1.25,
+  "pe_ratio": 37.699486,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "peers": [],
+  "updated_utc": "2026-06-17T18:00:44.914447+00:00"
+}

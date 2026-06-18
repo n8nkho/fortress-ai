@@ -1,0 +1,40 @@
+Implemented the `market_relative_underperformance` SI fix. The planned `portfolio_session/` package lives under `utils/portfolio_session/` so it stays within the SI allowlist (`agents/`, `utils/`, `config/`, etc.).
+
+## Files changed
+
+| File | Change |
+|------|--------|
+| `utils/portfolio_session/__init__.py` | **New** — package exports |
+| `utils/portfolio_session/entry_manager.py` | **New** — `EntryManager.evaluate_entry_blocks()`, `_block_counts`, `record_entry_block()` |
+| `utils/portfolio_session/session_summary.py` | **New** — `generate_summary()` → `entry_block_breakdown` |
+| `utils/portfolio_session/reporting.py` | **New** — `format_session_report()` + `log_entry_block_report()` |
+| `utils/market_benchmark.py` | Adds `entry_block_breakdown` to metrics; logs report; includes breakdown in underperformance finding `detail` |
+| `agents/skim_swarm/worker.py` | Calls `record_entry_block()` each cycle |
+| `agents/infra_swarm/worker.py` | Calls `record_entry_block()` each cycle |
+| `config/si_fix_registry.json` | New mitigation markers on `market_relative_si_benchmark` |
+| `utils/si_fix_deployment.py` | Guard source paths for `market_relative_si_benchmark` |
+| `tests/test_portfolio_session.py` | **New** — unit tests for counting, summary, reporting, metrics integration |
+
+## Behavior
+
+1. **Entry block counting** — On each swarm cycle, when `side=flat` and reasoning matches:
+   - `manual_denylist` → `denylist`
+   - `pause_entries` / `swarm_session_critical_pause` / `pause_*` → `pause_entries`
+   - `pattern_disabled:*` → `pattern_disables`
+
+2. **Session summary** — `build_portfolio_session_metrics()` calls `generate_summary()` and attaches `entry_block_breakdown` to portfolio metrics.
+
+3. **Diagnostic logging** — When `session_exit_count == 0` and `benchmark_change_1d_pct > 0`, logs at info:
+   ```
+   Entry blocks active: denylist=3, pause_entries=0, pattern_disables=5
+   ```
+
+## Detectable markers added
+
+| Marker | Where |
+|--------|-------|
+| `entry_block_breakdown` | `build_portfolio_session_metrics()`, `market_relative_findings` detail, `si_fix_registry.json` |
+| `Entry blocks active` | `reporting.py` log line, `si_fix_registry.json` |
+| `market_relative_underperformance` | Already in registry; finding now includes `entry_block_breakdown` in `detail` |
+
+No git commit was made (per SI runner workflow). Run `./scripts/e2e_verify.sh --no-ingest` before the runner commits.

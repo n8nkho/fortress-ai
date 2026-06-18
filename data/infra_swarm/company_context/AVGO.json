@@ -1,0 +1,18 @@
+{
+  "name": "Broadcom Inc.",
+  "type": "equity",
+  "sector": "Technology",
+  "industry": "Semiconductors",
+  "summary": "Broadcom Inc. designs, develops, and supplies various semiconductor devices and infrastructure software solutions internationally. The company operates in two segments: Semiconductor Solutions and Infrastructure Software. The company offers networking connectivity, such as custom silicon solutions, ethernet switching & routing, ethernet NIC controllers, physical layer devices, and fiber optic components; wireless device connectivity, including RF semiconductor devices, connectivity solutions, custom touch controllers, and inductive charging ASICS; servers and storage system solutions, such as PCIE switches, SAS & raid products, fibre channel products, and HDD & SSD solutions; broadband solutions, includes set-top box, and broadband access; and industrial. The company also offers a private cloud software portfolio, including the VMware Cloud Foundation, Edge, vSphere foundation, telco clo",
+  "peers": [
+    "NVDA",
+    "SOXX"
+  ],
+  "symbol": "AVGO",
+  "market_cap": 1806786232320,
+  "beta": 1.433,
+  "pe_ratio": 62.980095,
+  "dividend_yield": 0.66,
+  "fetched_from": "yfinance",
+  "updated_utc": "2026-06-16T17:59:21.161861+00:00"
+}

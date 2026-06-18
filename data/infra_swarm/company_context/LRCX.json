@@ -1,0 +1,15 @@
+{
+  "symbol": "LRCX",
+  "summary": "Lam Research Corporation designs, manufactures, markets, refurbishes, and services semiconductor processing equipment used in the fabrication of integrated circuits in the United States, China, Korea, Taiwan, Japan, Southeast Asia, and Europe. The company offers ALTUS systems to deposit conformal or selective films for tungsten or molybdenum metallization applications; SABRE electrochemical deposition products for copper interconnect transition that offers copper damascene manufacturing; SPEED gapfill high-density plasma chemical vapor deposition (CVD) products; Striker single-wafer atomic layer deposition products for dielectric film solutions; and VECTOR plasma-enhanced CVD products. It also provides Flex for dielectric etch applications; Vantex, a dielectric etch system that provides RF technology and repeatable wafer-to-wafer performance enabled by Equipment Intelligence solutions; K",
+  "type": "equity",
+  "name": "Lam Research Corporation",
+  "sector": "Technology",
+  "industry": "Semiconductor Equipment & Materials",
+  "market_cap": 481957576704,
+  "beta": 1.868,
+  "pe_ratio": 72.99053,
+  "dividend_yield": 0.28,
+  "fetched_from": "yfinance",
+  "peers": [],
+  "updated_utc": "2026-06-17T17:59:50.924942+00:00"
+}

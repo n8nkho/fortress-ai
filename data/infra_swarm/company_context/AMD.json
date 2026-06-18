@@ -1,0 +1,15 @@
+{
+  "symbol": "AMD",
+  "summary": "Advanced Micro Devices, Inc. operates as a semiconductor company internationally. It operates in three segments: Data Center, Client and Gaming, and Embedded. The company offers artificial intelligence (AI) accelerators, microprocessors, and graphics processing units (GPUs) as standalone devices or as incorporated into accelerated processing units, chipsets, and data center and professional GPUs; and embedded processors and semi-custom system-on-chip (SoC) products, microprocessor and SoC development services and technology, data processing units, field programmable gate arrays (FPGA), system on modules, AI network interface cards, and adaptive SoC products. It provides processors under the AMD Ryzen, AMD Ryzen AI, AMD Ryzen PRO, AMD Ryzen Threadripper, AMD Ryzen Threadripper PRO, AMD Athlon, and AMD PRO A-Series brands; graphics under the AMD Radeon graphics and AMD Embedded Radeon grap",
+  "type": "equity",
+  "name": "Advanced Micro Devices, Inc.",
+  "sector": "Technology",
+  "industry": "Semiconductors",
+  "market_cap": 854010757120,
+  "beta": 2.492,
+  "pe_ratio": 175.16388,
+  "dividend_yield": null,
+  "fetched_from": "yfinance",
+  "peers": [],
+  "updated_utc": "2026-06-17T17:59:50.115032+00:00"
+}

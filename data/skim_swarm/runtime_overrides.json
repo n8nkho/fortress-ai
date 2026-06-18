@@ -1,0 +1,58 @@
+{
+  "symbol_insights": {
+    "session_worst": [],
+    "session_best": [],
+    "window_worst": [],
+    "window_best": [],
+    "note": "Per-symbol params adapt via symbol_learning on each exit; no auto-denylist."
+  },
+  "updated_utc": "2026-06-17T19:57:43.800524+00:00",
+  "last_report": {
+    "ok": true,
+    "ts": "2026-06-17T19:57:43.796849+00:00",
+    "window_minutes": 30,
+    "waves": 29,
+    "actions": {
+      "wait": 377
+    },
+    "executed": {},
+    "top_blocks": [
+      [
+        "max_open_positions",
+        153
+      ],
+      [
+        "no_edge",
+        91
+      ],
+      [
+        "manual_denylist",
+        66
+      ],
+      [
+        "eod_caution_no_new_entries",
+        45
+      ],
+      [
+        "orphan_symbol_outside_universe",
+        22
+      ]
+    ],
+    "exit_reasons": {},
+    "reentries_within_60s": 0,
+    "waves_open_over_6": 0,
+    "window_realized_pnl_usd": 0.0,
+    "realized_sum_pnl_usd": 0.0,
+    "session_realized_pnl_usd": 0.0,
+    "exit_wins": 0,
+    "exit_losses": 0,
+    "median_win": null,
+    "median_loss": null,
+    "worst_symbols": [],
+    "best_symbols": [],
+    "session_worst_symbols": [],
+    "session_best_symbols": [],
+    "day_realized_pnl": 0.0,
+    "swarm_halted": null
+  }
+}
