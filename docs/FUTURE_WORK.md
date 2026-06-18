@@ -1,8 +1,10 @@
 # Future work (tracked, not scheduled)
 
-Items here are deliberate deferrals — not bugs. Open a GitHub issue when scoping begins.
+Items here are deliberate deferrals — not bugs.
 
 ## Prompt-variant walk-forward (per-candidate evaluation)
+
+**GitHub:** https://github.com/n8nkho/fortress-ai/issues/6
 
 **Status:** Future scope — do not build under time pressure.
 
