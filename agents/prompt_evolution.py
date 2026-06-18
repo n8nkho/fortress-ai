@@ -391,6 +391,8 @@ Respond with JSON:
         return out
 
     def status_dict(self) -> dict[str, Any]:
+        from utils.prompt_walk_forward_gate import GATE_LABEL, gate_enabled
+
         pending = load_pending()
         overlay = load_overlay()
         cfg = load_config()
@@ -402,6 +404,18 @@ Respond with JSON:
             "overlay_active": bool((overlay or {}).get("text")),
             "overlay_preview": ((overlay or {}).get("text") or "")[:280],
             "ab_test": ab,
+            "ledger_health_gate": {
+                "label": GATE_LABEL,
+                "enabled": gate_enabled(),
+                "env_preferred": "FORTRESS_PROMPT_LEDGER_HEALTH_GATE_ENABLED",
+                "env_legacy_alias": "FORTRESS_PROMPT_WF_GATE_ENABLED",
+                "note": (
+                    "Blocks prompt promotion when realized PnL ledger is unstable. "
+                    "Not per-candidate prompt evaluation."
+                ),
+                "blocked_disposition_wire": "pending_walk_forward_fail",
+                "blocked_disposition_label": "pending ledger health fail",
+            },
             "limits": {
                 "max_appendix_chars": MAX_APPENDIX_CHARS,
                 "max_approvals_per_month": MAX_PROMPT_APPROVALS_PER_MONTH,

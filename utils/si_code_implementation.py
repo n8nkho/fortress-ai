@@ -331,6 +331,10 @@ def _registry_meta(code: str) -> dict[str, Any]:
 
 
 def can_auto_implement(item: dict[str, Any]) -> tuple[bool, str]:
+    from utils.si_recommendation_queue import is_cross_stack_item
+
+    if is_cross_stack_item(item):
+        return False, "cross_stack_requires_human_go"
     if not auto_code_enabled():
         return False, "auto_code_disabled"
     if item.get("status") != "open":
@@ -444,11 +448,22 @@ Reply JSON only:
 
 
 def auto_assess_item(item_id: str) -> dict[str, Any]:
-    from utils.si_recommendation_queue import DISPOSITION_AUTO_IMPLEMENT_QUEUED, DISPOSITION_PENDING_HUMAN
+    from utils.si_recommendation_queue import (
+        DISPOSITION_AUTO_IMPLEMENT_QUEUED,
+        DISPOSITION_PENDING_HUMAN,
+        is_cross_stack_item,
+    )
 
     item = _load_item(item_id)
     assessed = _llm_assessment(item) or _heuristic_assessment(item)
     item["agent_assessment"] = {**assessed, "assessed_utc": now_iso()}
+
+    if is_cross_stack_item(item):
+        item["disposition"] = DISPOSITION_PENDING_HUMAN
+        item["requires_human_go"] = True
+        item["updated_utc"] = now_iso()
+        _save_item(item)
+        return item
 
     if assessed.get("worth_implementing"):
         if auto_code_enabled():
@@ -483,11 +498,14 @@ def auto_promote_pending_human_go(*, limit: int = 5) -> list[dict[str, Any]]:
     from utils.si_recommendation_queue import (
         DISPOSITION_AUTO_IMPLEMENT_QUEUED,
         DISPOSITION_PENDING_HUMAN,
+        is_cross_stack_item,
         list_pending,
     )
 
     promoted: list[dict[str, Any]] = []
     for item in list_pending(disposition=DISPOSITION_PENDING_HUMAN, limit=limit):
+        if is_cross_stack_item(item):
+            continue
         assessment = item.get("agent_assessment") or {}
         if not assessment.get("worth_implementing"):
             if not assessment:

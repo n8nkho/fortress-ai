@@ -142,6 +142,16 @@ Each logged decision may include `prompt_variant` (`baseline`, `overlay`, `A_bas
 - **No auto-approve** for prompt text.
 - A/B alternates by `len(state["last_actions"]) % 2` while the test is active and before `ends_utc`.
 
+### Ledger health gate (optional)
+
+When `FORTRESS_PROMPT_LEDGER_HEALTH_GATE_ENABLED=1` (or legacy alias `FORTRESS_PROMPT_WF_GATE_ENABLED=1`),
+approve / A/B-winner-B promotion is blocked if the **realized PnL ledger** fails stability checks
+(late-window degradation). This is a **timing safeguard** — do not promote prompts during a bad realized
+stretch — **not** per-candidate prompt backtesting. Wire disposition `pending_walk_forward_fail` is a
+legacy name; operators should read it as “ledger health check failed.”
+
+Per-candidate prompt-variant walk-forward is tracked in `docs/FUTURE_WORK.md` (future scope).
+
 Use Tier 2 only after Tier 1 has been stable in your environment; keep human review for every production overlay change.
 
 ---

@@ -6,6 +6,10 @@
         Additive guidance only (<code class="fai-text-mono text-[10px]">ADDITIONAL_OPERATOR_GUIDANCE</code>); JSON schema unchanged.
         Production overlay: <code class="fai-text-mono text-[10px]">data/prompt_evolution_overlay.json</code>.
         All activations require human approval; optional A/B alternates baseline vs candidate per cycle.
+        Optional <strong class="text-slate-400">ledger health gate</strong>
+        (<code class="fai-text-mono text-[10px]">FORTRESS_PROMPT_LEDGER_HEALTH_GATE_ENABLED</code> or legacy
+        <code class="fai-text-mono text-[10px]">FORTRESS_PROMPT_WF_GATE_ENABLED</code>):
+        blocks promotion when realized PnL is degrading — timing safeguard, not per-candidate backtest.
       </p>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -33,6 +37,11 @@
         <span class="text-slate-500 block mb-1">A/B test</span>
         <span class="text-slate-200"
           x-text="peStatus.ab_test && peStatus.ab_test.active ? 'ACTIVE until ' + (peStatus.ab_test.ends_utc || '?') : 'Off'"></span>
+      </div>
+      <div class="rounded-lg border border-white/10 bg-black/25 p-3">
+        <span class="text-slate-500 block mb-1">Ledger health gate</span>
+        <span class="text-slate-200"
+          x-text="peStatus.ledger_health_gate && peStatus.ledger_health_gate.enabled ? 'ON — blocks promotion when realized PnL unstable' : 'Off (default)'"></span>
       </div>
       <div class="rounded-lg border border-white/10 bg-black/25 p-3">
         <span class="text-slate-500 block mb-1">Monthly approvals cap</span>

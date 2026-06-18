@@ -35,6 +35,25 @@ CROSS_STACK_SOURCES = frozenset({"cross_stack_belief", "fortress_ai_belief", "ca
 def is_cross_stack_source(source: str) -> bool:
     return str(source or "") in CROSS_STACK_SOURCES
 
+
+def is_cross_stack_item(item: dict[str, Any] | None) -> bool:
+    """True when item originated from or is tagged as cross-stack belief sharing."""
+    if not isinstance(item, dict):
+        return False
+    if item.get("cross_stack"):
+        return True
+    return is_cross_stack_source(str(item.get("source") or ""))
+
+
+CROSS_STACK_FORBIDDEN_AUTO_DISPOSITIONS = frozenset(
+    {
+        DISPOSITION_AUTO_RESOLVED,
+        DISPOSITION_AUTO_APPLIED,
+        DISPOSITION_AUTO_IMPLEMENT_QUEUED,
+        "auto_apply_queued",
+    }
+)
+
 STATUS_OPEN = "open"
 STATUS_CLOSED = "closed"
 STATUS_IMPLEMENTED = "implemented"
@@ -439,6 +458,8 @@ def reconcile_deployed_guards(scan: dict[str, Any]) -> list[str]:
     for i, item in enumerate(queue.get("items") or []):
         if not isinstance(item, dict) or item.get("status") != STATUS_OPEN:
             continue
+        if is_cross_stack_item(item):
+            continue
         code = str(item.get("code") or "")
         if code in active:
             continue
@@ -479,6 +500,8 @@ def reconcile_cleared_findings(
         if item.get("implementation_ready"):
             continue
         if item.get("disposition") == DISPOSITION_AUTO_IMPLEMENT_QUEUED:
+            continue
+        if is_cross_stack_item(item):
             continue
         if _finding_still_active(item, findings):
             continue
@@ -619,15 +642,19 @@ def set_agent_assessment(
             "assessed_utc": _now_iso(),
         }
         if worth_implementing:
-            try:
-                from utils.si_code_implementation import auto_code_enabled
-
-                if auto_code_enabled():
-                    item["disposition"] = DISPOSITION_AUTO_IMPLEMENT_QUEUED
-                else:
-                    item["disposition"] = DISPOSITION_PENDING_HUMAN
-            except Exception:
+            if is_cross_stack_item(item):
                 item["disposition"] = DISPOSITION_PENDING_HUMAN
+                item["requires_human_go"] = True
+            else:
+                try:
+                    from utils.si_code_implementation import auto_code_enabled
+
+                    if auto_code_enabled():
+                        item["disposition"] = DISPOSITION_AUTO_IMPLEMENT_QUEUED
+                    else:
+                        item["disposition"] = DISPOSITION_PENDING_HUMAN
+                except Exception:
+                    item["disposition"] = DISPOSITION_PENDING_HUMAN
         else:
             item["disposition"] = DISPOSITION_DISMISSED
             item["status"] = STATUS_CLOSED
