@@ -363,6 +363,35 @@ def classic_rolling_metrics(*, window_sessions: int = 10) -> dict[str, Any]:
         except Exception:
             days_since_fill = None
 
+    days_since_entry = None
+    has_open_position = False
+    positions_path = data_dir / "positions.json" if data_dir else None
+    if positions_path and positions_path.is_file():
+        try:
+            pos_doc = json.loads(positions_path.read_text(encoding="utf-8"))
+            if isinstance(pos_doc, list) and pos_doc:
+                has_open_position = True
+                last_entry_day: str | None = None
+                for pos in pos_doc:
+                    if not isinstance(pos, dict):
+                        continue
+                    raw = str(pos.get("entry_date") or pos.get("timestamp") or "")[:10]
+                    if len(raw) >= 10:
+                        last_entry_day = raw
+                if last_entry_day:
+                    from utils.system_time import now
+
+                    d0 = datetime.fromisoformat(last_entry_day).date()
+                    d1 = now().date()
+                    days_since_entry = max(0, (d1 - d0).days)
+                elif has_open_position:
+                    days_since_entry = 0
+        except Exception:
+            pass
+
+    activity_vals = [d for d in (days_since_fill, days_since_entry) if d is not None]
+    days_since_activity = min(activity_vals) if activity_vals else None
+
     return {
         "component": "classic_fortress",
         "window_sessions": window_sessions,
@@ -376,7 +405,11 @@ def classic_rolling_metrics(*, window_sessions: int = 10) -> dict[str, Any]:
         "rolling_expectancy_usd": round(expectancy, 4) if expectancy is not None else None,
         "avg_candidates_per_screen": avg_candidates,
         "screens_sampled": len(screens),
-        "days_since_last_fill": days_since_fill,
+        "days_since_last_fill": days_since_activity if days_since_activity is not None else days_since_fill,
+        "days_since_last_exit": days_since_fill,
+        "days_since_last_entry": days_since_entry,
+        "days_since_last_activity": days_since_activity,
+        "has_open_position": has_open_position,
         "latest_regime": latest_regime,
     }
 

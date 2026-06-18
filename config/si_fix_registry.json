@@ -74,6 +74,18 @@
       "effort": "low",
       "impact": "info"
     },
+    "skim_swarm_capacity_saturated": {
+      "title": "Skim saturated on shared-account max-open slots",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "max_open_positions",
+        "review_shared_account_capacity"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": true,
+      "effort": "medium",
+      "impact": "high"
+    },
     "halt_blocked_exit": {
       "title": "Swarm halt blocks exit/stop/target for open positions",
       "kind": "code_guard",
@@ -268,7 +280,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-16T15:27:22.707837-04:00"
+      "registered_at_utc": "2026-06-17T21:39:17.853720-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",

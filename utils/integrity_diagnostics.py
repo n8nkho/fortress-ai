@@ -426,6 +426,31 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
             }
         )
 
+    max_open_blocks = int(blocks.get("max_open_positions") or 0)
+    executed_blocks = int(blocks.get("executed") or 0)
+    block_total = sum(int(v) for v in blocks.values())
+    if (
+        max_open_blocks >= 40
+        and executed_blocks == 0
+        and block_total >= 20
+        and max_open_blocks >= int(block_total * 0.3)
+    ):
+        findings.append(
+            {
+                "code": "skim_swarm_capacity_saturated",
+                "severity": "high",
+                "component": "skim_swarm",
+                "max_open_blocks_sampled": max_open_blocks,
+                "executed_blocks_sampled": executed_blocks,
+                "recommendation": (
+                    "Skim blocked primarily on max_open_positions with zero executions — "
+                    "shared account slots likely consumed by non-skim holdings; close orphans "
+                    "or raise adaptive max-open only after infra/skim attribution review."
+                ),
+                "si_action": "review_shared_account_capacity",
+            }
+        )
+
     return findings
 
 
