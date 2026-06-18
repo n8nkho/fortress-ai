@@ -423,9 +423,18 @@ def autoresearch_min_winning_symbols() -> int | None:
 
 
 def symbol_denylist_for_unified_ai() -> frozenset[str]:
-    """Symbols reserved for skim swarm — unified agent must not trade them."""
+    """Symbols reserved for skim/infra swarms — unified agent must not trade them."""
     extra = (os.environ.get("FORTRESS_AI_SYMBOL_DENYLIST") or "").strip()
     syms = set(universe())
+    try:
+        from utils.infra_swarm_config import universe as infra_universe
+
+        for sym in infra_universe():
+            s = normalize_symbol(sym)
+            if s:
+                syms.add(s)
+    except Exception:
+        pass
     for part in extra.split(","):
         s = normalize_symbol(part)
         if s:

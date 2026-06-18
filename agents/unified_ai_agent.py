@@ -118,6 +118,23 @@ def _alpaca_client():
     return TradingClient(key, sec, **alpaca_trading_client_kwargs())
 
 
+def _broker_held_qty(symbol: str) -> int:
+    """Fresh broker qty for symbol (observation snapshot may lag)."""
+    sym = (symbol or "").strip().upper()
+    if not sym:
+        return 0
+    tc = _alpaca_client()
+    if not tc:
+        return 0
+    try:
+        for p in tc.get_all_positions():
+            if str(getattr(p, "symbol", "") or "").upper() == sym:
+                return int(abs(float(getattr(p, "qty", 0) or 0)))
+    except Exception:
+        return 0
+    return 0
+
+
 def observe() -> dict[str, Any]:
     """Compact observation bundle (<2K tokens when serialized)."""
     out: dict[str, Any] = {
@@ -469,16 +486,37 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     from utils.order_chunking import held_qty_for_symbol
 
     positions = observation.get("positions") or []
-    held_qty = held_qty_for_symbol(positions, sym)
+    obs_held_qty = int(held_qty_for_symbol(positions, sym) or 0)
+    broker_held = _broker_held_qty(sym)
+    if broker_held > obs_held_qty:
+        import logging
+
+        logging.getLogger("unified_ai_agent").info(
+            "broker_held_qty:%s obs=%d broker=%d",
+            sym,
+            obs_held_qty,
+            broker_held,
+        )
+    held_qty = max(obs_held_qty, broker_held)
     order_qtys: list[int] = []
 
     if action == "enter_position":
         from unified_ai.position_manager import PositionManager
 
-        entry_gate = PositionManager(positions).enter_position(sym, qty, held_qty=held_qty)
-        if entry_gate is None or not entry_gate.get("allowed"):
-            br = str(entry_gate.get("block_reason") or "already_holding") if entry_gate else "already_holding"
-            result["detail"] = entry_gate.get("detail") if entry_gate else f"already_holding:{sym}:{held_qty}"
+        pm = PositionManager(positions)
+        allowed, reason = pm.can_enter(sym, held_qty=held_qty)
+        if not allowed:
+            import logging
+
+            br = "already_holding" if "already_holding" in reason else reason.split(":")[0]
+            if br in ("enter_cooldown", "entry_blocked_by_cooldown"):
+                br = "enter_cooldown"
+            logging.getLogger("unified_ai_agent").warning(
+                "entry_blocked_by_cooldown %s blocked: %s",
+                sym,
+                reason,
+            )
+            result["detail"] = reason
             result["block_reason"] = br
             return result
 
@@ -656,12 +694,16 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     return result
 
 
-_LEGACY_FLATTEN_INTERVAL_SEC = 300.0
+_LEGACY_FLATTEN_INTERVAL_SEC = 60.0
 _last_legacy_flatten_ts = 0.0
 
 
 def _maybe_flatten_legacy_positions(*, force: bool = False) -> dict[str, Any] | None:
-    """Run legacy oversized-position flattener on boot and every 5 minutes."""
+    """Run legacy oversized-position flattener on boot and every 60 seconds."""
+    from unified_ai.settings import flatten_legacy_on_startup
+
+    if force and not flatten_legacy_on_startup():
+        return {"skipped": True, "reason": "flatten_legacy_on_startup_disabled"}
     global _last_legacy_flatten_ts
     now = time.time()
     if not force and now - _last_legacy_flatten_ts < _LEGACY_FLATTEN_INTERVAL_SEC:
@@ -690,11 +732,16 @@ def _maybe_flatten_legacy_positions(*, force: bool = False) -> dict[str, Any] | 
 def run_loop(iterations: int | None = None, interval_sec: float | None = None) -> None:
     _ensure_dirs()
     try:
-        _maybe_flatten_legacy_positions(force=True)
-    except Exception:
-        import logging as _log
+        from unified_ai.agent import run_startup_hooks
 
-        _log.getLogger("unified_ai_agent").exception("legacy flatten on boot failed")
+        run_startup_hooks()
+    except Exception:
+        try:
+            _maybe_flatten_legacy_positions(force=True)
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("legacy flatten on boot failed")
     print(
         json.dumps(
             {
@@ -744,13 +791,6 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             time.sleep(off_hours_poll_seconds())
             continue
 
-        try:
-            _maybe_flatten_legacy_positions()
-        except Exception:
-            import logging as _log
-
-            _log.getLogger("unified_ai_agent").exception("legacy flatten periodic failed")
-
         t_cycle = time.perf_counter()
         obs = observe()
         try:
@@ -786,6 +826,12 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             continue
 
         act_result = act(decision, obs, usage)
+        try:
+            _maybe_flatten_legacy_positions()
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("legacy flatten post-signal failed")
         latency_total = round((time.perf_counter() - t_cycle) * 1000, 2)
 
         # Update lightweight memory

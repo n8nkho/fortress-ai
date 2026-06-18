@@ -150,7 +150,16 @@ def scan_unified_agent(*, rows: list[dict[str, Any]] | None = None) -> list[dict
     except Exception:
         dup_deployed = False
 
+    try:
+        from utils.skim_swarm_config import symbol_denylist_for_unified_ai
+
+        swarm_deny = symbol_denylist_for_unified_ai()
+    except Exception:
+        swarm_deny = frozenset()
+
     for sym, n in enter_by_sym.items():
+        if sym in swarm_deny:
+            continue
         recent_n = int(recent_enter_by_sym.get(sym) or 0)
         if recent_n >= 3 and not (dup_deployed and already_holding_blocks >= 1):
             findings.append(
