@@ -1,0 +1,3 @@
+# Fortress AI default configuration (env vars override these values).
+FORTRESS_MAX_ORDER_NOTIONAL_USD: 50000
+POSITION_DEDUPLICATION_ENABLED: true

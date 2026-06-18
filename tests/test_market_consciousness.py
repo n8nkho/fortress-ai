@@ -90,7 +90,7 @@ class TestMarketConsciousness(unittest.TestCase):
                     return_value={"session_realized_usd": -0.3, "alpha_vs_spy_pct": -0.5},
                 ):
                     with patch("utils.operator_halt.is_trading_halted", return_value=False):
-                        bundle = assemble_consciousness_inputs(now=t)
+                        bundle = assemble_consciousness_inputs(now=t, use_cache=False)
         self.assertIn("SPY", bundle.get("historical_hour_profile") or {})
         self.assertTrue(bundle.get("analogue_summary"))
         with patch("utils.market_consciousness.assemble_consciousness_inputs", return_value=bundle):

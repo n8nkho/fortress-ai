@@ -20,10 +20,19 @@ def held_qty_for_symbol(positions: list[Any] | None, symbol: str) -> int:
 
 
 def max_order_notional_usd(*, side: str, portfolio_equity_usd: float | None) -> float:
-    try:
-        max_notional = float(os.environ.get("FORTRESS_MAX_ORDER_NOTIONAL_USD", "25000"))
-    except ValueError:
-        max_notional = 25000.0
+    env_raw = (os.environ.get("FORTRESS_MAX_ORDER_NOTIONAL_USD") or "").strip()
+    if env_raw:
+        try:
+            max_notional = float(env_raw)
+        except ValueError:
+            max_notional = 25000.0
+    else:
+        try:
+            from config.defaults import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
+
+            max_notional = float(_cfg_cap)
+        except Exception:
+            max_notional = 25000.0
     sd = (side or "").strip().upper()
     if sd == "BUY" and portfolio_equity_usd is not None and float(portfolio_equity_usd) > 0:
         try:

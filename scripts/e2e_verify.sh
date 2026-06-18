@@ -28,6 +28,9 @@ echo "[e2e:fai] repo root: ${ROOT}"
 echo "[e2e:fai] python unittest (tests/)..."
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 
+echo "[e2e:fai] python unittest (unified_ai/tests/)..."
+python3 -m unittest discover -s unified_ai/tests -p 'test_*.py' -v
+
 if [[ "${SKIP_INGEST}" == "1" ]]; then
   echo "[e2e:fai] skip ingest (--no-ingest)"
   echo "[e2e:fai] OK"

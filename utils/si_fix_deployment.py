@@ -17,6 +17,12 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
     "duplicate_entry_accumulation": [
         _ROOT / "agents" / "unified_ai_agent.py",
         _ROOT / "utils" / "unified_enter_guard.py",
+        _ROOT / "utils" / "order_chunking.py",
+        _ROOT / "config" / "defaults.py",
+        _ROOT / "unified_ai" / "position_manager.py",
+        _ROOT / "unified_ai" / "order_executor.py",
+        _ROOT / "unified_ai" / "legacy_flattener.py",
+        _ROOT / "unified_ai" / "risk_controller.py",
     ],
     "exit_notional_blocked": [
         _ROOT / "agents" / "unified_ai_agent.py",

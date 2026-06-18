@@ -466,31 +466,48 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         result["detail"] = "invalid_symbol_or_qty"
         return result
 
-    from utils.order_chunking import chunk_qtys, held_qty_for_symbol, max_order_notional_usd
+    from utils.order_chunking import held_qty_for_symbol
 
     positions = observation.get("positions") or []
     held_qty = held_qty_for_symbol(positions, sym)
+    order_qtys: list[int] = []
 
     if action == "enter_position":
-        from utils.unified_enter_guard import entry_blocked_by_cooldown
+        from unified_ai.position_manager import PositionManager
 
-        blocked, block_reason = entry_blocked_by_cooldown(sym, held_qty=held_qty)
-        if blocked:
-            if block_reason == "already_holding":
-                result["detail"] = f"already_holding:{sym}:{held_qty}"
-            else:
-                result["detail"] = block_reason or f"enter_cooldown:{sym}"
-            result["block_reason"] = block_reason.split(":")[0] if block_reason else "enter_cooldown"
+        entry_gate = PositionManager(positions).enter_position(sym, qty, held_qty=held_qty)
+        if entry_gate is None or not entry_gate.get("allowed"):
+            br = str(entry_gate.get("block_reason") or "already_holding") if entry_gate else "already_holding"
+            result["detail"] = entry_gate.get("detail") if entry_gate else f"already_holding:{sym}:{held_qty}"
+            result["block_reason"] = br
             return result
 
     if action == "exit_position":
-        if held_qty <= 0:
-            result["detail"] = f"no_position:{sym}"
-            result["block_reason"] = "no_position"
+        from unified_ai.order_executor import OrderExecutor
+
+        try:
+            equity_pre = float(observation.get("equity") or 0)
+        except (TypeError, ValueError):
+            equity_pre = 0.0
+        px_pre = None
+        try:
+            t_pre = yf.Ticker(sym)
+            px_pre = float(t_pre.fast_info.get("last_price") or t_pre.history(period="1d")["Close"].iloc[-1])
+        except Exception:
+            px_pre = float(observation.get("_fallback_px") or 0) or None
+        exit_plan = OrderExecutor(positions).exit_position(
+            sym, qty, px=float(px_pre or 0), equity=equity_pre, side="SELL"
+        )
+        if exit_plan.get("block_reason"):
+            result["detail"] = exit_plan.get("detail") or exit_plan.get("block_reason")
+            result["block_reason"] = exit_plan.get("block_reason")
             return result
-        if qty > held_qty:
-            qty = held_qty
+        if exit_plan.get("qty_clamped_to_position"):
             result["qty_clamped_to_position"] = True
+        order_qtys = exit_plan.get("order_qtys") or []
+        if exit_plan.get("chunked_exit"):
+            result["chunked_exit"] = True
+            result["chunk_count"] = exit_plan.get("chunk_count")
 
     qty_requested = qty
 
@@ -533,14 +550,20 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         ask_e = float(px) * 1.0015
         quote_age = 45.0
 
-    max_notional = max_order_notional_usd(side=side, portfolio_equity_usd=equity if equity > 0 else None)
-    order_qtys = chunk_qtys(qty, px=float(px or 0), max_notional_usd=max_notional) if px else [qty]
-    if not order_qtys:
-        result["detail"] = "invalid_chunk_qty"
-        return result
-    if len(order_qtys) > 1:
-        result["chunked_exit"] = True
-        result["chunk_count"] = len(order_qtys)
+    if action == "enter_position":
+        from unified_ai.settings import max_order_notional_usd
+        from utils.order_chunking import chunk_qtys
+
+        max_notional = max_order_notional_usd(side=side, portfolio_equity_usd=equity if equity > 0 else None)
+        order_qtys = chunk_qtys(qty, px=float(px or 0), max_notional_usd=max_notional) if px else [qty]
+        if not order_qtys:
+            result["detail"] = "invalid_chunk_qty"
+            return result
+        if len(order_qtys) > 1:
+            result["chunked_entry"] = True
+            result["chunk_count"] = len(order_qtys)
+    elif not order_qtys:
+        order_qtys = [qty]
 
     tc = _alpaca_client()
     if not tc:
@@ -552,7 +575,16 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
 
         alpaca_side = "buy" if side == "BUY" else "sell" if side == "SELL" else str(side).lower()
         submitted: list[dict[str, Any]] = []
-        for chunk_qty in order_qtys:
+        for i, chunk_qty in enumerate(order_qtys):
+            if i > 0 and len(order_qtys) > 1:
+                import logging
+                import random
+
+                delay = random.uniform(0.1, 0.5)
+                logging.getLogger("unified_ai_agent").info(
+                    "chunked_exit:%s delay=%.3fs before chunk %d/%d", sym, delay, i + 1, len(order_qtys)
+                )
+                time.sleep(delay)
             chunk_est = chunk_qty * px if px else None
             gate = evaluate_pre_trade_submission(
                 side=side,
@@ -624,8 +656,45 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     return result
 
 
+_LEGACY_FLATTEN_INTERVAL_SEC = 300.0
+_last_legacy_flatten_ts = 0.0
+
+
+def _maybe_flatten_legacy_positions(*, force: bool = False) -> dict[str, Any] | None:
+    """Run legacy oversized-position flattener on boot and every 5 minutes."""
+    global _last_legacy_flatten_ts
+    now = time.time()
+    if not force and now - _last_legacy_flatten_ts < _LEGACY_FLATTEN_INTERVAL_SEC:
+        return None
+    _last_legacy_flatten_ts = now
+    tc = _alpaca_client()
+    obs = observe()
+    positions = obs.get("positions") or []
+    try:
+        equity = float(obs.get("equity") or 0)
+    except (TypeError, ValueError):
+        equity = 0.0
+    from unified_ai.risk_controller import RiskController
+
+    summary = RiskController(
+        positions,
+        trading_client=tc,
+        dry_run=_dry_run(),
+        equity=equity if equity > 0 else None,
+    ).flatten_legacy_positions()
+    if summary.get("flattened"):
+        print(json.dumps({"event": "legacy_flatten", "result": summary}, default=str), flush=True)
+    return summary
+
+
 def run_loop(iterations: int | None = None, interval_sec: float | None = None) -> None:
     _ensure_dirs()
+    try:
+        _maybe_flatten_legacy_positions(force=True)
+    except Exception:
+        import logging as _log
+
+        _log.getLogger("unified_ai_agent").exception("legacy flatten on boot failed")
     print(
         json.dumps(
             {
@@ -674,6 +743,13 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
         ):
             time.sleep(off_hours_poll_seconds())
             continue
+
+        try:
+            _maybe_flatten_legacy_positions()
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("legacy flatten periodic failed")
 
         t_cycle = time.perf_counter()
         obs = observe()
