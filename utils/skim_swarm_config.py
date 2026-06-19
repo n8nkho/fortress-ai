@@ -427,8 +427,11 @@ def symbol_denylist_for_unified_ai() -> frozenset[str]:
     extra = (os.environ.get("FORTRESS_AI_SYMBOL_DENYLIST") or "").strip()
     syms = set(universe())
     try:
-        from utils.infra_swarm_config import universe as infra_universe
+        from utils.infra_swarm_config import anchor_symbol, universe as infra_universe
 
+        anchor = normalize_symbol(anchor_symbol())
+        if anchor:
+            syms.add(anchor)
         for sym in infra_universe():
             s = normalize_symbol(sym)
             if s:
