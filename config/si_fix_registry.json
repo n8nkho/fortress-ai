@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-18T12:39:55.672329-04:00"
+      "registered_at_utc": "2026-06-18T22:02:52.721499-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -491,6 +491,20 @@
       "agent_review_if_unmitigated": true,
       "effort": "low",
       "impact": "critical"
+    },
+    "classic_post_recursive_attrition": {
+      "title": "RecursiveScreener rejects raw screener candidates before entry eval",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "classic_si_recursive_relax",
+        "min_layer2_score"
+      ],
+      "auto_tunable": {
+        "min_layer2_score": 5.0
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
     },
     "si_adaptive_classic_recency": {
       "title": "Classic fill recency objective with adaptive day threshold",
