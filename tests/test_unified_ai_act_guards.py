@@ -47,21 +47,24 @@ class TestUnifiedAiActGuards(unittest.TestCase):
                             order.id = "oid"
                             order.status = "accepted"
                             tc.submit_order.return_value = order
+                            with patch(
+                                "utils.alpaca_order_confirm.poll_order_fill",
+                                return_value={"filled_qty": 15, "status": "filled", "filled_avg_price": 200.0},
+                            ):
+                                from agents.unified_ai_agent import act
 
-                            from agents.unified_ai_agent import act
-
-                            result = act(
-                                {
-                                    "action": "exit_position",
-                                    "confidence": 0.9,
-                                    "parameters": {"symbol": "IBM", "qty": 447},
-                                },
-                                {"equity": 100_000.0, "positions": [{"sym": "IBM", "qty": 447}]},
-                                {},
-                            )
-                            self.assertTrue(result.get("executed"))
-                            self.assertTrue(result.get("chunked_exit"))
-                            self.assertGreater(tc.submit_order.call_count, 1)
+                                result = act(
+                                    {
+                                        "action": "exit_position",
+                                        "confidence": 0.9,
+                                        "parameters": {"symbol": "IBM", "qty": 447},
+                                    },
+                                    {"equity": 100_000.0, "positions": [{"sym": "IBM", "qty": 447}]},
+                                    {},
+                                )
+                                self.assertTrue(result.get("executed"))
+                                self.assertTrue(result.get("chunked_exit"))
+                                self.assertGreater(tc.submit_order.call_count, 1)
 
 
 if __name__ == "__main__":

@@ -632,6 +632,12 @@ def run_integrity_scan(*, log: bool = True) -> dict[str, Any]:
     skim = scan_skim_swarm()
     infra = scan_infra_swarm()
     findings = unified + skim + infra + scan_edge_scorecard(component="skim_swarm") + scan_edge_scorecard(component="infra_swarm") + scan_market_relative_performance() + scan_consciousness_kb_stale()
+    try:
+        from utils.broker_reconciliation import scan_broker_reconciliation
+
+        findings.extend(scan_broker_reconciliation())
+    except Exception:
+        pass
     ts = now_iso()
     out = {
         "timestamp": ts,

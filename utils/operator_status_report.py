@@ -124,12 +124,36 @@ def build_operator_status() -> dict[str, Any]:
         if isinstance(pnl, dict):
             open_total = max(open_total, int((pnl.get("daily") or {}).get("open_positions") or 0))
 
+    broker_open = 0
+    broker_positions: list[str] = []
+    try:
+        from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs, is_alpaca_paper
+
+        key, sec = alpaca_credentials()
+        if key and sec:
+            from alpaca.trading.client import TradingClient
+
+            tc = TradingClient(key, sec, **alpaca_trading_client_kwargs())
+            for p in tc.get_all_positions():
+                try:
+                    qty = float(getattr(p, "qty", 0) or 0)
+                except (TypeError, ValueError):
+                    qty = 0.0
+                if qty != 0:
+                    broker_open += 1
+                    broker_positions.append(str(getattr(p, "symbol", "")).upper())
+    except Exception:
+        pass
+
     return {
         "ts": now_iso(),
         "system_tz": system_tz_name(),
         "services": services,
         "portfolio": {
-            "open_positions": open_total,
+            "open_positions": max(open_total, broker_open),
+            "broker_open_positions": broker_open,
+            "broker_symbols": broker_positions[:20],
+            "skim_open_positions": open_total,
             "skim_max_open_effective": effective_max_open("skim_swarm"),
             "infra_max_open_effective": effective_max_open("infra_swarm"),
             "adaptive_max_open": {

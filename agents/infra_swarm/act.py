@@ -9,7 +9,7 @@ import yfinance as yf
 from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
 from utils.order_chunking import chunk_qtys, max_order_notional_usd
 from utils.pre_trade_gate import evaluate_pre_trade_submission, format_gate_block_message
-from utils.alpaca_execution import cancel_open_orders, submit_entry_with_bracket
+from utils.alpaca_execution import cancel_open_orders, has_open_exit_order, submit_entry_with_bracket
 from utils.edge_quality_config import edge_quality_enabled
 from utils.infra_swarm_config import dry_run, max_shares, normalize_symbol
 from utils.skim_clip_ladder import clip_size, effective_max_shares
@@ -119,6 +119,12 @@ def act(
             }
 
     def _submit_exit(side: str, total_qty: int) -> dict[str, Any]:
+        if has_open_exit_order(sym, side=side):
+            return {
+                "executed": False,
+                "detail": "open_exit_order_pending",
+                "block_reason": "open_exit_order_pending",
+            }
         if edge_quality_enabled():
             cancel_open_orders(sym)
         max_notional = max_order_notional_usd(side=side, portfolio_equity_usd=equity if equity > 0 else None)

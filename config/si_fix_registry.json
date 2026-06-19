@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-19T16:12:48.258199-04:00"
+      "registered_at_utc": "2026-06-19T16:39:30.999934-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -553,6 +553,21 @@
       "auto_tunable": {
         "FORTRESS_SWARM_SHORT_MIN_BUYING_POWER_USD": 10.0
       },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "exit_unfilled_pnl_ledger": {
+      "title": "Exit PnL only on confirmed fill; block duplicate open exit orders",
+      "kind": "gate",
+      "mitigation_markers": [
+        "exit_fill_confirmed",
+        "open_exit_order_pending",
+        "exit_unfilled",
+        "premature_exit_ledger",
+        "broker_open_sell_backlog"
+      ],
+      "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"

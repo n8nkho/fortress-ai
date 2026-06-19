@@ -64,6 +64,29 @@ def passive_limit_price(*, side: str, quote: dict[str, float | None], fallback: 
     return round(fallback * 1.0002, 2)
 
 
+def has_open_exit_order(symbol: str, *, side: str = "SELL") -> bool:
+    """True when an open order already exists for this symbol/side (prevents exit spam)."""
+    tc = trading_client()
+    if not tc:
+        return False
+    sym = str(symbol or "").upper()
+    want = str(side or "SELL").lower()
+    try:
+        from alpaca.trading.enums import QueryOrderStatus
+        from alpaca.trading.requests import GetOrdersRequest
+
+        orders = tc.get_orders(
+            GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[sym], limit=20)
+        )
+        for o in orders or []:
+            o_side = str(getattr(getattr(o, "side", ""), "value", getattr(o, "side", ""))).lower()
+            if o_side == want:
+                return True
+    except Exception as e:
+        logger.debug("open exit check %s: %s", sym, e)
+    return False
+
+
 def cancel_open_orders(symbol: str) -> int:
     tc = trading_client()
     if not tc:

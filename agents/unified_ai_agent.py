@@ -697,15 +697,54 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                 result["detail"] = format_gate_block_message(gate)
                 return result
 
+            if action == "exit_position":
+                from utils.alpaca_execution import has_open_exit_order
+
+                if has_open_exit_order(sym, side=side):
+                    result["executed"] = False
+                    result["detail"] = "open_exit_order_pending"
+                    result["block_reason"] = "open_exit_order_pending"
+                    return result
+
             order_data = MarketOrderRequest(
                 symbol=sym, qty=chunk_qty, side=alpaca_side, time_in_force="day"
             )
             order = tc.submit_order(order_data)
-            submitted.append({"id": str(order.id), "status": str(order.status), "qty": chunk_qty})
+            oid = str(order.id)
+            fill = {"filled_qty": 0, "status": str(order.status)}
+            try:
+                from utils.alpaca_order_confirm import poll_order_fill
 
-        result["executed"] = True
-        result["detail"] = submitted[0] if len(submitted) == 1 else {"orders": submitted}
-        result["block_reason"] = "executed"
+                fill = poll_order_fill(tc, oid, timeout_sec=45.0)
+            except Exception:
+                pass
+            submitted.append(
+                {
+                    "id": oid,
+                    "status": fill.get("status") or str(order.status),
+                    "qty": chunk_qty,
+                    "filled_qty": int(fill.get("filled_qty") or 0),
+                    "filled_avg_price": fill.get("filled_avg_price"),
+                }
+            )
+            if int(fill.get("filled_qty") or 0) <= 0 and not fill.get("timeout"):
+                # Stop chunk loop on hard terminal reject; allow timeout to try next chunk.
+                if fill.get("terminal"):
+                    break
+
+        any_filled = any(int(o.get("filled_qty") or 0) > 0 for o in submitted)
+        if action == "exit_position":
+            result["executed"] = any_filled
+            result["detail"] = submitted[0] if len(submitted) == 1 else {"orders": submitted}
+            result["block_reason"] = "executed" if any_filled else ("exit_unfilled" if submitted else "no_order")
+            if not any_filled:
+                return result
+        else:
+            result["executed"] = bool(submitted)
+            result["detail"] = submitted[0] if len(submitted) == 1 else {"orders": submitted}
+            result["block_reason"] = "executed" if submitted else "no_order"
+            if not submitted:
+                return result
         try:
             from utils.unified_enter_guard import record_enter, record_exit
 
@@ -726,6 +765,9 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
             try:
                 from utils.ai_pnl_ledger import append_realized_fill
 
+                sold = sum(int(o.get("filled_qty") or 0) for o in submitted)
+                if sold <= 0:
+                    return result
                 pnl_est = 0.0
                 for p in observation.get("positions") or []:
                     if str(p.get("sym") or "").upper() == sym:
@@ -734,7 +776,6 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                         except (TypeError, ValueError):
                             pnl_est = 0.0
                         break
-                sold = sum(int(o.get("qty") or 0) for o in submitted)
                 ratio = sold / held_qty if held_qty > 0 else 1.0
                 append_realized_fill(
                     symbol=sym,
@@ -742,7 +783,11 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                     side=side,
                     qty=sold,
                     order_id=str(submitted[-1].get("id") or ""),
-                    extra={"action": action, "note": "exit_fill_pnl_estimate", "chunked": len(submitted) > 1},
+                    extra={
+                        "action": action,
+                        "note": "exit_fill_confirmed",
+                        "chunked": len(submitted) > 1,
+                    },
                 )
             except Exception:
                 pass
