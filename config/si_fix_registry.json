@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-19T16:04:28.605431-04:00"
+      "registered_at_utc": "2026-06-19T16:12:48.258199-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -538,6 +538,20 @@
       "auto_tunable": {
         "min_profit_usd": 5.0,
         "rsi_exit_threshold": 1.0
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "swarm_short_insufficient_buying_power": {
+      "title": "Pre-trade BP gate blocks enter_short when buying power depleted",
+      "kind": "gate",
+      "mitigation_markers": [
+        "insufficient_buying_power_short",
+        "swarm_short_bp_gate"
+      ],
+      "auto_tunable": {
+        "FORTRESS_SWARM_SHORT_MIN_BUYING_POWER_USD": 10.0
       },
       "agent_review_if_unmitigated": false,
       "effort": "low",

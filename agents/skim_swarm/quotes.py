@@ -24,7 +24,7 @@ def build_symbol_quotes(symbols: list[str]) -> dict[str, dict[str, Any]]:
     """Per-symbol last price, session % change, and open-position flags."""
     if not symbols:
         return {}
-    _, positions = fetch_positions_map()
+    _, _, positions = fetch_positions_map()
     bars = _fetch_bars(list(dict.fromkeys(symbols)))
     out: dict[str, dict[str, Any]] = {}
     for sym in symbols:

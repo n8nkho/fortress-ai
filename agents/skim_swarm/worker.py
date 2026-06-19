@@ -44,6 +44,10 @@ def run_symbol_cycle(
     ctx = company_context or {}
     features = build_symbol_features(sym, bars, shared, position=pos, company_context=ctx)
     features["position_qty"] = int(pos.get("qty") or 0)
+    try:
+        features["buying_power_usd"] = float(account.get("buying_power"))
+    except (TypeError, ValueError):
+        pass
     learned = load_learned(sym)
     halted = bool(swarm.get("halted"))
     halt_reason = swarm.get("halt_reason")

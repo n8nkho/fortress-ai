@@ -137,6 +137,13 @@ def _try_entry(
     if side == "short" and params.get("pause_short"):
         out["reasoning"] = "pause_short"
         return out
+    if action in ("enter_short", "add_clip_short"):
+        from utils.swarm_buying_power import short_entry_blocked
+
+        blocked_bp, bp_reason = short_entry_blocked(features, last_price=_f(features.get("last")), action=action)
+        if blocked_bp:
+            out["reasoning"] = bp_reason
+            return out
     ant = features.get("movement_anticipation")
     blocked_ant, ant_reason = entry_blocked_by_anticipation(
         side, ant if isinstance(ant, dict) else None
@@ -375,6 +382,14 @@ def decide(
                 enter_threshold=enter_short,
             )
             if ok and score <= enter_short:
+                from utils.swarm_buying_power import short_entry_blocked
+
+                blocked_bp, bp_reason = short_entry_blocked(
+                    features, last_price=last, action="add_clip_short"
+                )
+                if blocked_bp:
+                    out["reasoning"] = bp_reason
+                    return out
                 out["action"] = "add_clip_short"
                 out["clip_max_shares"] = effective_max_shares(
                     sym,

@@ -33,7 +33,7 @@ else:
                 },
                 "MSFT": {"symbol": "MSFT", "qty": 0, "side": "flat", "avg_entry_price": None},
             }
-            with patch("agents.skim_swarm.quotes.fetch_positions_map", return_value=(100000.0, positions)):
+            with patch("agents.skim_swarm.quotes.fetch_positions_map", return_value=(100000.0, 50000.0, positions)):
                 with patch("agents.skim_swarm.quotes._fetch_bars", return_value=bars):
                     out = build_symbol_quotes(["NVDA", "MSFT"])
             self.assertTrue(out["NVDA"]["is_open"])

@@ -19,15 +19,17 @@ def _alpaca_client():
     return TradingClient(key, sec, **alpaca_trading_client_kwargs())
 
 
-def fetch_positions_map() -> tuple[float | None, dict[str, dict[str, Any]]]:
+def fetch_positions_map() -> tuple[float | None, float | None, dict[str, dict[str, Any]]]:
     tc = _alpaca_client()
     if not tc:
-        return None, {}
+        return None, None, {}
     equity = None
+    buying_power = None
     out: dict[str, dict[str, Any]] = {}
     try:
         acct = tc.get_account()
         equity = float(acct.equity)
+        buying_power = float(getattr(acct, "buying_power", 0) or 0)
         uni = set(universe())
         for p in tc.get_all_positions():
             raw = str(getattr(p, "symbol", "")).upper()
@@ -51,15 +53,16 @@ def fetch_positions_map() -> tuple[float | None, dict[str, dict[str, Any]]]:
     for sym in universe():
         if sym not in out:
             out[sym] = {"symbol": sym, "qty": 0, "side": "flat", "avg_entry_price": None, "market_value_usd": 0.0}
-    return equity, out
+    return equity, buying_power, out
 
 
 def observe_account() -> dict[str, Any]:
-    equity, positions = fetch_positions_map()
+    equity, buying_power, positions = fetch_positions_map()
     return {
         "ts_utc": datetime.now(timezone.utc).isoformat(),
         "instance": instance_name(),
         "equity": equity,
+        "buying_power": buying_power,
         "positions": positions,
         "universe": universe(),
         "alpaca_configured": equity is not None,
