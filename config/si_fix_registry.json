@@ -506,6 +506,22 @@
       "effort": "low",
       "impact": "high"
     },
+    "classic_fused_veto_tune": {
+      "title": "Classic fused anchor veto blocks high-L2 entries on macro noise",
+      "kind": "tunable",
+      "mitigation_markers": [
+        "fused_signal_veto",
+        "high_l2_fused_veto_bypass",
+        "l2_veto_bypass",
+        "fused_veto_bypass"
+      ],
+      "auto_tunable": {
+        "fused_veto_threshold": 0.05
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
     "si_adaptive_classic_recency": {
       "title": "Classic fill recency objective with adaptive day threshold",
       "kind": "monitor",
@@ -669,6 +685,32 @@
       },
       "agent_review_if_unmitigated": false,
       "effort": "medium",
+      "impact": "high"
+    },
+    "market_relative_underperformance": {
+      "title": "Block swarm entries when session alpha vs SPY exceeds underperformance threshold",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "market_relative_underperformance",
+        "MarketRelativeGate",
+        "entry_blocked_by_market_relative"
+      ],
+      "auto_tunable": {
+        "max_underperformance_pct": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "lookback_minutes": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "cooldown_seconds": {
+          "tier": 0,
+          "direction": "tighten_only"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
       "impact": "high"
     },
     "market_hourly_consciousness": {
