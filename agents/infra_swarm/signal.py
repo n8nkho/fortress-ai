@@ -163,6 +163,12 @@ def _try_entry(
         out["reasoning"] = edge_reason or "edge_gate_blocked"
         out["edge_gate"] = edge_meta
         return out
+    from utils.portfolio_session.risk_manager import entry_blocked_by_market_relative
+
+    blocked_mr, mr_reason = entry_blocked_by_market_relative()
+    if blocked_mr:
+        out["reasoning"] = mr_reason or "market_relative_underperformance"
+        return out
     out["action"] = action
     out["reasoning"] = reasoning
     return out

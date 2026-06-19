@@ -172,6 +172,39 @@ class TestSkimTuning(unittest.TestCase):
         self.assertEqual(d["action"], "wait")
         self.assertEqual(d["reasoning"], "pause_entries")
 
+    def test_pause_entries_preempts_market_relative_gate(self):
+        features = {
+            "symbol": "LLY",
+            "last": 100.0,
+            "r1m": -0.0005,
+            "r5m": 0.003,
+            "spy_r5m": 0.0,
+            "atr1m": 0.15,
+            "rsi1m": 52,
+            "residual_vs_spy": 0.002,
+            "side": "flat",
+            "thin_etf": False,
+        }
+        st = {"side": "flat", "peak_unrealized": 0}
+        params = {
+            "enter_long": 0.22,
+            "enter_short": -0.22,
+            "target_mult": 1.0,
+            "cooldown_mult": 1.0,
+            "score_bias": 0.0,
+            "short_spy_filter": 0.0,
+            "pause_entries": True,
+            "pattern_deltas": {"rip_fade": 0, "pullback_uptrend": 0, "momentum_long": 0, "momentum_short": 0},
+        }
+        with patch("agents.skim_swarm.signal.runtime_denylist", return_value=frozenset()):
+            with patch("agents.skim_swarm.signal.get_params", return_value=params):
+                with patch(
+                    "utils.portfolio_session.risk_manager.entry_blocked_by_market_relative",
+                    return_value=(True, "market_relative_underperformance"),
+                ):
+                    d = decide(features, st, swarm_halted=False, open_positions=0, max_open=6)
+        self.assertEqual(d["reasoning"], "pause_entries")
+
     def test_analyze_uses_window_pnl_not_cumulative(self):
         with tempfile.TemporaryDirectory() as td:
             data_dir = Path(td)

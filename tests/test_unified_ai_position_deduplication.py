@@ -11,14 +11,14 @@ _ROOT_PATCH = patch.dict(os.environ, {}, clear=False)
 
 class TestPositionManagerDeduplication(unittest.TestCase):
     def test_blocks_duplicate_entry_when_already_holding(self):
-        from unified_ai.position_manager import PositionManager
+        from unified_ai.position_manager import PositionDeduplicationError, PositionManager
 
         pm = PositionManager([{"sym": "IBM", "qty": 447}])
-        gate = pm.enter_position("IBM", 10, held_qty=447)
-        self.assertIsNotNone(gate)
-        self.assertFalse(gate.get("allowed"))
-        self.assertEqual(gate.get("block_reason"), "already_holding")
-        self.assertIn("already_holding", gate.get("detail", ""))
+        with self.assertRaises(PositionDeduplicationError):
+            pm.enter_position("IBM", 10, held_qty=447)
+        allowed, reason = pm.can_enter("IBM", held_qty=447)
+        self.assertFalse(allowed)
+        self.assertIn("already_holding", reason)
 
     def test_allows_entry_when_flat(self):
         with tempfile.TemporaryDirectory() as td:
@@ -50,6 +50,7 @@ class TestPositionManagerDeduplication(unittest.TestCase):
 class TestPositionManagerFlatten(unittest.TestCase):
     def setUp(self):
         os.environ["FORTRESS_MAX_ORDER_NOTIONAL_USD"] = "3000"
+        os.environ["FORTRESS_MAX_POSITION_NOTIONAL_USD"] = "3000"
 
     def test_flatten_oversized_positions_plans_chunks(self):
         from unified_ai.position_manager import PositionManager
@@ -88,6 +89,7 @@ class TestOrderExecutorChunkedExit(unittest.TestCase):
 class TestLegacyFlattener(unittest.TestCase):
     def setUp(self):
         os.environ["FORTRESS_MAX_ORDER_NOTIONAL_USD"] = "3000"
+        os.environ["FORTRESS_MAX_POSITION_NOTIONAL_USD"] = "3000"
         os.environ["FORTRESS_AI_DRY_RUN"] = "1"
 
     def test_identifies_oversized_and_plans_chunks(self):
