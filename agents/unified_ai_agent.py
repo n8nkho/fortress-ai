@@ -290,6 +290,9 @@ def build_prompt(
         default=str,
     )[:1200]
     rsi_thr = get_rsi_entry_threshold_int()
+    from utils.tunable_overrides import get_rsi_exit_threshold_int
+
+    rsi_exit_thr = get_rsi_exit_threshold_int()
     constraints = (
         "Mean-reversion bias; equities only in MVP. "
         "Max position notional respects FORTRESS_MAX_ORDER_NOTIONAL_USD. "
@@ -298,11 +301,11 @@ def build_prompt(
         "Prefer watchlist_hint symbols for enter_position; they are already off the swarm denylist. "
         "Never enter_position for a symbol you already hold (adds are blocked). "
         "When positions[] is non-empty, prioritize exit_position on names with unrealized_pl "
-        "meeting take-profit (profit exit monitor also runs each cycle). "
+        "or RSI overbought vs adaptive thresholds (adaptive/RSI exit monitor runs each cycle). "
         "For exit_position, qty may be chunked automatically under notional caps. "
         f"exit_position executes at confidence >= {_min_confidence_execute(for_exit=True):.2f}; "
         f"enter_position requires >= {_min_confidence_execute():.2f}. "
-        f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually. "
+        f"RSI<{rsi_thr} typical for dip entries; RSI>={rsi_exit_thr} favors taking profit on longs. "
         "PAPER/LIVE: When watchlist_hint symbols exist and VIX is not elevated, prefer enter_position "
         f"with confidence >= {_min_confidence_execute():.2f} over prolonged wait. "
         "Use wait only when no candidate passes gates, macro is hostile, or you lack a symbol/qty. "

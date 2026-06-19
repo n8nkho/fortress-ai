@@ -119,3 +119,19 @@ def get_rsi_entry_threshold_int() -> int:
         return max(35, min(50, int(float(o))))
     except (TypeError, ValueError):
         return max(35, min(50, base))
+
+
+def get_rsi_exit_threshold_int() -> int:
+    """Overbought RSI for mean-reversion profit exits (paired with entry threshold)."""
+    try:
+        env_raw = int(float(os.environ.get("FORTRESS_AI_RSI_EXIT_THRESHOLD", "0")))
+    except ValueError:
+        env_raw = 0
+    base = env_raw if env_raw > 0 else get_rsi_entry_threshold_int() + 22
+    o = load_overrides().get("rsi_exit_threshold")
+    if o is None:
+        return max(55, min(78, base))
+    try:
+        return max(55, min(78, int(float(o))))
+    except (TypeError, ValueError):
+        return max(55, min(78, base))

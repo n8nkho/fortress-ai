@@ -1,8 +1,26 @@
-# Deterministic profit-taking for unified AI held positions (runs before LLM each cycle).
-version: 1
-# Exit when unrealized PnL >= this USD (either condition suffices).
+# Deterministic adaptive profit-taking for unified AI (runs before LLM each cycle).
+version: 2
+# Exit when unrealized PnL >= this USD (scaled by regime/consciousness).
 min_profit_usd: 20.0
 # Exit when unrealized return >= this fraction (0.005 = 0.5%).
 min_profit_pct: 0.005
-# Within N minutes of US equity close, flatten any position with unrealized_pl > 0.
+# Within N minutes of US equity close, flatten winners (scaled in bear/close phase).
 eod_flatten_minutes_before_close: 20
+# RSI(14) on 5m bars; exit longs when RSI >= adaptive exit threshold and in profit.
+rsi_period: 14
+# Minimum USD profit when RSI is extremely overbought (>= rsi_extreme_level).
+rsi_extreme_min_usd: 8.0
+rsi_extreme_level: 72
+# Adaptive stop-loss for longs (negative unrealized_plpc); tightened in bear regime.
+stop_loss_pct: 0.02
+stop_loss_enabled: true
+# Regime scaling (VIX via infer_regime).
+bear_min_usd_scale: 0.75
+bear_min_pct_scale: 0.75
+bear_rsi_exit_delta: 3
+bear_eod_scale: 1.25
+bear_stop_tighten: 0.85
+bull_min_usd_scale: 1.15
+bull_min_pct_scale: 1.1
+bull_rsi_exit_delta: 3
+close_phase_eod_min: 25

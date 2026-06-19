@@ -523,16 +523,21 @@
       "impact": "medium"
     },
     "unified_profit_exit_monitor": {
-      "title": "Unified AI deterministic profit-taking on open positions",
+      "title": "Unified AI adaptive profit-taking with RSI on open positions",
       "kind": "code_guard",
       "mitigation_markers": [
         "unified_profit_exit",
         "take_profit_usd",
         "take_profit_pct",
-        "eod_profit_flatten"
+        "eod_profit_flatten",
+        "rsi_overbought_exit",
+        "rsi_extreme_overbought",
+        "adaptive_stop_loss",
+        "adaptive_exit_threshold"
       ],
       "auto_tunable": {
-        "min_profit_usd": 5.0
+        "min_profit_usd": 5.0,
+        "rsi_exit_threshold": 1.0
       },
       "agent_review_if_unmitigated": false,
       "effort": "low",
