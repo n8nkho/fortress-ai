@@ -178,6 +178,10 @@ def observe() -> dict[str, Any]:
                     "sym": getattr(p, "symbol", ""),
                     "qty": float(getattr(p, "qty", 0) or 0),
                     "mkt_value": float(getattr(p, "market_value", 0) or 0),
+                    "unrealized_pl": float(getattr(p, "unrealized_pl", 0) or 0),
+                    "unrealized_plpc": float(getattr(p, "unrealized_plpc", 0) or 0),
+                    "avg_entry_price": float(getattr(p, "avg_entry_price", 0) or 0),
+                    "current_price": float(getattr(p, "current_price", 0) or 0),
                 }
                 for p in pos[:20]
             ]
@@ -293,7 +297,11 @@ def build_prompt(
         "do not pick NVDA/SPY/AAPL/MSFT unless they appear in watchlist_hint). "
         "Prefer watchlist_hint symbols for enter_position; they are already off the swarm denylist. "
         "Never enter_position for a symbol you already hold (adds are blocked). "
+        "When positions[] is non-empty, prioritize exit_position on names with unrealized_pl "
+        "meeting take-profit (profit exit monitor also runs each cycle). "
         "For exit_position, qty may be chunked automatically under notional caps. "
+        f"exit_position executes at confidence >= {_min_confidence_execute(for_exit=True):.2f}; "
+        f"enter_position requires >= {_min_confidence_execute():.2f}. "
         f"RSI<{rsi_thr} typical for dip entries when screening — you may reference levels conceptually. "
         "PAPER/LIVE: When watchlist_hint symbols exist and VIX is not elevated, prefer enter_position "
         f"with confidence >= {_min_confidence_execute():.2f} over prolonged wait. "
@@ -431,7 +439,11 @@ def reason(observation: dict[str, Any], state: dict[str, Any]) -> tuple[dict[str
     return decision, usage
 
 
-def _min_confidence_execute() -> float:
+def _min_confidence_execute(*, for_exit: bool = False) -> float:
+    if for_exit:
+        from utils.tunable_overrides import get_exit_confidence_threshold
+
+        return get_exit_confidence_threshold()
     from utils.tunable_overrides import get_confidence_threshold
 
     return get_confidence_threshold()
@@ -460,21 +472,23 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
         result["block_reason"] = "dry_run_blocked"
         return result
 
-    if conf < _min_confidence_execute():
-        result["detail"] = f"confidence_below_threshold:{conf}<{_min_confidence_execute()}"
+    if conf < _min_confidence_execute(for_exit=(action == "exit_position")):
+        thresh = _min_confidence_execute(for_exit=(action == "exit_position"))
+        result["detail"] = f"confidence_below_threshold:{conf}<{thresh}"
         result["block_reason"] = "confidence_below_threshold"
         return result
 
     sym = str(params.get("symbol") or "").strip().upper()
-    try:
-        from utils.skim_swarm_config import normalize_symbol, symbol_denylist_for_unified_ai
+    if action == "enter_position":
+        try:
+            from utils.skim_swarm_config import normalize_symbol, symbol_denylist_for_unified_ai
 
-        if normalize_symbol(sym) in symbol_denylist_for_unified_ai():
-            result["detail"] = f"symbol_reserved_for_skim_swarm:{sym}"
-            result["block_reason"] = "skim_swarm_reserved"
-            return result
-    except Exception:
-        pass
+            if normalize_symbol(sym) in symbol_denylist_for_unified_ai():
+                result["detail"] = f"swarm_symbol_denylist:{sym}"
+                result["block_reason"] = "swarm_symbol_denylist"
+                return result
+        except Exception:
+            pass
     try:
         qty = int(abs(float(params.get("qty") or 0)))
     except (TypeError, ValueError):
@@ -501,10 +515,17 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     order_qtys: list[int] = []
 
     if action == "enter_position":
-        from unified_ai.position_manager import PositionManager
+        from agents.unified_ai.entry_guard import EntryGuard
+        from agents.unified_ai.position_manager import UnifiedAIPositionManager
+        from risk.pre_trade_gate import evaluate_duplicate_entry_gate
 
-        pm = PositionManager(positions)
-        allowed, reason = pm.can_enter(sym, held_qty=held_qty)
+        pm = UnifiedAIPositionManager(positions)
+        gate = EntryGuard(pm).enter_position(sym, qty, held_qty=held_qty)
+        if not gate.get("allowed"):
+            reason = str(gate.get("detail") or gate.get("block_reason") or "blocked")
+            allowed = False
+        else:
+            allowed, reason = pm.can_enter(sym, held_qty=held_qty)
         if not allowed:
             import logging
 
@@ -518,10 +539,38 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
             )
             result["detail"] = reason
             result["block_reason"] = br
+            if br == "already_holding":
+                legacy_flatten = _flatten_oversized_on_entry_rejection(sym, observation)
+                if legacy_flatten is not None:
+                    result["legacy_flatten"] = legacy_flatten
+            return result
+
+        dup_gate = evaluate_duplicate_entry_gate(
+            side="BUY",
+            symbol=sym,
+            positions=positions,
+            held_qty=held_qty,
+        )
+        if not dup_gate.get("allowed"):
+            import logging
+
+            br = str(dup_gate.get("block_reason") or "already_holding")
+            detail = str(dup_gate.get("detail") or dup_gate.get("reasons") or br)
+            logging.getLogger("unified_ai_agent").warning(
+                "entry_blocked_by_cooldown %s duplicate_entry_gate: %s",
+                sym,
+                detail,
+            )
+            result["detail"] = detail
+            result["block_reason"] = br
+            if br == "already_holding":
+                legacy_flatten = _flatten_oversized_on_entry_rejection(sym, observation)
+                if legacy_flatten is not None:
+                    result["legacy_flatten"] = legacy_flatten
             return result
 
     if action == "exit_position":
-        from unified_ai.order_executor import OrderExecutor
+        from agents.unified_ai.exit_planner import ExitPlanner
 
         try:
             equity_pre = float(observation.get("equity") or 0)
@@ -533,7 +582,7 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
             px_pre = float(t_pre.fast_info.get("last_price") or t_pre.history(period="1d")["Close"].iloc[-1])
         except Exception:
             px_pre = float(observation.get("_fallback_px") or 0) or None
-        exit_plan = OrderExecutor(positions).exit_position(
+        exit_plan = ExitPlanner(positions).generate_exit_orders(
             sym, qty, px=float(px_pre or 0), equity=equity_pre, side="SELL"
         )
         if exit_plan.get("block_reason"):
@@ -663,6 +712,13 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                 record_exit(sym)
         except Exception:
             pass
+        try:
+            _maybe_flatten_legacy_positions()
+            _flatten_oversized_after_trade(observation)
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("legacy flatten post-trade failed")
         if action == "exit_position" and submitted:
             try:
                 from utils.ai_pnl_ledger import append_realized_fill
@@ -694,36 +750,79 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
     return result
 
 
-_LEGACY_FLATTEN_INTERVAL_SEC = 60.0
-_last_legacy_flatten_ts = 0.0
+def _flatten_oversized_after_trade(observation: dict[str, Any]) -> dict[str, Any] | None:
+    """After each trade, trim legacy positions exceeding notional caps."""
+    try:
+        from agents.unified_ai.position_manager import UnifiedAIPositionManager
+
+        positions = observation.get("positions") or []
+        try:
+            equity = float(observation.get("equity") or 0)
+        except (TypeError, ValueError):
+            equity = 0.0
+        tc = _alpaca_client()
+        return UnifiedAIPositionManager(
+            positions,
+            trading_client=tc,
+            equity=equity,
+        ).flatten_oversized_positions(equity=equity, trading_client=tc)
+    except Exception:
+        return None
+
+
+def _flatten_oversized_on_entry_rejection(
+    symbol: str,
+    observation: dict[str, Any],
+) -> dict[str, Any] | None:
+    """After duplicate-entry block, trim legacy oversized position for that symbol."""
+    try:
+        from agents.unified_agent import UnifiedAgent
+
+        positions = observation.get("positions") or []
+        try:
+            equity = float(observation.get("equity") or 0)
+        except (TypeError, ValueError):
+            equity = 0.0
+        return UnifiedAgent(positions, equity=equity).flatten_oversized_position(symbol)
+    except Exception:
+        return None
 
 
 def _maybe_flatten_legacy_positions(*, force: bool = False) -> dict[str, Any] | None:
     """Run legacy oversized-position flattener on boot and every 60 seconds."""
-    from unified_ai.settings import flatten_legacy_on_startup
+    from unified_ai.main_loop import maybe_flatten_legacy_positions
 
-    if force and not flatten_legacy_on_startup():
-        return {"skipped": True, "reason": "flatten_legacy_on_startup_disabled"}
-    global _last_legacy_flatten_ts
-    now = time.time()
-    if not force and now - _last_legacy_flatten_ts < _LEGACY_FLATTEN_INTERVAL_SEC:
+    summary = maybe_flatten_legacy_positions(force=force)
+    if summary is None:
         return None
-    _last_legacy_flatten_ts = now
-    tc = _alpaca_client()
-    obs = observe()
-    positions = obs.get("positions") or []
     try:
-        equity = float(obs.get("equity") or 0)
-    except (TypeError, ValueError):
-        equity = 0.0
-    from unified_ai.risk_controller import RiskController
+        from agents.unified_ai.position_manager import UnifiedAIPositionManager
+        from risk.position_manager import PositionManager as RiskPositionManager
 
-    summary = RiskController(
-        positions,
-        trading_client=tc,
-        dry_run=_dry_run(),
-        equity=equity if equity > 0 else None,
-    ).flatten_legacy_positions()
+        tc = _alpaca_client()
+        obs = observe()
+        positions = obs.get("positions") or []
+        try:
+            equity = float(obs.get("equity") or 0)
+        except (TypeError, ValueError):
+            equity = 0.0
+        si_flatten = UnifiedAIPositionManager(
+            positions,
+            trading_client=tc,
+            equity=equity,
+        ).flatten_oversized_positions(equity=equity, trading_client=tc)
+        legacy = RiskPositionManager(
+            positions,
+            trading_client=tc,
+        ).flatten_oversized_legacy_positions(equity=equity)
+        if legacy.get("flattened") or si_flatten.get("flattened"):
+            summary = {
+                **(summary or {}),
+                "flatten_oversized_si": si_flatten,
+                "flatten_oversized_legacy": legacy,
+            }
+    except Exception:
+        pass
     if summary.get("flattened"):
         print(json.dumps({"event": "legacy_flatten", "result": summary}, default=str), flush=True)
     return summary
@@ -794,6 +893,24 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
         t_cycle = time.perf_counter()
         obs = observe()
         try:
+            from utils.unified_position_exit import run_profit_exit_pass
+
+            profit_pass = run_profit_exit_pass(obs, act_fn=act, refresh_observation=observe)
+            if profit_pass.get("results"):
+                append_decision(
+                    {
+                        "ts": datetime.now(timezone.utc).isoformat(),
+                        "phase": "profit_exit_monitor",
+                        "profit_pass": profit_pass,
+                    }
+                )
+                if profit_pass.get("executed_count"):
+                    obs = observe()
+        except Exception:
+            import logging as _log_pe
+
+            _log_pe.getLogger("unified_ai_agent").exception("profit exit monitor failed")
+        try:
             from agents.belief_trade_hook import process_external_ledger
 
             hook_out = process_external_ledger(obs)
@@ -824,6 +941,15 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             sleep_until_next_cycle_or_wake(_sleep)
             n += 1
             continue
+
+        try:
+            from unified_ai.agent import process_cycle_before_act
+
+            process_cycle_before_act(obs, decision, trading_client=_alpaca_client())
+        except Exception:
+            import logging as _log
+
+            _log.getLogger("unified_ai_agent").exception("legacy flatten pre-act failed")
 
         act_result = act(decision, obs, usage)
         try:

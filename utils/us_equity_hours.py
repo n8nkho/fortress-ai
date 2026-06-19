@@ -42,6 +42,25 @@ def is_us_equity_rth_et() -> bool:
         return False
 
 
+def minutes_until_rth_close_et() -> float | None:
+    """Minutes until 16:00 ET on a weekday; None if outside RTH or weekend."""
+    try:
+        from zoneinfo import ZoneInfo
+
+        et = ZoneInfo("America/New_York")
+        now = datetime.now(et)
+        if now.weekday() >= 5:
+            return None
+        mins = now.hour * 60 + now.minute + now.second / 60.0
+        open_m = 9 * 60 + 30
+        close_m = 16 * 60
+        if mins < open_m or mins >= close_m:
+            return None
+        return close_m - mins
+    except Exception:
+        return None
+
+
 def effective_loop_interval_seconds(cli_override: float | None = None) -> float:
     """RTH: FORTRESS_AI_LOOP_SECONDS; off-hours: FORTRESS_AI_LOOP_SECONDS_OFF_HOURS. Override fixes interval."""
     if cli_override is not None:

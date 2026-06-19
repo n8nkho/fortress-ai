@@ -522,6 +522,22 @@
       "effort": "low",
       "impact": "medium"
     },
+    "unified_profit_exit_monitor": {
+      "title": "Unified AI deterministic profit-taking on open positions",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "unified_profit_exit",
+        "take_profit_usd",
+        "take_profit_pct",
+        "eod_profit_flatten"
+      ],
+      "auto_tunable": {
+        "min_profit_usd": 5.0
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
     "si_adaptive_classic_recency": {
       "title": "Classic fill recency objective with adaptive day threshold",
       "kind": "monitor",

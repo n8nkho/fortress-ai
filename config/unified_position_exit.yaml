@@ -1,0 +1,8 @@
+# Deterministic profit-taking for unified AI held positions (runs before LLM each cycle).
+version: 1
+# Exit when unrealized PnL >= this USD (either condition suffices).
+min_profit_usd: 20.0
+# Exit when unrealized return >= this fraction (0.005 = 0.5%).
+min_profit_pct: 0.005
+# Within N minutes of US equity close, flatten any position with unrealized_pl > 0.
+eod_flatten_minutes_before_close: 20

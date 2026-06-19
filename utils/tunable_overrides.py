@@ -91,6 +91,22 @@ def get_position_size_pct() -> float:
         return base
 
 
+def get_exit_confidence_threshold() -> float:
+    """Lower bar for SELL vs BUY — profit-taking and risk reduction."""
+    try:
+        base = float(os.environ.get("FORTRESS_AI_MIN_EXIT_CONFIDENCE", "0.72"))
+    except ValueError:
+        base = 0.72
+    o = load_overrides().get("exit_confidence_threshold")
+    if o is None:
+        return max(0.55, min(0.95, base))
+    try:
+        val = float(o)
+        return max(0.55, min(0.95, val))
+    except (TypeError, ValueError):
+        return max(0.55, min(0.95, base))
+
+
 def get_rsi_entry_threshold_int() -> int:
     try:
         base = int(float(os.environ.get("FORTRESS_AI_RSI_ENTRY_THRESHOLD", "43")))
