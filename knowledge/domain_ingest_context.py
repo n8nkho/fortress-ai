@@ -76,13 +76,13 @@ def collect_valid_records(*, max_per_source: int = 8) -> list[dict[str, Any]]:
 
 
 def format_domain_ingest_prompt_section(observation: dict[str, Any]) -> str:
-    if str(os.getenv("FORTRESS_INGEST_READ_ONLY", "1")).strip().lower() not in {"0", "false", "no", "off"}:
+    if not _ingest_wired_to_prompt():
         return ""
     recs = collect_valid_records()
     if not recs:
         return (
-            "DOMAIN INTELLIGENCE (non-price signals): No recent ingest records. "
-            "These are data signals, not trade recommendations. Weigh appropriately."
+            "DOMAIN INTELLIGENCE CONTEXT:\n"
+            "No recent ingest records. These are data signals, not trade recommendations."
         )
     lines = []
     for r in recs[:12]:
@@ -95,7 +95,40 @@ def format_domain_ingest_prompt_section(observation: dict[str, Any]) -> str:
         lines.append(f"- [{st.upper()}|{src}] {tag} conf={conf:.2f} — {summary}")
     body = "\n".join(lines)
     return (
-        "DOMAIN INTELLIGENCE (non-price signals, read from ingest pipeline):\n"
+        "DOMAIN INTELLIGENCE CONTEXT:\n"
         + body
         + "\nThese are data signals, not trade recommendations. Weigh appropriately."
     )
+
+
+def _domain_llm_learn_enabled() -> bool:
+    return str(os.getenv("FORTRESS_AI_DOMAIN_LLM_LEARN", "0")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _ingest_wired_to_prompt() -> bool:
+    """Prompt injection when ingest is not read-only or domain LLM learning is on."""
+    if str(os.getenv("FORTRESS_INGEST_READ_ONLY", "1")).strip().lower() in {"0", "false", "no", "off"}:
+        return True
+    return _domain_llm_learn_enabled()
+
+
+def sync_domain_ingest_to_beliefs(*, limit: int = 8) -> dict[str, Any]:
+    """Merge high-confidence ingest signals into data/beliefs/beliefs.json."""
+    if not _domain_llm_learn_enabled():
+        return {"skipped": "domain_llm_learn_off", "merged": 0}
+    recs = collect_valid_records()
+    if not recs:
+        return {"skipped": "no_ingest_records", "merged": 0}
+    try:
+        from utils.belief_manager import merge_domain_ingest_beliefs
+
+        merged = merge_domain_ingest_beliefs(recs[:limit])
+        return {"merged": merged, "records_seen": min(len(recs), limit)}
+    except Exception as e:
+        logger.exception("sync_domain_ingest_to_beliefs failed")
+        return {"error": str(e)[:120], "merged": 0}

@@ -718,14 +718,15 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                 fill = poll_order_fill(tc, oid, timeout_sec=45.0)
             except Exception:
                 pass
+            from agents.unified_ai_agent.broker_integration import build_order_submission
+
             submitted.append(
-                {
-                    "id": oid,
-                    "status": fill.get("status") or str(order.status),
-                    "qty": chunk_qty,
-                    "filled_qty": int(fill.get("filled_qty") or 0),
-                    "filled_avg_price": fill.get("filled_avg_price"),
-                }
+                build_order_submission(
+                    order_id=oid,
+                    order_status=str(order.status),
+                    chunk_qty=chunk_qty,
+                    fill=fill,
+                )
             )
             if int(fill.get("filled_qty") or 0) <= 0 and not fill.get("timeout"):
                 # Stop chunk loop on hard terminal reject; allow timeout to try next chunk.
@@ -763,10 +764,13 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
             _log.getLogger("unified_ai_agent").exception("legacy flatten post-trade failed")
         if action == "exit_position" and submitted:
             try:
-                from utils.ai_pnl_ledger import append_realized_fill
+                from agents.unified_ai_agent.broker_integration import summarize_exit_fill_status
+                from agents.unified_ai_agent.exit_handler import handle_exit_ledger
 
                 sold = sum(int(o.get("filled_qty") or 0) for o in submitted)
+                fill_status = summarize_exit_fill_status(submitted)
                 if sold <= 0:
+                    result["fill_status"] = fill_status
                     return result
                 pnl_est = 0.0
                 for p in observation.get("positions") or []:
@@ -777,20 +781,23 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                             pnl_est = 0.0
                         break
                 ratio = sold / held_qty if held_qty > 0 else 1.0
-                append_realized_fill(
-                    symbol=sym,
-                    pnl_usd=pnl_est * ratio,
-                    side=side,
-                    qty=sold,
-                    order_id=str(submitted[-1].get("id") or ""),
-                    extra={
-                        "action": action,
-                        "note": "exit_fill_confirmed",
-                        "chunked": len(submitted) > 1,
-                    },
+                ledger_out = handle_exit_ledger(
+                    {
+                        "symbol": sym,
+                        "fill_status": fill_status,
+                        "pnl_usd": pnl_est * ratio,
+                        "side": side,
+                        "qty": sold,
+                        "order_id": str(submitted[-1].get("id") or ""),
+                        "extra": {"chunked": len(submitted) > 1},
+                    }
                 )
+                result["fill_status"] = fill_status
+                result["ledger"] = ledger_out
             except Exception:
-                pass
+                import logging as _log
+
+                _log.getLogger("unified_ai_agent").exception("exit ledger recording failed")
     except Exception as e:
         result["detail"] = f"broker_error:{type(e).__name__}:{e}"
         result["block_reason"] = "broker_error"
@@ -967,6 +974,14 @@ def run_loop(iterations: int | None = None, interval_sec: float | None = None) -
             import logging as _log
 
             _log.getLogger("unified_ai_agent").exception("belief ledger hook failed")
+        try:
+            from knowledge.domain_ingest_context import sync_domain_ingest_to_beliefs
+
+            obs["_domain_ingest_beliefs"] = sync_domain_ingest_to_beliefs()
+        except Exception:
+            import logging as _log_di
+
+            _log_di.getLogger("unified_ai_agent").exception("domain ingest belief sync failed")
         try:
             if degrade_llm:
                 decision, usage = reason_heuristic(obs, state)

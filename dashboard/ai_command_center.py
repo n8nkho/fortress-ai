@@ -671,6 +671,19 @@ def _expert_bundle() -> dict[str, Any]:
     }
 
 
+def _effective_min_confidence() -> float:
+    """Runtime execute threshold — env floor + tunable override (same as unified_ai_agent)."""
+    try:
+        from utils.tunable_overrides import get_confidence_threshold
+
+        return get_confidence_threshold()
+    except Exception:
+        try:
+            return float(os.environ.get("FORTRESS_AI_MIN_CONFIDENCE", "0.85") or 0.85)
+        except ValueError:
+            return 0.85
+
+
 def _domain_intel_defaults() -> dict[str, Any]:
     """Safe shape for dashboard Alpine templates — never rely on null domain_intel."""
     return {
@@ -867,7 +880,7 @@ def build_current_state(*, use_cache: bool = True) -> dict[str, Any]:
         "instance": os.environ.get("FORTRESS_INSTANCE_NAME", "Fortress-AI"),
         "ui_status": status,
         "dry_run": str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes"),
-        "min_confidence": float(os.environ.get("FORTRESS_AI_MIN_CONFIDENCE", "0.8") or 0.8),
+        "min_confidence": _effective_min_confidence(),
         "weekly_cost_cap_usd": cap,
         "weekly_llm_spend_usd": spent_week,
         "week_window_utc": {"start": wstart.isoformat(), "end": wend.isoformat()},
@@ -1353,6 +1366,20 @@ def api_skim_status():
     )
 
 
+def _infra_stack_signal_payload(adaptive_univ: dict[str, Any]) -> dict[str, Any]:
+    """Scalar + structured stack signal for infra panel (avoids [object Object] in UI)."""
+    layer_counts = adaptive_univ.get("layer_counts") if isinstance(adaptive_univ, dict) else {}
+    if not isinstance(layer_counts, dict):
+        layer_counts = {}
+    stress_label = " · ".join(f"{k}:{v}" for k, v in sorted(layer_counts.items())) if layer_counts else "—"
+    return {
+        "layer_counts": layer_counts,
+        "stack_stress": stress_label,
+        "direction": adaptive_univ.get("direction") or adaptive_univ.get("regime_bias"),
+        "signal_strength": adaptive_univ.get("signal_strength") or adaptive_univ.get("stack_score"),
+    }
+
+
 @app.route("/api/infra/status")
 def api_infra_status():
     """Infra swarm adaptive universe snapshot."""
@@ -1432,10 +1459,7 @@ def api_infra_status():
         symbol_quotes = build_symbol_quotes(universe())
     except Exception:
         logger.exception("infra symbol quotes failed")
-    stack_signal = {
-        "stack_stress": (adaptive_univ.get("layer_counts") or {}),
-        "layer_counts": adaptive_univ.get("layer_counts"),
-    }
+    stack_signal = _infra_stack_signal_payload(adaptive_univ)
     return jsonify(
         {
             "instance": instance_name(),

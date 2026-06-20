@@ -204,6 +204,74 @@ def _is_historical_seed(row: dict[str, Any]) -> bool:
     return str(row.get("source") or "").strip() == "historical_seed"
 
 
+def merge_domain_ingest_beliefs(records: list[dict[str, Any]]) -> int:
+    """Upsert domain-ingest macro/symbol signals into beliefs.json (source=domain_ingest)."""
+    rows = load_beliefs()
+    merged = 0
+    now = datetime.now(timezone.utc).isoformat()
+
+    def slot_key(rec: dict[str, Any]) -> str:
+        return "|".join(
+            [
+                "domain_ingest",
+                str(rec.get("source") or ""),
+                str(rec.get("signal_type") or ""),
+                str(rec.get("ticker") or "MACRO"),
+            ]
+        )
+
+    by_slot: dict[str, int] = {}
+    for i, r in enumerate(rows):
+        if isinstance(r, dict) and str(r.get("source") or "") == "domain_ingest":
+            sk = str(r.get("slot_key") or "")
+            if sk:
+                by_slot[sk] = i
+
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        sk = slot_key(rec)
+        conf = max(0.35, min(0.85, float(rec.get("confidence") or 0.5)))
+        summary = json.dumps(rec.get("value"), default=str)[:400]
+        pattern = (
+            f"[{rec.get('source')}/{rec.get('signal_type')}] "
+            f"{rec.get('ticker') or 'MACRO'}: {summary}"
+        )
+        row = {
+            "belief_id": str(uuid.uuid4()),
+            "created_at": now,
+            "last_updated_at": now,
+            "symbol": str(rec.get("ticker") or "MACRO").upper(),
+            "regime_at_entry": "NEUTRAL_RANGING",
+            "strategy_used": "mean_reversion",
+            "entry_signal_confidence": conf,
+            "outcome": "neutral",
+            "pnl_pct": 0.0,
+            "hold_duration_hours": 0.0,
+            "pattern_description": pattern[:800],
+            "confidence_score": conf,
+            "confirmation_count": 1,
+            "refutation_count": 0,
+            "source": "domain_ingest",
+            "slot_key": sk,
+        }
+        idx = by_slot.get(sk)
+        if idx is not None:
+            prev = rows[idx]
+            row["belief_id"] = str(prev.get("belief_id") or row["belief_id"])
+            row["created_at"] = str(prev.get("created_at") or now)
+            row["confirmation_count"] = int(prev.get("confirmation_count") or 0) + 1
+            rows[idx] = row
+        else:
+            rows.append(row)
+            by_slot[sk] = len(rows) - 1
+        merged += 1
+
+    if merged:
+        save_beliefs(rows)
+    return merged
+
+
 def append_historical_seed_beliefs(
     records: list[dict[str, Any]],
     *,

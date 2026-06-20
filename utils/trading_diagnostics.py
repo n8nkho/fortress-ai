@@ -268,9 +268,14 @@ def build_trading_diagnostics(*, days: int = 14) -> dict[str, Any]:
 
     dry_ai = str(os.environ.get("FORTRESS_AI_DRY_RUN", "1")).lower() in ("1", "true", "yes")
     try:
-        ai_min = float(os.environ.get("FORTRESS_AI_MIN_CONFIDENCE", "0.8"))
-    except ValueError:
-        ai_min = 0.8
+        from utils.tunable_overrides import get_confidence_threshold
+
+        ai_min = get_confidence_threshold()
+    except Exception:
+        try:
+            ai_min = float(os.environ.get("FORTRESS_AI_MIN_CONFIDENCE", "0.8"))
+        except ValueError:
+            ai_min = 0.8
 
     return {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),

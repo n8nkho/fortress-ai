@@ -166,7 +166,7 @@ def auto_code_enabled() -> bool:
 
 
 def auto_commit_enabled() -> bool:
-    return str(os.environ.get("FORTRESS_SI_AUTO_COMMIT", "1")).strip().lower() in (
+    return str(os.environ.get("FORTRESS_SI_AUTO_COMMIT", "0")).strip().lower() in (
         "1",
         "true",
         "yes",
@@ -175,7 +175,7 @@ def auto_commit_enabled() -> bool:
 
 
 def auto_push_enabled() -> bool:
-    return str(os.environ.get("FORTRESS_SI_AUTO_PUSH", "1")).strip().lower() in (
+    return str(os.environ.get("FORTRESS_SI_AUTO_PUSH", "0")).strip().lower() in (
         "1",
         "true",
         "yes",
@@ -194,9 +194,9 @@ def require_e2e() -> bool:
 
 def max_implementations_per_day() -> int:
     try:
-        return max(0, int(os.environ.get("FORTRESS_SI_AUTO_CODE_MAX_PER_DAY", "3") or 3))
+        return max(0, int(os.environ.get("FORTRESS_SI_AUTO_CODE_MAX_PER_DAY", "2") or 2))
     except ValueError:
-        return 3
+        return 2
 
 
 def implementation_runs_dir() -> Path:
@@ -351,9 +351,20 @@ def can_auto_implement(item: dict[str, Any]) -> tuple[bool, str]:
         return False, "agent_dismissed"
 
     disp = str(item.get("disposition") or "")
+    tier = str(
+        item.get("governance_tier")
+        or (item.get("finding") or {}).get("governance_tier")
+        or ""
+    ).strip()
+    human_go = item.get("human_go") or {}
+    if disp == "pending_human_go" and not human_go.get("approved"):
+        return False, "pending_human_go_not_approved"
+    if tier.startswith("tier_1") or tier in ("tier_2_human", "tier_3_immutable"):
+        if not human_go.get("approved"):
+            return False, f"governance_tier_requires_human_go:{tier or 'unknown'}"
+
     allowed_disp = {
         "auto_implement_queued",
-        "pending_human_go",
         "pending_agent_review",
     }
     if disp not in allowed_disp and not assessment.get("worth_implementing"):
@@ -482,7 +493,7 @@ def auto_assess_item(item_id: str) -> dict[str, Any]:
 
 def auto_approve_enabled() -> bool:
     """When on, pending_human_go items auto-queue for implementation (no manual go)."""
-    return str(os.environ.get("FORTRESS_SI_AUTO_APPROVE", "1")).strip().lower() in (
+    return str(os.environ.get("FORTRESS_SI_AUTO_APPROVE", "0")).strip().lower() in (
         "1",
         "true",
         "yes",

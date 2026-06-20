@@ -32,12 +32,16 @@ def _parse_ts(raw: str | None) -> datetime | None:
 
 
 def scan_premature_exit_ledger(*, max_age_hours: float = 72.0) -> list[dict[str, Any]]:
-    """Flag ledger exits recorded before broker fill (legacy exit_fill_pnl_estimate)."""
-    if not _LEDGER.is_file():
+    """Flag ledger exits recorded before broker fill (legacy exit_fill_pnl_estimate rows)."""
+    return _scan_premature_exit_ledger_file(_LEDGER, max_age_hours=max_age_hours)
+
+
+def _scan_premature_exit_ledger_file(ledger_path: Path, *, max_age_hours: float) -> list[dict[str, Any]]:
+    if not ledger_path.is_file():
         return []
     cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     hits: list[dict[str, Any]] = []
-    for line in _LEDGER.read_text(encoding="utf-8", errors="replace").splitlines()[-400:]:
+    for line in ledger_path.read_text(encoding="utf-8", errors="replace").splitlines()[-400:]:
         line = line.strip()
         if not line:
             continue
@@ -46,6 +50,8 @@ def scan_premature_exit_ledger(*, max_age_hours: float = 72.0) -> list[dict[str,
         except json.JSONDecodeError:
             continue
         note = str((row.get("note") or (row.get("extra") or {}).get("note") or "")).lower()
+        if note in ("unconfirmed_legacy", "exit_fill_confirmed"):
+            continue
         if note != "exit_fill_pnl_estimate":
             continue
         ts = _parse_ts(row.get("timestamp") or row.get("ts"))
