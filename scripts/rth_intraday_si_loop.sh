@@ -6,7 +6,7 @@ cd "$ROOT"
 export TZ="${FORTRESS_SYSTEM_TZ:-America/New_York}"
 export FORTRESS_SYSTEM_TZ="${FORTRESS_SYSTEM_TZ:-America/New_York}"
 
-INTERVAL="${FORTRESS_RTH_SI_INTERVAL_SEC:-1800}"
+INTERVAL="${FORTRESS_RTH_SI_INTERVAL_SEC:-900}"
 LOG="${ROOT}/data/rth_intraday_si/loop.log"
 mkdir -p "$(dirname "$LOG")"
 
@@ -29,7 +29,7 @@ while true; do
     else
       echo "[$ts] rth_intraday_si cycle failed" >> "$LOG"
     fi
-    INTERVAL="$("$PY" -c "from utils.si_capability_review import effective_rth_interval_sec; print(effective_rth_interval_sec())" 2>/dev/null || echo "${FORTRESS_RTH_SI_INTERVAL_SEC:-1800}")"
+    INTERVAL="$("$PY" -c "from utils.si_capability_review import effective_rth_interval_sec; print(effective_rth_interval_sec())" 2>/dev/null || echo "${FORTRESS_RTH_SI_INTERVAL_SEC:-900}")"
     sleep "$INTERVAL"
   else
     sleep 120
