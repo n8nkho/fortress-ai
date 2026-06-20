@@ -130,9 +130,26 @@ Each symbol is an independent agent with:
 | `POSITION_DEDUPLICATION_ENABLED` | true | Block duplicate entries on same symbol |
 | `FORTRESS_UNIFIED_ENTER_COOLDOWN_SEC` | (guard) | Cooldown between enter attempts |
 
-**Detectable log markers:** `already_holding`, `chunked_exit`, `enter_cooldown`, `entry_blocked_by_cooldown`
+**Detectable log markers:** `already_holding`, `chunked_exit`, `enter_cooldown`, `entry_blocked_by_cooldown`, `exit_fill_confirmed`, `exit_unfilled`, `open_exit_order_pending`, `insufficient_buying_power_short`
+
+**Adaptive exit RSI (June 2026):** Before each LLM cycle, `utils/unified_position_exit.py` evaluates open broker positions for deterministic exits — regime-scaled profit targets, stop-loss, RSI overbought take-profit, and EOD flatten. Config: `config/unified_position_exit.yaml`, env `FORTRESS_UNIFIED_POSITION_EXIT`. Markers: `adaptive_exit_threshold`, `rsi_overbought_exit`, `eod_profit_flatten`.
+
+**Fill-gated ledger:** Exits poll Alpaca (`utils/alpaca_order_confirm.py`) before recording PnL. Unfilled orders return `exit_unfilled`; ledger rows use `exit_fill_confirmed` only (never `exit_fill_pnl_estimate` on submit).
+
+**Broker reconciliation:** `utils/broker_reconciliation.py` — integrity codes `premature_exit_ledger`, `operator_broker_open_drift`, `broker_open_sell_backlog`. Hygiene: `utils/alpaca_order_hygiene.py` cancels phantom/duplicate open SELL orders.
 
 Unified AI does **not** trade skim/infra universe symbols (`FORTRESS_AI_SYMBOL_DENYLIST`).
+
+### 3.3a Skim / Infra execution guards (June 2026)
+
+| Module | Role |
+|--------|------|
+| `utils/swarm_buying_power.py` | Block `enter_short` when buying power depleted (Alpaca 40310000) |
+| `utils/alpaca_execution.py` | `has_open_exit_order` — dedupe exit spam |
+| `agents/skim_swarm/act.py`, `agents/infra_swarm/act.py` | Honor `open_exit_order_pending` before new SELL |
+
+**Env:** `FORTRESS_SWARM_SHORT_MIN_BUYING_POWER_USD` (default 150), `FORTRESS_SWARM_SHORT_BP_GATE`  
+**Markers:** `insufficient_buying_power_short`, `swarm_short_bp_gate`
 
 ### 3.4 Market consciousness
 
@@ -148,7 +165,7 @@ Unified AI does **not** trade skim/infra universe symbols (`FORTRESS_AI_SYMBOL_D
 
 Each cycle (default 1800s, overridable by capability review):
 
-1. Integrity scan (`utils/integrity_diagnostics.py`)
+1. Integrity scan (`utils/integrity_diagnostics.py`) — includes **broker reconciliation** (`premature_exit_ledger`, `operator_broker_open_drift`, `broker_open_sell_backlog`)
 2. SI recommendation queue process
 3. Edge scorecard / autofix
 4. Swarm session SI
@@ -167,7 +184,7 @@ Each cycle (default 1800s, overridable by capability review):
 
 **Output:** `data/operator_status/latest.json`, `reports.jsonl`
 
-**Snapshot fields:** service health, skim/infra PnL & block mix, adaptive_max_open effective values, SI queue counts, auto-code health, top anomalies. Used for independent ops review (no dedicated dashboard panel).
+**Snapshot fields:** service health, skim/infra PnL & block mix, adaptive_max_open effective values, SI queue counts, auto-code health, top anomalies, **`broker_open_positions`** / **`broker_symbols`** (live Alpaca count — may exceed swarm-reported open when legacy unified-agent holdings exist). Used for independent ops review (no dedicated dashboard panel).
 
 ### 3.7 Recursive SI recommendation queue
 
@@ -427,6 +444,8 @@ Template and APIs exist; typically disabled when skim swarm is primary.
 | data/unified_ai/enter_guard.json | Enter guard | Cooldown state |
 | data/market_consciousness/knowledge.json | Market consciousness | Dashboard panel |
 | data/integrity_scan_latest.json | Integrity scan | RTH SI |
+| data/pnl_ledger.jsonl | Unified AI / backfill | Broker reconciliation |
+| config/unified_position_exit.yaml | Adaptive exit RSI thresholds | Unified agent |
 | config/si_fix_registry.json | Fix registry | Deployment detection |
 
 ---
@@ -443,6 +462,9 @@ Template and APIs exist; typically disabled when skim swarm is primary.
 | Edge gates | RR / cost / expectancy (FORTRESS_EDGE_*) |
 | Position deduplication | already_holding + enter cooldown (Unified AI) |
 | Chunked exits | FORTRESS_MAX_ORDER_NOTIONAL_USD splits oversized orders |
+| Exit fill confirmation | PnL ledger only after Alpaca fill poll (`exit_fill_confirmed`) |
+| Exit order dedup | `open_exit_order_pending` blocks duplicate SELL spam |
+| Short BP gate | Skim/infra block shorts when buying power below floor |
 | Legacy flatten | RiskController every 5 min on Unified AI boot path |
 | Bracket tick clamp | Alpaca min $0.01 offset on bracket stops |
 | Spread filter | FORTRESS_SKIM_MAX_SPREAD_BPS (25) |
@@ -465,6 +487,7 @@ Template and APIs exist; typically disabled when skim swarm is primary.
 4. Historical verify uses daily bars; live skim uses 1-minute bars.
 5. Paper trading on Alpaca paper accounts.
 6. Infra `/api/infra/status` may return partial data when service is idle.
+7. **E2E tests** mock broker fills — production drift (ACCEPTED-but-unfilled, screener vs entry RSI mismatch) is caught by **integrity reconciliation scans**, not unit tests alone.
 
 ---
 
@@ -473,11 +496,13 @@ Template and APIs exist; typically disabled when skim swarm is primary.
 Reviewers should evaluate:
 
 - **Architecture:** Is four-path separation (skim / infra / unified / classic) clean? Are agent responsibilities modular?
-- **Risk:** Are dedup, chunked exits, and adaptive max-open coherent on the Fortress AI account (separate from Classic)?
+- **Risk:** Are dedup, chunked exits, fill-gated ledger, and adaptive max-open coherent on the Fortress AI account (separate from Classic)?
+- **Broker truth:** Does operator status `broker_open_positions` align with dashboard Alpaca feed? Any `premature_exit_ledger` findings?
 - **SI governance:** Is the queue workflow (agent review → human go → implement) sufficient before code changes ship?
 - **Execution:** Are block_reason markers sufficient for postmortems?
 - **Reliability:** Do operator status + RTH SI cycles provide enough visibility without dashboard overload?
 - **Comparison:** Is Classic bridge data sufficient for fair A/B review?
+- **Verification:** Run `./scripts/e2e_verify.sh` before deploy; confirm `data/integrity_scan_latest.json` has no high-severity broker reconciliation findings.
 
 ---
 
@@ -493,6 +518,9 @@ Reviewers should evaluate:
 | Neural state | WAITING / OBSERVING / THINKING / EXECUTING |
 | SI queue | Recursive self-improvement recommendation workflow |
 | chunked_exit | Exit split into child orders under notional cap |
+| exit_fill_confirmed | Ledger row recorded only after Alpaca reports fill qty > 0 |
+| adaptive_rsi | Unified exit monitor uses regime + RSI for take-profit thresholds |
+| broker_reconciliation | Integrity scan comparing Alpaca, ledger, and operator counts |
 
 ---
 
