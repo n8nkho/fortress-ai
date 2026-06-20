@@ -204,8 +204,19 @@ def _is_historical_seed(row: dict[str, Any]) -> bool:
     return str(row.get("source") or "").strip() == "historical_seed"
 
 
-def merge_domain_ingest_beliefs(records: list[dict[str, Any]]) -> int:
+def merge_domain_ingest_beliefs(
+    records: list[dict[str, Any]] | None = None,
+    *,
+    dry_run: bool = False,
+) -> dict[str, Any]:
     """Upsert domain-ingest macro/symbol signals into beliefs.json (source=domain_ingest)."""
+    if records is None:
+        from knowledge.domain_ingest_context import collect_valid_records
+
+        records = collect_valid_records()
+    skipped = 0
+    conflicts = 0
+    would_merge = 0
     rows = load_beliefs()
     merged = 0
     now = datetime.now(timezone.utc).isoformat()
@@ -229,6 +240,7 @@ def merge_domain_ingest_beliefs(records: list[dict[str, Any]]) -> int:
 
     for rec in records:
         if not isinstance(rec, dict):
+            skipped += 1
             continue
         sk = slot_key(rec)
         conf = max(0.35, min(0.85, float(rec.get("confidence") or 0.5)))
@@ -262,14 +274,22 @@ def merge_domain_ingest_beliefs(records: list[dict[str, Any]]) -> int:
             row["created_at"] = str(prev.get("created_at") or now)
             row["confirmation_count"] = int(prev.get("confirmation_count") or 0) + 1
             rows[idx] = row
+            conflicts += 1
         else:
             rows.append(row)
             by_slot[sk] = len(rows) - 1
+        would_merge += 1
         merged += 1
 
-    if merged:
+    if merged and not dry_run:
         save_beliefs(rows)
-    return merged
+    return {
+        "merged_count": merged,
+        "would_merge_count": would_merge,
+        "skipped_count": skipped,
+        "conflicts": conflicts,
+        "dry_run": dry_run,
+    }
 
 
 def append_historical_seed_beliefs(

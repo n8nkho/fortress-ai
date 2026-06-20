@@ -75,7 +75,7 @@ def collect_valid_records(*, max_per_source: int = 8) -> list[dict[str, Any]]:
     return out[: max_per_source * 6]
 
 
-def format_domain_ingest_prompt_section(observation: dict[str, Any]) -> str:
+def format_domain_ingest_prompt_section(observation: dict[str, Any] | None = None) -> str:
     if not _ingest_wired_to_prompt():
         return ""
     recs = collect_valid_records()
@@ -128,7 +128,7 @@ def sync_domain_ingest_to_beliefs(*, limit: int = 8) -> dict[str, Any]:
         from utils.belief_manager import merge_domain_ingest_beliefs
 
         merged = merge_domain_ingest_beliefs(recs[:limit])
-        return {"merged": merged, "records_seen": min(len(recs), limit)}
+        return {"merged": merged.get("merged_count", 0), "records_seen": min(len(recs), limit), **merged}
     except Exception as e:
         logger.exception("sync_domain_ingest_to_beliefs failed")
         return {"error": str(e)[:120], "merged": 0}
