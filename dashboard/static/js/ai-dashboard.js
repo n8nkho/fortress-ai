@@ -295,10 +295,54 @@ document.addEventListener("alpine:init", () => {
       try {
         const r = await fetch("/api/infra/status");
         if (!r.ok) throw new Error(await r.text());
-        this.infra = await r.json();
+        const data = await r.json();
+        if (data?.stack_signal) {
+          data.stack_signal = this.normalizeStackSignal(data.stack_signal);
+        }
+        this.infra = data;
       } catch (_) {
         this.infra = this.infra || { error: "unavailable" };
       }
+    },
+
+    normalizeStackSignal(sig) {
+      if (!sig || typeof sig !== "object") return { stack_stress: "—" };
+      const out = { ...sig };
+      let stress = out.stack_stress;
+      if (stress != null && typeof stress === "object") {
+        const lc = stress.layer_counts || stress;
+        if (lc && typeof lc === "object" && !Array.isArray(lc)) {
+          out.stack_stress = Object.entries(lc)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" · ");
+          out.layer_counts = out.layer_counts || lc;
+        } else {
+          out.stack_stress = JSON.stringify(stress, null, 2);
+          out.stack_stress_pre = true;
+        }
+      } else if (stress == null || stress === "") {
+        const lc = out.layer_counts;
+        if (lc && typeof lc === "object") {
+          out.stack_stress = Object.entries(lc)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" · ");
+        } else {
+          out.stack_stress = "—";
+        }
+      }
+      return out;
+    },
+
+    formatStackSignal(sig) {
+      const n = this.normalizeStackSignal(sig);
+      if (n.stack_stress_pre) return n.stack_stress;
+      const chips = [];
+      if (n.stack_stress && n.stack_stress !== "—") chips.push(`stress: ${n.stack_stress}`);
+      if (n.direction != null && n.direction !== "") chips.push(`dir: ${n.direction}`);
+      if (n.signal_strength != null && n.signal_strength !== "") {
+        chips.push(`strength: ${n.signal_strength}`);
+      }
+      return chips.length ? chips.join(" · ") : (n.stack_stress || "—");
     },
 
     infraRows() {

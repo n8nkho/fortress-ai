@@ -24,6 +24,7 @@ def rth_intraday_si_enabled() -> bool:
 
 
 def rth_cycle_interval_sec() -> int:
+    """Base RTH SI sleep seconds (env). Effective cadence = base × si_capability rth_review_cadence_mult."""
     try:
         return max(300, int(os.environ.get("FORTRESS_RTH_SI_INTERVAL_SEC", "900") or 900))
     except ValueError:
