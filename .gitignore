@@ -5,10 +5,31 @@
 logs/
 __pycache__/
 *.pyc
+
+# ── data/ JSON defaults (ignore all, then allow-list audit/template files) ──
 data/*.jsonl
 data/*.json
 !data/.gitkeep
+!data/beliefs/.gitkeep
+# Intentionally tracked: audit trail, SI queue baseline, static watchlist template
 !data/watchlist.json
+!data/tunable_params.json
+!data/si_recommendation_queue.json
+
+# Live runtime state — must not be overwritten by git pull
+data/tunable_params_overrides.json
+data/operator_trading_halt.json
+data/integrity_scan_latest.json
+data/unified_ai/
+data/si_capability/
+data/infra_swarm/
+data/skim_swarm/
+data/market_consciousness/
+data/operator_status/
+data/rth_intraday_si/
+data/si_singularity/
+data/si_code_implementation/
+
 # Runtime toggles (dashboard / agent); recreated as needed
 data/*.flag
 # Domain intelligence JSON (generated locally)

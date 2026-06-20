@@ -1,2 +1,0 @@
-{"ts": "2026-06-16T17:59:22.975392+00:00", "live_action": "wait", "shadow_action": "wait", "live_reasoning": "max_open_positions", "shadow_reasoning": "max_open_positions", "shadow_target_mult": 0.92}
-{"ts": "2026-06-16T18:00:09.767408+00:00", "live_action": "wait", "shadow_action": "wait", "live_reasoning": "max_open_positions", "shadow_reasoning": "max_open_positions", "shadow_target_mult": 0.92}
