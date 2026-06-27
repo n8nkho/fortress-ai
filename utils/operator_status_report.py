@@ -185,8 +185,23 @@ def build_operator_status() -> dict[str, Any]:
     }
 
 
-def persist_operator_status() -> dict[str, Any]:
+def persist_operator_status(*, reconcile_broker_ledger: bool | None = None) -> dict[str, Any]:
     doc = build_operator_status()
+    if reconcile_broker_ledger is None:
+        from utils.operator_broker_reconcile import reconcile_enabled
+
+        reconcile_broker_ledger = reconcile_enabled()
+    if reconcile_broker_ledger:
+        try:
+            from utils.operator_broker_reconcile import maybe_reconcile_broker_ledger
+
+            doc["broker_reconcile"] = maybe_reconcile_broker_ledger()
+        except Exception as e:
+            doc["broker_reconcile"] = {
+                "ok": False,
+                "error": str(e)[:120],
+                "si_action": "reconcile_broker_ledger",
+            }
     out_dir = operator_status_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
     latest = out_dir / "latest.json"

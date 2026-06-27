@@ -10,14 +10,17 @@ from unittest.mock import patch
 
 class TestBrokerReconciliation(unittest.TestCase):
     def test_premature_exit_ledger_detects_estimate_rows(self):
+        from datetime import datetime, timezone
+
         from utils import broker_reconciliation as br
 
+        recent = datetime.now(timezone.utc).isoformat()
         with tempfile.TemporaryDirectory() as td:
             ledger = Path(td) / "pnl_ledger.jsonl"
             ledger.write_text(
                 json.dumps(
                     {
-                        "timestamp": "2026-06-19T19:49:26+00:00",
+                        "timestamp": recent,
                         "symbol": "IWM",
                         "pnl": 55.77,
                         "note": "exit_fill_pnl_estimate",
@@ -62,19 +65,19 @@ class TestExitFillGuard(unittest.TestCase):
         os.environ["FORTRESS_MAX_ORDER_NOTIONAL_USD"] = "3000"
         mock_ticker = MagicMock()
         mock_ticker.fast_info.get.return_value = 200.0
-        with patch("agents.unified_ai_agent._dry_run", return_value=False):
-            with patch("agents.unified_ai_agent._min_confidence_execute", return_value=0.5):
-                with patch("agents.unified_ai_agent.yf.Ticker", return_value=mock_ticker):
+        with patch("agents.unified_ai_agent._core._dry_run", return_value=False):
+            with patch("agents.unified_ai_agent._core._min_confidence_execute", return_value=0.5):
+                with patch("agents.unified_ai_agent._core.yf.Ticker", return_value=mock_ticker):
                     with patch(
-                        "agents.unified_ai_agent.evaluate_pre_trade_submission",
+                        "agents.unified_ai_agent._core.evaluate_pre_trade_submission",
                         return_value={"allowed": True},
                     ):
-                        with patch("agents.unified_ai_agent._alpaca_client") as mock_tc:
+                        with patch("agents.unified_ai_agent._core._alpaca_client") as mock_tc:
                             with patch(
                                 "utils.alpaca_order_confirm.poll_order_fill",
                                 return_value={"filled_qty": 0, "status": "accepted", "timeout": True},
                             ):
-                                with patch("utils.ai_pnl_ledger.append_realized_fill") as mock_ledger:
+                                with patch("agents.unified_ai_agent.exit_handler.handle_exit_ledger") as mock_ledger:
                                     tc = MagicMock()
                                     mock_tc.return_value = tc
                                     order = MagicMock()

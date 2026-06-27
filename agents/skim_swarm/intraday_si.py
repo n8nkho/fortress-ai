@@ -94,9 +94,13 @@ def merge_overlay_into_params(params: dict[str, Any], learned: dict[str, Any]) -
     try:
         from utils.skim_swarm_config import runtime_overrides as _ro
 
-        boost = float(_ro().get("stop_mult_overlay_boost") or 0)
+        ro = _ro()
+        boost = float(ro.get("stop_mult_overlay_boost") or 0)
         if boost > 0:
             stop_ratio = max(0.45, stop_ratio * (1.0 - boost))
+        tgt_boost = float(ro.get("target_mult_overlay_boost") or 0)
+        if tgt_boost > 0:
+            tm = min(1.35, tm * (1.0 + tgt_boost))
     except Exception:
         pass
     el_boost = float(ov.get("enter_long_delta_boost") or 0.0)

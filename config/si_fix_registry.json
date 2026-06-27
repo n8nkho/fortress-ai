@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-19T16:39:30.999934-04:00"
+      "registered_at_utc": "2026-06-27T19:36:16.425853-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -557,6 +557,19 @@
       "effort": "low",
       "impact": "high"
     },
+    "broker_open_sell_backlog": {
+      "title": "Cancel stale open SELL orders and gate duplicate exit submissions",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "open_exit_order_pending",
+        "cancel_stale_open_orders",
+        "broker_open_sell_backlog"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "critical"
+    },
     "exit_unfilled_pnl_ledger": {
       "title": "Exit PnL only on confirmed fill; block duplicate open exit orders",
       "kind": "gate",
@@ -565,12 +578,42 @@
         "open_exit_order_pending",
         "exit_unfilled",
         "premature_exit_ledger",
+        "premature_exit_ledger_blocked",
         "broker_open_sell_backlog"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"
+    },
+    "premature_exit_ledger": {
+      "title": "Block PnL ledger writes until Alpaca exit fill confirmed",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "exit_fill_confirmed",
+        "exit_unfilled",
+        "premature_exit_ledger_blocked",
+        "premature_exit_ledger_rejected"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "operator_broker_open_drift": {
+      "title": "Reconcile Alpaca open positions vs swarm ledger in operator loop",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "operator_broker_open_drift",
+        "reconcile_broker_ledger",
+        "operator_broker_ledger_stale",
+        "operator_broker_orphan_close",
+        "operator_broker_adopt"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     },
     "si_adaptive_classic_recency": {
       "title": "Classic fill recency objective with adaptive day threshold",
@@ -751,6 +794,14 @@
           "tier": 0,
           "direction": "tighten_only"
         },
+        "threshold_pct": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "window_seconds": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
         "lookback_minutes": {
           "tier": 0,
           "direction": "tighten_only"
@@ -822,6 +873,26 @@
       "effort": "low",
       "impact": "high"
     },
+    "consciousness_kb_stale": {
+      "title": "Auto-rebuild stale hourly market consciousness knowledge base",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "consciousness_kb_stale",
+        "consciousness_kb_fresh",
+        "consciousness_kb_rebuilt",
+        "consciousness_kb_rebuild_skipped",
+        "consciousness_kb_rebuild_started",
+        "consciousness_kb_rebuild_done",
+        "KNOWLEDGE_BASE_MAX_AGE_DAYS",
+        "rebuild_hourly_knowledge",
+        "rebuild_if_stale",
+        "auto_rebuild_if_stale"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
     "adaptive_max_open_positions": {
       "title": "Adaptive max-open scales participation on strong tape up to ceiling",
       "kind": "tunable",
@@ -892,6 +963,7 @@
       "kind": "tunable",
       "mitigation_markers": [
         "edge_autofix",
+        "target_mult_boost",
         "winning_pattern_gate"
       ],
       "auto_tunable": {

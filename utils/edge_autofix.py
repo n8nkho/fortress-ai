@@ -97,6 +97,11 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
     ov["rr_safety_margin_session_boost"] = round(boost, 4)
     changes.append(f"rr_margin_boost={boost:.3f}")
 
+    if 0.85 <= pay_f < 1.0:
+        tgt_boost = min(0.12, float(ov.get("target_mult_overlay_boost") or 0) + 0.04)
+        ov["target_mult_overlay_boost"] = round(tgt_boost, 4)
+        changes.append(f"target_mult_boost={tgt_boost:.3f}")
+
     if pay_f < 0.75 or (pf is not None and float(pf) < 0.65):
         mult = min(1.45, float(pol.get("cycle_interval_mult") or 1.0) * 1.05)
         pol["cycle_interval_mult"] = round(mult, 3)
