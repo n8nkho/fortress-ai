@@ -193,6 +193,14 @@ class ImprovementGovernance:
 
         SelfImprovementEngine()._apply_proposal(proposal, proposal_id)
         sync_tunable_params_snapshot()
+        param = str(proposal.get("parameter") or "")
+        if param in {"rsi_entry_threshold", "rsi_exit_threshold"}:
+            try:
+                from utils.si_rsi_auto_deploy import deploy_rsi_tunable_snapshot
+
+                deploy_rsi_tunable_snapshot(reason=f"governance:{param}")
+            except Exception:
+                pass
 
     def process_expired_veto_windows(self) -> list[dict[str, Any]]:
         """Apply Tier-1 proposals whose veto deadline passed without veto record."""

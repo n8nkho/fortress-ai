@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-27T19:36:16.425853-04:00"
+      "registered_at_utc": "2026-06-27T19:39:27.662528-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -539,6 +539,20 @@
         "min_profit_usd": 5.0,
         "rsi_exit_threshold": 1.0
       },
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "adaptive_rsi_screener_drift": {
+      "title": "Screener RSI prefilter lagging adaptive entry ceiling",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "adaptive_rsi",
+        "fill_recency_entry_loosen",
+        "classic_si_screener_relax",
+        "align_adaptive_rsi_screener"
+      ],
+      "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"

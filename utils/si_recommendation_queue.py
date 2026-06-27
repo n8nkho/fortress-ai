@@ -275,6 +275,13 @@ def _apply_auto_tunable(code: str, tunable_delta: dict[str, float]) -> dict[str,
         gd = gov.process_proposal(proposal=val, proposal_id=pid, shadow_results=shadow)
         if gd.get("decision") in ("auto_approved", "pending_veto_window"):
             applied.append({"parameter": param, "delta": delta, "governance": gd.get("decision")})
+    if applied and any(a.get("parameter") in ("rsi_entry_threshold", "rsi_exit_threshold") for a in applied):
+        try:
+            from utils.si_rsi_auto_deploy import deploy_rsi_tunable_snapshot
+
+            deploy_rsi_tunable_snapshot(reason=f"auto_tunable:{code}")
+        except Exception:
+            pass
     return {"code": code, "applied": applied} if applied else None
 
 
@@ -565,6 +572,14 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
                     item["disposition"] = DISPOSITION_AUTO_APPLIED
                     item["auto_correct"] = res
 
+    si_actions_applied: list[dict[str, Any]] = []
+    try:
+        from utils.si_queue.si_processor import apply_si_actions_from_findings
+
+        si_actions_applied = apply_si_actions_from_findings(all_findings)
+    except Exception:
+        pass
+
     # Auto-close deployed guards + findings no longer reported
     reconcile_deployed_guards(scan)
     auto_resolved = reconcile_cleared_findings(scan, active_findings=all_findings)
@@ -588,6 +603,7 @@ def process_scan_to_queue(scan: dict[str, Any] | None = None) -> dict[str, Any]:
         "pending_agent": pending_agent,
         "pending_human": pending_human,
         "pending_auto_implement": pending_auto,
+        "si_actions_applied": si_actions_applied,
     }
     if pattern_review:
         summary["skim_pattern_review"] = pattern_review

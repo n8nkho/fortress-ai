@@ -808,9 +808,25 @@ def implement_item(item_id: str, *, dry_run: bool = False) -> dict[str, Any]:
                 for repo in repos:
                     if repo.name not in changed_repos:
                         continue
-                    c_ok, c_log = _auto_commit(repo, msg)
+                    paths = _git_diff_paths(repo)
+                    rsi_only = False
+                    try:
+                        from utils.si_rsi_auto_deploy import all_paths_rsi_deployable
+
+                        rsi_only = all_paths_rsi_deployable(paths, repo=repo)
+                    except Exception:
+                        rsi_only = False
+                    if auto_commit_enabled() or rsi_only:
+                        c_ok, c_log = _auto_commit(repo, msg)
+                    else:
+                        c_ok, c_log = False, "commit_disabled"
                     commits[repo.name] = c_log
-                    if c_ok and auto_push_enabled():
+                    push_ok = auto_push_enabled()
+                    if not push_ok and rsi_only:
+                        from utils.si_rsi_auto_deploy import rsi_auto_push_enabled
+
+                        push_ok = rsi_auto_push_enabled()
+                    if c_ok and push_ok:
                         p_ok, p_log = _auto_push(repo)
                         pushes[repo.name] = p_log
 

@@ -1,6 +1,6 @@
 {
   "confidence_threshold": 0.85,
-  "decision_interval": 600.0,
+  "decision_interval": 900.0,
   "rsi_entry_threshold": 43,
   "position_size_pct": 0.03
 }
