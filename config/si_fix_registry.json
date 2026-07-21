@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-06-27T19:39:27.662528-04:00"
+      "registered_at_utc": "2026-07-21T15:19:14.099480-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -794,6 +794,60 @@
       "effort": "medium",
       "impact": "high"
     },
+    "constructive_tape_entry_override": {
+      "title": "Allow bounded market-relative entries on strong tape + participation shortfall",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "constructive_tape_entry_override",
+        "tape_override",
+        "constructive_tape_override",
+        "FORTRESS_CONSTRUCTIVE_TAPE_OVERRIDE"
+      ],
+      "auto_tunable": {
+        "soft_alpha_threshold_pct": {
+          "tier": 1,
+          "direction": "bounded"
+        },
+        "deep_alpha_floor_pct": {
+          "tier": 1,
+          "direction": "bounded"
+        },
+        "max_overrides_per_day": {
+          "tier": 1,
+          "direction": "bounded"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "market_participation_conflict": {
+      "title": "Market-relative blocks vs participation shortfall on strong tape (constructive override)",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "constructive_tape_entry_override",
+        "tape_override",
+        "market_relative_underperformance",
+        "participation_shortfall_exits"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "classic_sleeve_demoted": {
+      "title": "Demote Classic SI objectives/queue when fill pipeline idle",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "classic_sleeve_demoted",
+        "demote_when_stale_fills_days",
+        "skip_gap_when_demoted"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
     "market_relative_underperformance": {
       "title": "Block swarm entries when session alpha vs SPY exceeds underperformance threshold",
       "kind": "code_guard",
@@ -801,7 +855,13 @@
         "market_relative_underperformance",
         "MarketRelativeGate",
         "entry_blocked_by_market_relative",
-        "swarm_gate_order_specific_before_macro"
+        "swarm_gate_order_specific_before_macro",
+        "market_relative_underperformance_threshold_bps",
+        "market_relative_underperformance_threshold",
+        "session_underperforming",
+        "entry_block_breakdown",
+        "constructive_tape_entry_override",
+        "tape_override"
       ],
       "auto_tunable": {
         "max_underperformance_pct": {
@@ -809,6 +869,26 @@
           "direction": "tighten_only"
         },
         "threshold_pct": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "threshold_alpha_vs_spy_pct": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "threshold_alpha_pp": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "threshold_alpha_pct": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "market_relative_underperformance_threshold_pct": {
+          "tier": 0,
+          "direction": "tighten_only"
+        },
+        "threshold_alpha_underperformance_pct": {
           "tier": 0,
           "direction": "tighten_only"
         },
@@ -828,6 +908,26 @@
       "agent_review_if_unmitigated": false,
       "effort": "low",
       "impact": "high"
+    },
+    "negative_alpha_active_session": {
+      "title": "Disable symbol entries when active session underperforms SPY on uptrend tape",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "negative_alpha_active_session",
+        "entry_blocked_by_negative_alpha_active_session",
+        "alpha_vs_spy_pct",
+        "beta_leaders",
+        "negative_alpha_symbol_disabled"
+      ],
+      "auto_tunable": {
+        "beta_leaders": {
+          "tier": 1,
+          "direction": "bounded"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "medium"
     },
     "market_hourly_consciousness": {
       "title": "5-year hourly market knowledge + consciousness inputs for agents",
@@ -978,6 +1078,7 @@
       "mitigation_markers": [
         "edge_autofix",
         "target_mult_boost",
+        "stop_mult_overlay_boost",
         "winning_pattern_gate"
       ],
       "auto_tunable": {
@@ -992,12 +1093,28 @@
       "kind": "code_guard",
       "mitigation_markers": [
         "si_intervention_recorded",
-        "intervention_success_rate"
+        "intervention_success_rate",
+        "constructive_tape_entry_override",
+        "classic_sleeve_demoted",
+        "edge_autofix"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "high"
+    },
+    "si_gap_review_only_findings": {
+      "title": "SI queued capability_review/monitor items without implementable code path",
+      "kind": "monitor",
+      "mitigation_markers": [
+        "constructive_tape_entry_override",
+        "tape_override",
+        "classic_sleeve_demoted"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     },
     "portfolio_swarm_bias": {
       "title": "Reduce skim wave when infra is edge sleeve",

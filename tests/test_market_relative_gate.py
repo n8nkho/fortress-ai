@@ -8,7 +8,57 @@ from utils.portfolio_session.gates.market_relative_gate import (
     MarketRelativeGate,
     compute_lookback_alpha,
 )
+from utils.portfolio_session.gates.market_relative_underperformance_gate import (
+    MarketRelativeUnderperformanceGate,
+)
 from utils.portfolio_session.risk_manager import RiskManager, load_market_relative_gate_config, reset_market_relative_cooldown
+from utils.portfolio_session.session_monitor import reset_session_monitor, update_session_metrics
+
+
+class TestMarketRelativeUnderperformanceGate(unittest.TestCase):
+    def setUp(self) -> None:
+        reset_market_relative_cooldown()
+        reset_session_monitor()
+
+    def test_allows_when_alpha_above_threshold(self) -> None:
+        gate = MarketRelativeUnderperformanceGate(threshold=-0.3)
+        result = gate.evaluate({"alpha_vs_spy_pct": -0.2, "benchmark_ok": True})
+        self.assertFalse(result.blocked)
+
+    def test_blocks_when_alpha_below_threshold(self) -> None:
+        gate = MarketRelativeUnderperformanceGate(threshold=-0.3)
+        result = gate.evaluate({"alpha_vs_spy_pct": -0.8, "benchmark_ok": True})
+        self.assertTrue(result.blocked)
+        self.assertEqual(result.reason, "market_relative_underperformance")
+
+    def test_no_session_data_allows_fail_open(self) -> None:
+        gate = MarketRelativeUnderperformanceGate(threshold=-0.3)
+        result = gate.evaluate({"benchmark_ok": True})
+        self.assertFalse(result.blocked)
+        self.assertEqual(result.detail, "missing_alpha_data")
+
+    def test_session_underperforming_flag_blocks(self) -> None:
+        gate = MarketRelativeUnderperformanceGate(threshold=-0.3)
+        result = gate.evaluate(
+            {
+                "session_underperforming": True,
+                "alpha_vs_spy_pct": -0.5,
+                "benchmark_ok": True,
+            }
+        )
+        self.assertTrue(result.blocked)
+
+    def test_session_monitor_sets_underperforming_flag(self) -> None:
+        state = update_session_metrics(
+            {
+                "alpha_vs_spy_pct": -0.8,
+                "benchmark_ok": True,
+                "session_return_pct": -0.2,
+                "benchmark_change_1d_pct": 0.6,
+            },
+            force=True,
+        )
+        self.assertTrue(state.get("session_underperforming"))
 
 
 class TestMarketRelativeGate(unittest.TestCase):
@@ -19,13 +69,27 @@ class TestMarketRelativeGate(unittest.TestCase):
 
     def test_blocks_when_alpha_below_threshold(self) -> None:
         gate = MarketRelativeGate(max_underperformance_pct=-0.5, lookback_minutes=60)
-        result = gate.evaluate({"alpha_vs_spy_pct": -0.8, "benchmark_ok": True})
+        result = gate.evaluate(
+            {
+                "alpha_vs_spy_pct": -0.8,
+                "benchmark_ok": True,
+                "session_exit_count": 0,
+                "session_realized_usd": 0.0,
+            }
+        )
         self.assertTrue(result.blocked)
         self.assertEqual(result.reason, "market_relative_underperformance")
 
     def test_alpha_vs_spy_alias_blocks_at_minus_one(self) -> None:
         gate = MarketRelativeGate(max_underperformance_pct=-0.5, lookback_minutes=60)
-        result = gate.evaluate({"alpha_vs_spy": -1.0, "benchmark_ok": True})
+        result = gate.evaluate(
+            {
+                "alpha_vs_spy": -1.0,
+                "benchmark_ok": True,
+                "session_exit_count": 0,
+                "session_realized_usd": 0.0,
+            }
+        )
         self.assertTrue(result.blocked)
         self.assertEqual(result.reason, "market_relative_underperformance")
 
@@ -33,6 +97,22 @@ class TestMarketRelativeGate(unittest.TestCase):
         gate = MarketRelativeGate(max_underperformance_pct=-0.5, lookback_minutes=60)
         result = gate.evaluate({"alpha_vs_spy": -0.3, "benchmark_ok": True})
         self.assertFalse(result.blocked)
+
+    def test_blocks_si_finding_scenario(self) -> None:
+        """Session alpha -0.92% vs SPY +0.92% blocks at -0.5% threshold."""
+        gate = MarketRelativeGate(max_underperformance_pct=-0.5, lookback_minutes=0)
+        result = gate.evaluate(
+            {
+                "alpha_vs_spy_pct": -0.9205,
+                "benchmark_change_1d_pct": 0.9205,
+                "session_return_pct": 0.0,
+                "benchmark_ok": True,
+                "session_exit_count": 0,
+                "session_realized_usd": 0.0,
+            }
+        )
+        self.assertTrue(result.blocked)
+        self.assertEqual(result.reason, "market_relative_underperformance")
 
     def test_disabled_gate_never_blocks(self) -> None:
         gate = MarketRelativeGate(enabled=False, max_underperformance_pct=-0.5)
@@ -54,6 +134,8 @@ class TestMarketRelativeGate(unittest.TestCase):
                 "session_return_pct": -0.2,
                 "benchmark_change_1d_pct": 0.5,
                 "alpha_vs_spy_pct": -0.7,
+                "session_exit_count": 0,
+                "session_realized_usd": 0.0,
             }
         )
         self.assertTrue(result.blocked)
@@ -89,7 +171,14 @@ class TestMarketRelativeGate(unittest.TestCase):
         reset_market_relative_cooldown()
         gate = MarketRelativeGate(max_underperformance_pct=-0.5, lookback_minutes=60)
         manager = RiskManager(gates=[gate], cooldown_seconds=0)
-        blocked = manager.evaluate_pre_trade_gates({"alpha_vs_spy_pct": -1.0, "benchmark_ok": True})
+        blocked = manager.evaluate_pre_trade_gates(
+            {
+                "alpha_vs_spy_pct": -1.0,
+                "benchmark_ok": True,
+                "session_exit_count": 0,
+                "session_realized_usd": 0.0,
+            }
+        )
         self.assertTrue(blocked.blocked)
         self.assertEqual(blocked.reason, "market_relative_underperformance")
 
@@ -97,7 +186,14 @@ class TestMarketRelativeGate(unittest.TestCase):
         reset_market_relative_cooldown()
         gate = MarketRelativeGate(max_underperformance_pct=-0.5, lookback_minutes=60)
         manager = RiskManager(gates=[gate], cooldown_seconds=3600)
-        first = manager.evaluate_pre_trade_gates({"alpha_vs_spy": -1.0, "benchmark_ok": True})
+        first = manager.evaluate_pre_trade_gates(
+            {
+                "alpha_vs_spy": -1.0,
+                "benchmark_ok": True,
+                "session_exit_count": 0,
+                "session_realized_usd": 0.0,
+            }
+        )
         self.assertTrue(first.blocked)
         second = manager.evaluate_pre_trade_gates({"alpha_vs_spy": 0.5, "benchmark_ok": True})
         self.assertTrue(second.blocked)
@@ -107,6 +203,7 @@ class TestMarketRelativeGate(unittest.TestCase):
         cfg = load_market_relative_gate_config()
         self.assertTrue(cfg["enabled"])
         self.assertEqual(cfg["max_underperformance_pct"], -0.5)
+        self.assertEqual(cfg["market_relative_underperformance_threshold"], -0.5)
         self.assertEqual(cfg["window_seconds"], 300)
         self.assertEqual(cfg["cooldown_seconds"], 3600)
 

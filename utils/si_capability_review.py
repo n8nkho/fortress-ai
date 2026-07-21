@@ -271,6 +271,15 @@ def evaluate_objective_gaps(metrics: dict[str, Any]) -> list[dict[str, Any]]:
             fills = int(comp_metrics.get("rolling_fills") or 0)
             if min_exits and fills < min_exits:
                 continue
+            # Demote idle Classic sleeve: skip gap emission when fills are stale.
+            demote_after = obj.get("demote_when_stale_fills_days")
+            if demote_after is not None and bool(obj.get("skip_gap_when_demoted")):
+                try:
+                    days_idle = float(comp_metrics.get("days_since_last_fill") or 0)
+                except (TypeError, ValueError):
+                    days_idle = 0.0
+                if days_idle >= float(demote_after):
+                    continue
             # Adaptive recency: use capability knob as effective target_max when set.
             if str(obj.get("metric") or "") == "days_since_last_fill":
                 try:
@@ -281,6 +290,16 @@ def evaluate_objective_gaps(metrics: dict[str, Any]) -> list[dict[str, Any]]:
                     target_max = obj["target_max"]
                 except Exception:
                     pass
+            # Soft-demote priority when idle but still emitting (non-skip objectives).
+            demote_after = obj.get("demote_when_stale_fills_days")
+            if demote_after is not None and not bool(obj.get("skip_gap_when_demoted")):
+                try:
+                    days_idle = float(comp_metrics.get("days_since_last_fill") or 0)
+                except (TypeError, ValueError):
+                    days_idle = 0.0
+                if days_idle >= float(demote_after):
+                    obj = dict(obj)
+                    obj["priority"] = str(obj.get("demoted_priority") or "low")
         elif comp != "si_meta" and comp != "portfolio_session":
             exits = int(comp_metrics.get("rolling_exits") or 0)
             if exits < min_exits:

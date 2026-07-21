@@ -1,0 +1,36 @@
+# Portfolio session entry guard configuration (Fortress stack).
+guards:
+  market_relative:
+    enabled: true
+    underperformance_threshold: 0.5  # percent magnitude; blocks when alpha_vs_spy_pct < -0.5
+
+  market_relative_underperformance:
+    enabled: true
+    underperformance_threshold_pct: -0.5
+
+market_relative_guard:
+  enabled: true
+  underperformance_threshold_pct: -0.5
+
+market_relative:
+  enabled: true
+  underperformance_threshold_pct: -0.5
+
+market_relative_underperformance:
+  enabled: true
+  market_relative_underperformance_enabled: true
+  underperformance_threshold_pct: -0.5
+  threshold_alpha_vs_spy_pct: -0.5
+  market_relative_underperformance_threshold_pct: -0.5
+  market_relative_underperformance_threshold: -0.5
+  market_relative_underperformance_threshold_bps: -50
+  lookback_period: '1d'
+
+# Constructive-tape participation override (strong SPY day + shortfall):
+# softens market-relative blocks when alpha is between soft threshold and deep floor.
+constructive_tape_override:
+  enabled: true
+  soft_alpha_threshold_pct: -0.8
+  deep_alpha_floor_pct: -1.0
+  max_overrides_per_day: 6
+  marker: constructive_tape_entry_override

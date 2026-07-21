@@ -325,6 +325,24 @@ def upsert_from_finding(
     elif not meta.get("agent_review_if_unmitigated", True):
         disposition = DISPOSITION_MONITORING
 
+    # Classic sleeve demotion: idle fill pipeline → monitor-only (not human-go / auto-code).
+    if component == "classic_fortress" or str(code).startswith("classic_"):
+        try:
+            from utils.classic_bridge import classic_rolling_metrics
+
+            classic = classic_rolling_metrics(window_sessions=10)
+            days_idle = float(classic.get("days_since_last_fill") or 0)
+            if days_idle >= 10.0:
+                disposition = DISPOSITION_MONITORING
+                finding = {
+                    **finding,
+                    "demoted": True,
+                    "demote_reason": f"classic_sleeve_idle_days={days_idle:.0f}",
+                    "marker": "classic_sleeve_demoted",
+                }
+        except Exception:
+            pass
+
     item = existing or {
         "id": str(uuid.uuid4()),
         "finding_key": finding_key_from_finding(finding),

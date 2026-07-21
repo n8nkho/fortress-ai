@@ -1,0 +1,10 @@
+# Portfolio session default guard configuration (Fortress stack).
+market_relative:
+  enabled: true
+  underperformance_threshold_pct: -0.5
+
+market_relative_underperformance:
+  enabled: true
+  underperformance_threshold_pct: -0.5
+  threshold_alpha_vs_spy_pct: -0.5
+  cooldown_minutes: 60

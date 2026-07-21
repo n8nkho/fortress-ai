@@ -1,0 +1,5 @@
+# Portfolio session default configuration (Fortress stack).
+guards:
+  market_relative_underperformance:
+    enabled: true
+    underperformance_threshold_pct: -0.5

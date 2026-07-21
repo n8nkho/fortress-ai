@@ -28,7 +28,8 @@ def format_session_report(
         "Entry blocks active: "
         f"denylist={int(breakdown.get('denylist') or 0)}, "
         f"pause_entries={int(breakdown.get('pause_entries') or 0)}, "
-        f"pattern_disables={int(breakdown.get('pattern_disables') or 0)}"
+        f"pattern_disables={int(breakdown.get('pattern_disables') or 0)}, "
+        f"market_relative={int(breakdown.get('market_relative') or 0)}"
     )
 
 

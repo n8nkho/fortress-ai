@@ -101,6 +101,12 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
         tgt_boost = min(0.12, float(ov.get("target_mult_overlay_boost") or 0) + 0.04)
         ov["target_mult_overlay_boost"] = round(tgt_boost, 4)
         changes.append(f"target_mult_boost={tgt_boost:.3f}")
+        # Near-breakeven payoff: also nudge stop tighter so expectancy can flip positive.
+        ov["stop_mult_overlay_boost"] = round(
+            min(0.10, float(ov.get("stop_mult_overlay_boost") or 0) + 0.02),
+            4,
+        )
+        changes.append(f"stop_mult_boost={ov['stop_mult_overlay_boost']:.3f}")
 
     if pay_f < 0.75 or (pf is not None and float(pf) < 0.65):
         mult = min(1.45, float(pol.get("cycle_interval_mult") or 1.0) * 1.05)

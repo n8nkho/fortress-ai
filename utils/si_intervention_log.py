@@ -92,6 +92,7 @@ def intervention_success_rate(
         action = str(row.get("action") or "")
         if action in _NO_OP_ACTIONS:
             continue
+        # Prefer edge-moving actions for scoring (expectancy/payoff autofix).
         comp = str(row.get("component") or "")
         if not comp or comp == "si_meta":
             continue
@@ -99,6 +100,17 @@ def intervention_success_rate(
         before_exp = _expectancy_usd(before)
         after_exp = _expectancy_usd(metrics.get(comp) or {})
         if before_exp is None or after_exp is None:
+            # Fallback: payoff ratio improvement counts as success for edge_autofix.
+            before_pay = before.get("rolling_payoff_ratio")
+            after_pay = (metrics.get(comp) or {}).get("rolling_payoff_ratio")
+            if before_pay is None or after_pay is None:
+                continue
+            try:
+                scored += 1
+                if float(after_pay) > float(before_pay) + 1e-9:
+                    improved += 1
+            except (TypeError, ValueError):
+                continue
             continue
         scored += 1
         if after_exp > before_exp + 1e-9:
