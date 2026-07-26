@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-07-21T15:19:14.099480-04:00"
+      "registered_at_utc": "2026-07-26T10:40:34.836205-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -835,6 +835,30 @@
       "effort": "medium",
       "impact": "high"
     },
+    "market_participation_gap": {
+      "title": "Strong-tape participation shortfall \u2014 bounded entry override, no SI over-tighten",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "market_participation_gap",
+        "constructive_tape_entry_override",
+        "participation_shortfall_exits",
+        "do_not_over_tighten_strong_tape",
+        "participation_boost"
+      ],
+      "auto_tunable": {
+        "edge_autofix_min_exits": {
+          "tier": 0,
+          "direction": "bounded"
+        },
+        "rolling_edge_autofix_strength": {
+          "tier": 0,
+          "direction": "bounded"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "medium"
+    },
     "classic_sleeve_demoted": {
       "title": "Demote Classic SI objectives/queue when fill pipeline idle",
       "kind": "code_guard",
@@ -1077,8 +1101,10 @@
       "kind": "tunable",
       "mitigation_markers": [
         "edge_autofix",
+        "edge_autofix_exhausted",
         "target_mult_boost",
         "stop_mult_overlay_boost",
+        "symbol_session_brake",
         "winning_pattern_gate"
       ],
       "auto_tunable": {
@@ -1088,12 +1114,58 @@
       "effort": "low",
       "impact": "high"
     },
+    "edge_autofix_exhausted": {
+      "title": "Stop edge autofix spam when overlays are at SI caps; escalate to symbol brakes",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "edge_autofix_exhausted",
+        "symbol_session_brake",
+        "overlays_at_cap"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "symbol_session_brake": {
+      "title": "Pause symbol entries after large adverse session losses",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "symbol_session_brake",
+        "pause_entries",
+        "FORTRESS_SI_SYMBOL_BRAKE_SINGLE_LOSS_USD"
+      ],
+      "auto_tunable": {
+        "symbol_session_loss_brake_mult": {
+          "tier": 1,
+          "direction": "bounded"
+        }
+      },
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "si_gap_action_registry": {
+      "title": "Wire capability gaps to Tier 0/1/2 actions via si_gap_action_registry.json",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_gap_action_registry",
+        "gap_action_dispatch",
+        "execute_after_et"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
     "si_intervention_effectiveness_gap": {
       "title": "SI interventions not improving rolling expectancy",
       "kind": "code_guard",
       "mitigation_markers": [
         "si_intervention_recorded",
         "intervention_success_rate",
+        "edge_autofix_exhausted",
+        "symbol_session_brake",
         "constructive_tape_entry_override",
         "classic_sleeve_demoted",
         "edge_autofix"

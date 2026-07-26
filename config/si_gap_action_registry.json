@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "description": "Map SI objective/finding codes to Tier 0/1/2 actions. Wiring lands via deferred auto-implement (si_gap_action_registry).",
+  "status": "skeleton_pending_wire",
+  "tiers": {
+    "0": "bounded overlays / cooldowns / max_open (existing governance)",
+    "1": "symbol session pause, clip shrink, time-stop mult, pattern disable",
+    "2": "allowlisted code via Cursor SI (e2e + markers + registry)"
+  },
+  "actions": {
+    "edge_autofix": {"tier": 0, "handler": "utils.edge_autofix.apply_edge_autofix"},
+    "edge_autofix_exhausted": {"tier": 1, "handler": "utils.si_adaptive_actions.apply_symbol_session_brakes", "escalates_to": "symbol_session_brake"},
+    "symbol_session_brake": {"tier": 1, "handler": "utils.si_adaptive_actions.apply_symbol_session_brakes"},
+    "swarm_session_adapt": {"tier": 0, "handler": "utils.swarm_session_si.adapt_session_policy"}
+  },
+  "gaps": {
+    "skim_payoff_ratio_gap": {
+      "preferred_actions": ["edge_autofix", "symbol_session_brake", "edge_autofix_exhausted"],
+      "forbidden": ["loosen_pre_trade_gate", "raise_rr_beyond_cap"]
+    },
+    "skim_session_expectancy_gap": {
+      "preferred_actions": ["swarm_session_adapt", "symbol_session_brake", "edge_autofix"],
+      "forbidden": ["loosen_pre_trade_gate"]
+    },
+    "infra_session_expectancy": {
+      "preferred_actions": ["swarm_session_adapt", "symbol_session_brake"],
+      "forbidden": ["loosen_pre_trade_gate"]
+    },
+    "si_intervention_effectiveness_gap": {
+      "preferred_actions": ["edge_autofix_exhausted", "symbol_session_brake"],
+      "forbidden": ["lower_intervention_target_min"]
+    },
+    "classic_fill_recency_gap": {
+      "preferred_actions": ["classic_sleeve_demoted"],
+      "forbidden": ["revive_classic_without_ops"]
+    }
+  }
+}

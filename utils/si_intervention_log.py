@@ -6,10 +6,18 @@ import os
 from pathlib import Path
 from typing import Any
 
-from utils.system_time import now_iso
+from utils.system_time import now, now_iso
 
-# Heartbeat / no-op actions must not count as interventions for success-rate scoring.
-_NO_OP_ACTIONS = frozenset({"swarm_session_normal"})
+# Heartbeat / no-op / exhausted actions must not count for success-rate scoring.
+_NO_OP_ACTIONS = frozenset(
+    {
+        "swarm_session_normal",
+        "edge_autofix_exhausted",
+        "si_meta_heartbeat",
+    }
+)
+_MIN_EXP_DELTA = 0.005
+_MIN_PAY_DELTA = 0.02
 
 
 def _data_dir() -> Path:
@@ -28,6 +36,7 @@ def record_intervention(
     action: str,
     metrics_snapshot: dict[str, Any] | None = None,
     detail: dict[str, Any] | None = None,
+    scoreable: bool = True,
 ) -> None:
     p = intervention_log_path()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -37,6 +46,8 @@ def record_intervention(
         "action": action,
         "metrics_snapshot": metrics_snapshot or {},
         "detail": detail or {},
+        "scoreable": bool(scoreable),
+        "session_date_et": now().date().isoformat(),
         "markers": ["si_intervention_recorded"],
     }
     with p.open("a", encoding="utf-8") as fh:
@@ -76,45 +87,61 @@ def _expectancy_usd(comp_metrics: dict[str, Any]) -> float | None:
     return None
 
 
+def _session_key(row: dict[str, Any]) -> str:
+    return str(row.get("session_date_et") or str(row.get("ts") or "")[:10])
+
+
 def intervention_success_rate(
     metrics: dict[str, Any],
     *,
-    lookback: int = 12,
+    lookback: int = 24,
 ) -> float | None:
-    """Fraction of recent actionable interventions followed by improved expectancy."""
+    """Fraction of distinct recent actionable interventions with material improvement."""
     rows = _read_tail(intervention_log_path())[-lookback:]
     if not rows:
         return None
 
-    improved = 0
-    scored = 0
+    # Dedupe spam: one score slot per (component, action, session_date).
+    deduped: dict[tuple[str, str, str], dict[str, Any]] = {}
     for row in rows:
         action = str(row.get("action") or "")
         if action in _NO_OP_ACTIONS:
             continue
-        # Prefer edge-moving actions for scoring (expectancy/payoff autofix).
+        if row.get("scoreable") is False:
+            continue
+        detail = row.get("detail") or {}
+        if str(detail.get("marker") or "") == "edge_autofix_exhausted":
+            continue
+        if str(detail.get("skipped") or "") == "edge_autofix_exhausted":
+            continue
         comp = str(row.get("component") or "")
         if not comp or comp == "si_meta":
             continue
+        key = (comp, action, _session_key(row))
+        deduped[key] = row  # keep latest in session
+
+    improved = 0
+    scored = 0
+    for row in deduped.values():
+        comp = str(row.get("component") or "")
         before = (row.get("metrics_snapshot") or {}).get(comp) or {}
         before_exp = _expectancy_usd(before)
         after_exp = _expectancy_usd(metrics.get(comp) or {})
-        if before_exp is None or after_exp is None:
-            # Fallback: payoff ratio improvement counts as success for edge_autofix.
-            before_pay = before.get("rolling_payoff_ratio")
-            after_pay = (metrics.get(comp) or {}).get("rolling_payoff_ratio")
-            if before_pay is None or after_pay is None:
-                continue
-            try:
-                scored += 1
-                if float(after_pay) > float(before_pay) + 1e-9:
-                    improved += 1
-            except (TypeError, ValueError):
-                continue
+        if before_exp is not None and after_exp is not None:
+            scored += 1
+            if after_exp > before_exp + _MIN_EXP_DELTA:
+                improved += 1
             continue
-        scored += 1
-        if after_exp > before_exp + 1e-9:
-            improved += 1
+        before_pay = before.get("rolling_payoff_ratio")
+        after_pay = (metrics.get(comp) or {}).get("rolling_payoff_ratio")
+        if before_pay is None or after_pay is None:
+            continue
+        try:
+            scored += 1
+            if float(after_pay) > float(before_pay) + _MIN_PAY_DELTA:
+                improved += 1
+        except (TypeError, ValueError):
+            continue
     if not scored:
         return None
     return improved / scored

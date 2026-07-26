@@ -49,6 +49,39 @@ def session_rr_margin_boost(component: str) -> float:
         return 0.0
 
 
+def _overlay_caps(*, rr_cap: float) -> dict[str, float]:
+    return {
+        "rr": float(rr_cap),
+        "target": 0.12,
+        "stop": 0.10,
+        "stop_hard": 0.08,
+        "enter_long": 0.15,
+        "enter_short": -0.15,
+        "cycle_mult": 1.45,
+    }
+
+
+def overlays_at_cap(component: str, *, rr_cap: float | None = None) -> bool:
+    """True when RR/target/stop session overlays are already at SI ceilings."""
+    if rr_cap is None:
+        try:
+            from utils.si_capability_review import effective_edge_autofix_rr_boost_cap
+
+            rr_cap = float(effective_edge_autofix_rr_boost_cap())
+        except Exception:
+            rr_cap = 0.12
+    ov = load_runtime_overrides(component)
+    caps = _overlay_caps(rr_cap=float(rr_cap))
+    rr = float(ov.get("rr_safety_margin_session_boost") or 0)
+    tgt = float(ov.get("target_mult_overlay_boost") or 0)
+    stop = float(ov.get("stop_mult_overlay_boost") or 0)
+    return (
+        rr >= caps["rr"] - 1e-9
+        and tgt >= caps["target"] - 1e-9
+        and stop >= caps["stop_hard"] - 1e-9
+    )
+
+
 def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, Any]:
     """Tighten session policy and runtime knobs when payoff is inverted."""
     changes: list[str] = []
@@ -74,8 +107,63 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
 
     from utils.swarm_session_si import load_session_policy, save_session_policy
 
+    try:
+        from utils.si_capability_review import effective_edge_autofix_rr_boost_cap
+
+        rr_cap = float(effective_edge_autofix_rr_boost_cap())
+    except Exception:
+        rr_cap = 0.12
+
     pol = load_session_policy(component)
     ov = load_runtime_overrides(component)
+    before = {
+        "rr": float(ov.get("rr_safety_margin_session_boost") or 0),
+        "target": float(ov.get("target_mult_overlay_boost") or 0),
+        "stop": float(ov.get("stop_mult_overlay_boost") or 0),
+        "enter_long": float(pol.get("enter_long_delta_boost") or 0),
+        "cycle": float(pol.get("cycle_interval_mult") or 1.0),
+        "max_open": pol.get("max_open_effective"),
+    }
+
+    # Overlays already maxed: do not spam interventions; escalate to symbol brakes path.
+    if overlays_at_cap(component, rr_cap=rr_cap):
+        toxic = _toxic_patterns(scorecard)
+        toxic_n = _disable_toxic_patterns(component, toxic) if toxic else 0
+        marker = "edge_autofix_exhausted"
+        ov["updated_utc"] = datetime.now(timezone.utc).isoformat()
+        ov["last_edge_autofix"] = {
+            "payoff_ratio": pay_f,
+            "profit_factor": pf,
+            "expectancy_usd": exp,
+            "exits": exits,
+            "ts": ov["updated_utc"],
+            "skipped": marker,
+            "marker": marker,
+        }
+        save_runtime_overrides(component, ov)
+        notes = list(pol.get("notes") or [])
+        notes.append(f"{marker}:pay={pay_f:.2f} exp={exp} exits={exits}")
+        pol["notes"] = notes[-12:]
+        save_session_policy(component, pol)
+        try:
+            from utils.si_capability_review import collect_metrics
+            from utils.si_intervention_log import record_intervention
+
+            record_intervention(
+                component=component,
+                action=marker,
+                metrics_snapshot=collect_metrics(),
+                detail={"payoff_ratio": pay_f, "toxic_disabled": toxic_n, "marker": marker},
+                scoreable=False,
+            )
+        except Exception:
+            pass
+        return {
+            "component": component,
+            "changes": ([f"disabled_pattern_symbols={toxic_n}"] if toxic_n else []),
+            "skipped": marker,
+            "marker": marker,
+        }
 
     pol["enter_long_delta_boost"] = round(
         min(0.15, float(pol.get("enter_long_delta_boost") or 0) + 0.02),
@@ -87,12 +175,6 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
     )
     changes.append(f"session_enter_delta L={pol['enter_long_delta_boost']}")
 
-    try:
-        from utils.si_capability_review import effective_edge_autofix_rr_boost_cap
-
-        rr_cap = effective_edge_autofix_rr_boost_cap()
-    except Exception:
-        rr_cap = 0.12
     boost = min(rr_cap, float(ov.get("rr_safety_margin_session_boost") or 0) + 0.03)
     ov["rr_safety_margin_session_boost"] = round(boost, 4)
     changes.append(f"rr_margin_boost={boost:.3f}")
@@ -124,6 +206,18 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
             pol["max_open_effective"] = max(1, base - 1)
             changes.append(f"max_open={pol['max_open_effective']}")
 
+    after = {
+        "rr": float(ov.get("rr_safety_margin_session_boost") or 0),
+        "target": float(ov.get("target_mult_overlay_boost") or 0),
+        "stop": float(ov.get("stop_mult_overlay_boost") or 0),
+        "enter_long": float(pol.get("enter_long_delta_boost") or 0),
+        "cycle": float(pol.get("cycle_interval_mult") or 1.0),
+        "max_open": pol.get("max_open_effective"),
+    }
+    material = any(
+        (after[k] != before[k]) for k in ("rr", "target", "stop", "enter_long", "cycle", "max_open")
+    )
+
     notes = list(pol.get("notes") or [])
     notes.append(f"edge_autofix:pay={pay_f:.2f} exp={exp} exits={exits}")
     pol["notes"] = notes[-12:]
@@ -135,6 +229,7 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
         n = _disable_toxic_patterns(component, toxic)
         if n:
             changes.append(f"disabled_pattern_symbols={n}")
+            material = True
 
     ov["updated_utc"] = datetime.now(timezone.utc).isoformat()
     ov["last_edge_autofix"] = {
@@ -145,7 +240,7 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
         "ts": ov["updated_utc"],
     }
     save_runtime_overrides(component, ov)
-    if changes:
+    if changes and material:
         try:
             from utils.si_capability_review import collect_metrics
             from utils.si_intervention_log import record_intervention
@@ -155,9 +250,17 @@ def apply_edge_autofix(component: str, scorecard: dict[str, Any]) -> dict[str, A
                 action="edge_autofix",
                 metrics_snapshot=collect_metrics(),
                 detail={"changes": changes, "payoff_ratio": pay_f},
+                scoreable=True,
             )
         except Exception:
             pass
+    elif changes and not material:
+        return {
+            "component": component,
+            "changes": changes,
+            "skipped": "edge_autofix_exhausted",
+            "marker": "edge_autofix_exhausted",
+        }
     return {"component": component, "changes": changes, "toxic_patterns": toxic}
 
 

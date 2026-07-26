@@ -296,7 +296,8 @@ def adapt_swarm_session(
 
     prev_mode = str(prev.get("mode") or "normal")
     new_mode = str(policy.get("mode") or "normal")
-    if new_mode != prev_mode or new_mode != "normal":
+    # Only record mode *transitions* — staying in tight/churn is not an intervention.
+    if new_mode != prev_mode:
         try:
             from utils.si_capability_review import collect_metrics
             from utils.si_intervention_log import record_intervention
@@ -310,6 +311,7 @@ def adapt_swarm_session(
                     "prev_mode": prev_mode,
                     "max_open_effective": policy.get("max_open_effective"),
                 },
+                scoreable=True,
             )
         except Exception:
             pass

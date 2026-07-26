@@ -342,6 +342,19 @@ def can_auto_implement(item: dict[str, Any]) -> tuple[bool, str]:
     if item.get("code_implementation", {}).get("status") == "implementing":
         return False, "already_implementing"
 
+    # Deferred auto-implement: wait until execute_after_et (America/New_York date).
+    execute_after = str(item.get("execute_after_et") or "").strip()
+    if execute_after:
+        try:
+            from datetime import date
+
+            from utils.system_time import now
+
+            if now().date() < date.fromisoformat(execute_after[:10]):
+                return False, f"execute_after_not_reached:{execute_after[:10]}"
+        except Exception:
+            pass
+
     kind = str(item.get("kind") or "")
     if kind == "monitor":
         return False, "monitor_only"
@@ -578,6 +591,7 @@ def build_implementation_prompt(item: dict[str, Any]) -> str:
 - Do NOT edit .env, .cursor/, data/, or weaken pre-trade gate / immutable caps
 - NEVER edit protected files: {', '.join(PROTECTED_REL_PATHS)}
 - Only edit: agents/, utils/, config/, scripts/, tests/, dashboard/, deploy/ (non-protected)
+- NEVER edit data/, .env, venv/, or live queue JSON — runtime state is out of scope
 - Minimize diff scope; match existing code style
 - Add detectable log/block_reason markers: {', '.join(markers) if markers else 'as appropriate'}
 - Update config/si_fix_registry.json for code {item.get('code')} if new mitigation
@@ -604,11 +618,48 @@ def _git_diff_paths(repo: Path) -> list[str]:
         return []
 
 
+def _path_is_data_or_runtime(rel_path: str) -> bool:
+    norm = _normalize_rel_path(rel_path)
+    return (
+        norm.startswith("data/")
+        or "/data/" in f"/{norm}"
+        or norm.startswith("venv/")
+        or "__pycache__" in norm
+        or norm.startswith(".env")
+        or norm.startswith(".cursor/")
+        or norm.startswith(".vscode/")
+    )
+
+
+def _revert_forbidden_workdir_paths(repo: Path) -> list[str]:
+    """Revert data/ and other non-code diffs so SI allowlist checks ignore them."""
+    reverted: list[str] = []
+    for p in _git_diff_paths(repo):
+        if not _path_is_data_or_runtime(p):
+            continue
+        try:
+            subprocess.run(
+                ["git", "checkout", "--", p],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            reverted.append(p)
+        except Exception:
+            pass
+    return reverted
+
+
 def _diff_allowed(paths: list[str]) -> tuple[bool, str]:
-    for p in paths:
+    # Ignore runtime/data paths — agents often touch the queue by mistake.
+    actionable = [p for p in paths if not _path_is_data_or_runtime(p)]
+    if paths and not actionable:
+        return False, "no_allowed_code_changes"
+    for p in actionable:
         if path_is_protected(p):
             return False, f"SI-BLOCKED: protected_path:{p}"
-        if any(frag in p for frag in FORBIDDEN_PATH_FRAGMENTS):
+        if any(frag in f"/{p}" for frag in ("/.env", "/.cursor/", "/.vscode/", "/venv/")):
             return False, f"forbidden_path:{p}"
         if not any(p.startswith(prefix) for prefix in ALLOWED_WRITE_PREFIXES):
             return False, f"outside_allowlist:{p}"
@@ -772,7 +823,8 @@ def implement_item(item_id: str, *, dry_run: bool = False) -> dict[str, Any]:
 
             changed_repos: list[str] = []
             for repo in repos:
-                paths = _git_diff_paths(repo)
+                reverted = _revert_forbidden_workdir_paths(repo)
+                paths = [p for p in _git_diff_paths(repo) if not _path_is_data_or_runtime(p)]
                 if paths:
                     allowed, block = _diff_allowed(paths)
                     if not allowed:
@@ -781,6 +833,7 @@ def implement_item(item_id: str, *, dry_run: bool = False) -> dict[str, Any]:
                             "item_id": item_id,
                             "error": block,
                             "paths": paths,
+                            "reverted_runtime_paths": reverted,
                             "finished_utc": now_iso(),
                         }
                         (run_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

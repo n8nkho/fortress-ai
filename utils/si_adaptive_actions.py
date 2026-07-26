@@ -185,7 +185,11 @@ def _load_learned(component: str, symbol: str) -> dict[str, Any]:
 def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     """
     Per-symbol adaptive loss brake — independent of swarm-wide session SI.
-    Scales threshold from session PnL dispersion and capability knob.
+
+    Triggers:
+    - Multi-exit session loser beyond scaled avg-win threshold (existing)
+    - Single large adverse exit (mega-cap blowup) → pause_entries for session
+    - Rolling symbol expectancy deeply negative across recent experience (optional)
     """
     if not _enabled():
         return {"skipped": "adaptive_disabled", "brakes": []}
@@ -206,7 +210,18 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
         ex = int(st.get("exits") or 0)
         pnl = float(st.get("sum_pnl_usd") or 0)
         if ex > 0:
-            losses.append((pnl, ex, f.stem.upper(), doc))
+            losses.append((pnl, ex, f.stem.upper().replace("_", "."), doc))
+
+    # Also fold rolling experience losers when learned session stats are thin.
+    rolling_hits = _rolling_symbol_loss_hits(component, sess)
+    seen = {x[2] for x in losses}
+    for sym, pnl, ex in rolling_hits:
+        if sym in seen:
+            continue
+        doc = _load_learned(component, sym)
+        if not isinstance(doc, dict):
+            doc = {"params": {}, "session_date_et": sess, "session_stats": {"exits": ex, "sum_pnl_usd": pnl}}
+        losses.append((pnl, ex, sym, doc))
 
     if not losses:
         return {"brakes": []}
@@ -216,21 +231,35 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     brake_mult = float(_get_cap("symbol_session_loss_brake_mult", 1.0))
     min_loss = max(0.12, avg_win * 0.35 * brake_mult)
     min_exits = max(2, min(5, int(2 + brake_mult)))
+    try:
+        single_loss_usd = float(os.environ.get("FORTRESS_SI_SYMBOL_BRAKE_SINGLE_LOSS_USD", "0.25") or 0.25)
+    except (TypeError, ValueError):
+        single_loss_usd = 0.25
+    single_loss_usd = max(0.15, single_loss_usd * brake_mult)
 
     brakes: list[str] = []
     for pnl, ex, sym, doc in losses:
-        if pnl >= -min_loss or ex < min_exits:
+        large_single = pnl <= -single_loss_usd and ex >= 1
+        multi_loser = pnl < -min_loss and ex >= min_exits
+        if not large_single and not multi_loser:
             continue
-        severity = min(1.0, abs(pnl) / max(min_loss, 0.01))
+        severity = min(1.0, abs(pnl) / max(min_loss, single_loss_usd, 0.01))
         params = doc.setdefault("params", {})
         penalty = round(min(0.12, 0.03 * severity), 4)
         params["enter_long_delta"] = round(
             max(-0.15, float(params.get("enter_long_delta") or 0) - penalty),
             4,
         )
-        if severity >= 0.85 and ex >= min_exits + 1:
+        params["enter_short_delta"] = round(
+            min(0.15, float(params.get("enter_short_delta") or 0) + penalty),
+            4,
+        )
+        # Mega-cap / single blowup: pause all new entries on symbol for session.
+        if large_single or (severity >= 0.85 and ex >= min_exits):
+            params["pause_entries"] = True
             params["pause_long"] = True
-            brakes.append(f"{sym}:pause_long pnl={pnl:.2f} ex={ex}")
+            params["pause_short"] = True
+            brakes.append(f"{sym}:pause_entries pnl={pnl:.2f} ex={ex} marker=symbol_session_brake")
         else:
             brakes.append(f"{sym}:enter_delta-={penalty} pnl={pnl:.2f}")
 
@@ -253,11 +282,85 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
                 brakes.append(f"{sym}:disable_pattern:{worst_pat}")
 
         notes = list(doc.get("si_notes") or [])
-        notes.append(f"session_brake:{pnl:.2f} severity={severity:.2f}")
+        notes.append(f"session_brake:{pnl:.2f} severity={severity:.2f} marker=symbol_session_brake")
         doc["si_notes"] = notes[-8:]
+        doc["session_date_et"] = sess
         _save_learned(component, sym, doc)
 
-    return {"component": component, "brakes": brakes, "min_loss_usd": round(min_loss, 3)}
+    if brakes:
+        try:
+            from utils.si_capability_review import collect_metrics
+            from utils.si_intervention_log import record_intervention
+
+            record_intervention(
+                component=component,
+                action="symbol_session_brake",
+                metrics_snapshot=collect_metrics(),
+                detail={"brakes": brakes[:12], "marker": "symbol_session_brake"},
+                scoreable=True,
+            )
+        except Exception:
+            pass
+
+    return {
+        "component": component,
+        "brakes": brakes,
+        "min_loss_usd": round(min_loss, 3),
+        "single_loss_usd": round(single_loss_usd, 3),
+        "marker": "symbol_session_brake" if brakes else None,
+    }
+
+
+def _rolling_symbol_loss_hits(component: str, session_date: str) -> list[tuple[str, float, int]]:
+    """Pull recent per-symbol realized losers from experience/*.jsonl when present."""
+    exp_dir = _data_dir() / (component if component.endswith("_swarm") else f"{component}_swarm") / "experience"
+    if not exp_dir.is_dir():
+        return []
+    try:
+        single_loss_usd = float(os.environ.get("FORTRESS_SI_SYMBOL_BRAKE_SINGLE_LOSS_USD", "0.25") or 0.25)
+    except (TypeError, ValueError):
+        single_loss_usd = 0.25
+
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    agg: dict[str, list[float]] = {}
+    for f in exp_dir.glob("*.jsonl"):
+        sym = f.stem.upper()
+        try:
+            lines = f.read_text(encoding="utf-8").splitlines()[-40:]
+        except Exception:
+            continue
+        for line in lines:
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            ts = row.get("ts") or row.get("exit_ts") or row.get("closed_at")
+            if not ts:
+                continue
+            try:
+                dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00")).astimezone(et)
+            except Exception:
+                continue
+            if dt.date().isoformat() != session_date:
+                continue
+            pnl = row.get("realized_pnl_usd")
+            if pnl is None:
+                pnl = row.get("pnl_usd")
+            try:
+                pnl_f = float(pnl)
+            except (TypeError, ValueError):
+                continue
+            agg.setdefault(sym, []).append(pnl_f)
+
+    out: list[tuple[str, float, int]] = []
+    for sym, pnls in agg.items():
+        total = sum(pnls)
+        if total <= -single_loss_usd or (len(pnls) >= 2 and total < -0.12):
+            out.append((sym, total, len(pnls)))
+    return out
 
 
 def _unified_si_state_path() -> Path:
