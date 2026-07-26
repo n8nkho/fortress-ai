@@ -5,12 +5,21 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from utils.portfolio_session.entry_block_breakdown import (
+    increment_market_relative_underperformance_breakdown,
+)
 from utils.portfolio_session.entry_decision import evaluate_entry_decision
 from utils.portfolio_session.guards import GUARD_REGISTRY
 
 log = logging.getLogger(__name__)
 
-_BLOCK_TYPES = ("denylist", "pause_entries", "pattern_disables", "market_relative")
+_BLOCK_TYPES = (
+    "denylist",
+    "pause_entries",
+    "pattern_disables",
+    "market_relative",
+    "market_relative_underperformance",
+)
 
 
 def _classify_block(reasoning: str) -> str | None:
@@ -26,7 +35,7 @@ def _classify_block(reasoning: str) -> str | None:
     if r == "constructive_tape_entry_override" or "constructive_tape" in r or "tape_override" in r:
         return None
     if r == "market_relative_underperformance" or "market_relative" in r:
-        return "market_relative"
+        return "market_relative_underperformance"
     return None
 
 
@@ -52,6 +61,11 @@ class EntryManager:
         if not block_type:
             return None
         self._block_counts[block_type] = int(self._block_counts.get(block_type) or 0) + 1
+        # Legacy alias used by session reports / older tests.
+        if block_type == "market_relative_underperformance":
+            self._block_counts["market_relative"] = (
+                int(self._block_counts.get("market_relative") or 0) + 1
+            )
         return block_type
 
     def block_counts(self) -> dict[str, int]:
@@ -71,10 +85,13 @@ def get_entry_manager() -> EntryManager:
 def record_market_relative_block() -> None:
     """Increment market_relative counter when MarketRelativeGate blocks an entry."""
     mgr = get_entry_manager()
-    mgr._block_counts["market_relative"] = int(mgr._block_counts.get("market_relative") or 0) + 1
+    counts = increment_market_relative_underperformance_breakdown(mgr._block_counts)
+    mgr._block_counts.update(counts)
     log.info(
-        "entry_block_breakdown market_relative=%s marker=market_relative_underperformance",
-        mgr._block_counts["market_relative"],
+        "entry_block_breakdown market_relative_underperformance=%s market_relative=%s "
+        "marker=market_relative_underperformance",
+        mgr._block_counts.get("market_relative_underperformance"),
+        mgr._block_counts.get("market_relative"),
     )
 
 

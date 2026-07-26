@@ -24,19 +24,68 @@ def _normalize_underperformance_threshold(raw: Any, default: float = _DEFAULT_UN
     return value
 
 
+def _block_reason_for_alpha_vs_spy(alpha_vs_spy: float, threshold: float) -> str | None:
+    """Return block reason when alpha_vs_spy underperforms threshold magnitude, else None."""
+    mag = _normalize_underperformance_threshold(threshold)
+    limit = -mag
+    if float(alpha_vs_spy) >= limit:
+        return None
+    bps = int(round(mag * 100))
+    detail = (
+        f"session_underperforming alpha_vs_spy={float(alpha_vs_spy):.4f} "
+        f"market_relative_underperformance_threshold={limit:.4f} "
+        f"market_relative_underperformance_threshold_bps={bps}"
+    )
+    log.warning(
+        "market_relative_underperformance MarketRelativeGate entry_blocked_by_market_relative %s",
+        detail,
+    )
+    return f"market_relative_underperformance {detail}"
+
+
 def check_market_relative_underperformance(
-    session_alpha_vs_spy_pct: float | dict[str, Any],
-    threshold: float = -0.5,
-) -> bool:
-    """Return True (block entry) if alpha_vs_spy_pct underperforms beyond threshold."""
-    if isinstance(session_alpha_vs_spy_pct, dict):
+    session_alpha_or_alpha_vs_spy: float | dict[str, Any],
+    spy_change_or_threshold: float = -0.5,
+    threshold: float | None = None,
+) -> str | bool | None:
+    """Block when session alpha vs SPY underperforms threshold.
+
+    Three-arg form (SI plan): ``check_market_relative_underperformance(session_alpha, spy_change, threshold)``
+    returns a block-reason string when ``session_alpha - spy_change < -threshold``, else None.
+
+    Two-arg legacy form returns bool for precomputed alpha_vs_spy vs threshold.
+    Dict form delegates to entry-guard helper and returns str | None.
+    """
+    if isinstance(session_alpha_or_alpha_vs_spy, dict):
         from utils.portfolio_session.entry_guards.market_relative_underperformance import (
             check_market_relative_underperformance as check_session_stats,
         )
 
-        return check_session_stats(session_alpha_vs_spy_pct, threshold) is not None
-    limit = -_normalize_underperformance_threshold(threshold)
-    return float(session_alpha_vs_spy_pct) < limit
+        return check_session_stats(session_alpha_or_alpha_vs_spy, spy_change_or_threshold)
+
+    if threshold is not None:
+        # SI three-arg form: (session_return, spy_change, magnitude_pct_points).
+        # Magnitude is already percent points (0.5 = 0.5%), not a 0–1 fraction.
+        alpha_vs_spy = float(session_alpha_or_alpha_vs_spy) - float(spy_change_or_threshold)
+        mag = abs(float(threshold))
+        limit = -mag
+        if float(alpha_vs_spy) >= limit:
+            return None
+        bps = int(round(mag * 100))
+        detail = (
+            f"session_underperforming alpha_vs_spy={float(alpha_vs_spy):.4f} "
+            f"market_relative_underperformance_threshold={limit:.4f} "
+            f"market_relative_underperformance_threshold_bps={bps}"
+        )
+        log.warning(
+            "market_relative_underperformance MarketRelativeGate entry_blocked_by_market_relative %s",
+            detail,
+        )
+        return f"market_relative_underperformance {detail}"
+
+    return _block_reason_for_alpha_vs_spy(
+        float(session_alpha_or_alpha_vs_spy), spy_change_or_threshold
+    ) is not None
 
 
 def _compute_alpha_vs_spy(session_context: dict[str, Any]) -> float | None:

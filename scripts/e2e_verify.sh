@@ -25,11 +25,20 @@ done
 
 echo "[e2e:fai] repo root: ${ROOT}"
 
+echo "[e2e:fai] whitepaper PDF sync..."
+"${ROOT}/scripts/ensure_whitepaper_pdf.sh"
+
 echo "[e2e:fai] python unittest (tests/)..."
-python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 -m unittest discover -s tests -p 'test_*.py' -v || {
+  echo "[e2e:fai] ERROR: unit tests failed" >&2
+  exit 1
+}
 
 echo "[e2e:fai] python unittest (unified_ai/tests/)..."
-python3 -m unittest discover -s unified_ai/tests -p 'test_*.py' -v
+python3 -m unittest discover -s unified_ai/tests -p 'test_*.py' -v || {
+  echo "[e2e:fai] ERROR: unified_ai unit tests failed" >&2
+  exit 1
+}
 
 if [[ "${SKIP_INGEST}" == "1" ]]; then
   echo "[e2e:fai] skip ingest (--no-ingest)"

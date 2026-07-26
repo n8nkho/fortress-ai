@@ -15,6 +15,18 @@ class SessionState:
             self._raw = self._load_from_tracker(self._raw)
 
     @property
+    def spy_change_pct(self) -> float | None:
+        """SPY session change in percent points (from market data / benchmark feed)."""
+        for key in ("spy_change_pct", "spy_return_pct", "benchmark_change_1d_pct"):
+            raw = self._raw.get(key)
+            if raw is not None:
+                try:
+                    return float(raw)
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    @property
     def alpha_vs_spy_pct(self) -> float | None:
         """Session return % minus SPY return % (percent points)."""
         return self._resolve_alpha(enrich_session_context_with_alpha(self._raw))
@@ -22,6 +34,10 @@ class SessionState:
     @property
     def session_alpha_vs_spy(self) -> float | None:
         """Alias for alpha_vs_spy_pct — session alpha vs SPY in percent points."""
+        return self.alpha_vs_spy_pct
+
+    def alpha_vs_spy(self) -> float | None:
+        """Current session alpha vs SPY in percent points."""
         return self.alpha_vs_spy_pct
 
     @staticmethod
@@ -37,7 +53,9 @@ class SessionState:
         session_pnl = state.get("session_return_pct")
         if session_pnl is None:
             session_pnl = state.get("session_realized_pnl_pct")
-        spy_return = state.get("spy_return_pct")
+        spy_return = state.get("spy_change_pct")
+        if spy_return is None:
+            spy_return = state.get("spy_return_pct")
         if spy_return is None:
             spy_return = state.get("benchmark_change_1d_pct")
         if session_pnl is not None and spy_return is not None:
@@ -47,10 +65,19 @@ class SessionState:
                 return None
         return None
 
+    def update_spy_change_pct(self, spy_change_pct: float) -> None:
+        """Persist SPY session change from market data feed."""
+        value = float(spy_change_pct)
+        self._raw["spy_change_pct"] = value
+        self._raw["benchmark_change_1d_pct"] = value
+
     def update(self, session_state: dict[str, Any] | None = None) -> dict[str, Any]:
         """Merge session update and persist session_alpha_vs_spy for guard evaluation."""
         if session_state:
             self._raw.update(session_state)
+        spy = self.spy_change_pct
+        if spy is not None:
+            self._raw["spy_change_pct"] = spy
         state = enrich_session_context_with_alpha(dict(self._raw))
         alpha = self._resolve_alpha(state)
         if alpha is not None:
@@ -86,6 +113,8 @@ class SessionState:
                     "benchmark_change_1d_pct": port.get("benchmark_change_1d_pct"),
                     "session_exit_count": port.get("session_exit_count"),
                     "session_realized_usd": port.get("session_realized_usd"),
+                    "strong_tape_1d": bool(port.get("strong_tape_1d")),
+                    "participation_shortfall_exits": int(port.get("participation_shortfall_exits") or 0),
                     "entry_block_breakdown": port.get("entry_block_breakdown") or {},
                 }
             )
