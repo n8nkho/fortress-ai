@@ -121,6 +121,7 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "utils" / "portfolio_session" / "entry_gate.py",
         _ROOT / "utils" / "portfolio_session" / "session_state.py",
         _ROOT / "utils" / "portfolio_session" / "entry_guard_manager.py",
+        _ROOT / "utils" / "portfolio_session" / "entry_guard_router.py",
         _ROOT / "utils" / "portfolio_session" / "entry_block_manager.py",
         _ROOT / "utils" / "portfolio_session" / "metrics" / "session_alpha.py",
         _ROOT / "utils" / "portfolio_session" / "config" / "default_guards.yaml",
@@ -180,6 +181,7 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "deploy" / "trading-bot-patches" / "portfolio_session" / "config" / "default_guards.yaml",
         _ROOT / "deploy" / "trading-bot-patches" / "portfolio_session" / "config" / "default.yaml",
         _ROOT / "deploy" / "trading-bot-patches" / "portfolio_session" / "entry_guard_manager.py",
+        _ROOT / "deploy" / "trading-bot-patches" / "portfolio_session" / "entry_guard_router.py",
         _ROOT / "deploy" / "trading-bot-patches" / "portfolio_session" / "entry_block_manager.py",
         _ROOT / "deploy" / "trading-bot-patches" / "portfolio_session" / "metrics" / "session_alpha.py",
         _ROOT / "deploy" / "trading-bot-patches" / "tests" / "test_market_relative_guard.py",
@@ -356,6 +358,11 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "config" / "si_gap_action_registry.json",
         _ROOT / "utils" / "si_code_implementation.py",
         _ROOT / "config" / "si_fix_registry.json",
+    ],
+    "performance_report_with_si": [
+        _ROOT / "utils" / "performance_report.py",
+        _ROOT / "tests" / "test_performance_report.py",
+        _ROOT / ".cursor" / "rules" / "performance-si-effectiveness.mdc",
     ],
 }
 

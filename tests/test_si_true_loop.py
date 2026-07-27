@@ -107,6 +107,36 @@ class TestInterventionScoring(unittest.TestCase):
                 self.assertIsNotNone(rate)
                 self.assertGreaterEqual(float(rate), 0.99)
 
+    def test_legacy_pre_format_rows_do_not_poison_rate(self) -> None:
+        """Jul-24-style spam without session_date_et must not force rate to 0."""
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "si_capability" / "interventions.jsonl"
+            p.parent.mkdir(parents=True)
+            legacy = {
+                "ts": "2026-07-24T16:00:00-04:00",
+                "component": "skim_swarm",
+                "action": "edge_autofix",
+                "metrics_snapshot": {
+                    "skim_swarm": {
+                        "rolling_expectancy_usd": 0.03,
+                        "rolling_payoff_ratio": 0.7,
+                    }
+                },
+            }
+            with p.open("w", encoding="utf-8") as fh:
+                for _ in range(8):
+                    fh.write(json.dumps(legacy) + "\n")
+            with patch.dict("os.environ", {"FORTRESS_AI_DATA_DIR": td}, clear=False):
+                rate = intervention_success_rate(
+                    {
+                        "skim_swarm": {
+                            "rolling_expectancy_usd": -0.04,
+                            "rolling_payoff_ratio": 0.27,
+                        }
+                    }
+                )
+            self.assertIsNone(rate)
+
 
 class TestSymbolSessionBrake(unittest.TestCase):
     def test_single_large_loss_pauses_entries(self) -> None:
@@ -146,6 +176,11 @@ class TestAllowlistAndDeferred(unittest.TestCase):
         ok, reason = _diff_allowed(
             ["data/si_recommendation_queue.json", "utils/edge_autofix.py"]
         )
+        self.assertTrue(ok)
+        self.assertEqual(reason, "ok")
+
+    def test_unified_ai_paths_allowed(self) -> None:
+        ok, reason = _diff_allowed(["unified_ai/__init__.py", "utils/edge_autofix.py"])
         self.assertTrue(ok)
         self.assertEqual(reason, "ok")
 

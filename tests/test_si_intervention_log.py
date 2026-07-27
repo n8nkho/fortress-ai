@@ -23,6 +23,8 @@ class TestSiInterventionLog(unittest.TestCase):
                 {
                     "component": "skim_swarm",
                     "action": "swarm_session_normal",
+                    "session_date_et": "2026-07-27",
+                    "scoreable": True,
                     "metrics_snapshot": {
                         "skim_swarm": {"rolling_expectancy_usd": None, "session_expectancy_usd": 0.0}
                     },
@@ -30,6 +32,8 @@ class TestSiInterventionLog(unittest.TestCase):
                 {
                     "component": "skim_swarm",
                     "action": "edge_autofix",
+                    "session_date_et": "2026-07-27",
+                    "scoreable": True,
                     "metrics_snapshot": {
                         "skim_swarm": {"rolling_expectancy_usd": None, "session_expectancy_usd": -0.05}
                     },

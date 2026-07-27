@@ -44,6 +44,10 @@ ALLOWED_WRITE_PREFIXES = (
     "tests/",
     "dashboard/",
     "deploy/",
+    "unified_ai/",
+    "guards/",
+    "risk/",
+    "monitoring/",
 )
 
 # Repo-relative paths the self-coder must never modify (deny-list overrides allow-prefix).
@@ -590,7 +594,7 @@ def build_implementation_prompt(item: dict[str, Any]) -> str:
 ## Hard constraints
 - Do NOT edit .env, .cursor/, data/, or weaken pre-trade gate / immutable caps
 - NEVER edit protected files: {', '.join(PROTECTED_REL_PATHS)}
-- Only edit: agents/, utils/, config/, scripts/, tests/, dashboard/, deploy/ (non-protected)
+- Only edit: agents/, utils/, config/, scripts/, tests/, dashboard/, deploy/, unified_ai/, guards/, risk/, monitoring/ (non-protected)
 - NEVER edit data/, .env, venv/, or live queue JSON — runtime state is out of scope
 - Minimize diff scope; match existing code style
 - Add detectable log/block_reason markers: {', '.join(markers) if markers else 'as appropriate'}

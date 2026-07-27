@@ -387,18 +387,38 @@ def load_market_relative_gate_config() -> dict[str, Any]:
     return cfg
 
 
+# Alias used by entry_guard_router / entry_block_manager.
+load_market_relative_guard_config = load_market_relative_gate_config
+
+
 def _build_pre_trade_gates() -> list[BaseGate]:
     cfg = load_market_relative_gate_config()
+    threshold = float(
+        cfg.get("market_relative_underperformance_threshold", cfg.get("threshold_pct", -0.5))
+    )
+    lookback_minutes = int(cfg.get("lookback_minutes", 0))
+    window_seconds = int(cfg.get("window_seconds", 300))
+    enabled = bool(cfg.get("enabled", True))
     gates: list[BaseGate] = []
     for gate_cls in PRE_TRADE_GATES:
-        gates.append(
-            gate_cls(
-                threshold=float(cfg.get("market_relative_underperformance_threshold", cfg.get("threshold_pct", -0.3))),
-                lookback_minutes=int(cfg.get("lookback_minutes", 0)),
-                window_seconds=int(cfg.get("window_seconds", 300)),
-                enabled=bool(cfg.get("enabled", True)),
+        if gate_cls is MarketRelativeGate:
+            gates.append(
+                MarketRelativeGate(
+                    max_underperformance_pct=threshold,
+                    lookback_minutes=lookback_minutes,
+                    window_seconds=window_seconds,
+                    enabled=enabled,
+                )
             )
-        )
+        else:
+            gates.append(
+                MarketRelativeUnderperformanceGate(
+                    threshold=threshold,
+                    lookback_minutes=lookback_minutes,
+                    window_seconds=window_seconds,
+                    enabled=enabled,
+                )
+            )
     return gates
 
 
@@ -495,6 +515,11 @@ def reset_market_relative_cooldown() -> None:
     global _last_market_relative_block_ts
     _last_market_relative_block_ts = None
     reset_session_monitor()
+    from utils.portfolio_session.guards.market_relative_underperformance import (
+        MarketRelativeUnderperformanceGuard,
+    )
+
+    MarketRelativeUnderperformanceGuard.reset_cooldown()
     get_risk_manager.cache_clear()
     from utils.portfolio_session.entry_gate import get_entry_gate
 

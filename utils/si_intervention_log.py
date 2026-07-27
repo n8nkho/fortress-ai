@@ -102,12 +102,18 @@ def intervention_success_rate(
         return None
 
     # Dedupe spam: one score slot per (component, action, session_date).
+    # Only score post true-SI format rows (session_date_et set by record_intervention).
+    # Legacy pre-fix spam (edge_autofix / swarm_session_tight without session_date_et)
+    # must not poison intervention_success_rate.
     deduped: dict[tuple[str, str, str], dict[str, Any]] = {}
     for row in rows:
         action = str(row.get("action") or "")
         if action in _NO_OP_ACTIONS:
             continue
         if row.get("scoreable") is False:
+            continue
+        # Require new attribution format (shipped with edge_autofix_exhausted / brakes).
+        if not row.get("session_date_et"):
             continue
         detail = row.get("detail") or {}
         if str(detail.get("marker") or "") == "edge_autofix_exhausted":

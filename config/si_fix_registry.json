@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-07-26T10:40:34.836205-04:00"
+      "registered_at_utc": "2026-07-27T15:29:15.754371-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1157,6 +1157,19 @@
       "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "high"
+    },
+    "performance_report_with_si": {
+      "title": "Performance snapshots always include SI effectiveness + recommended fixes",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "performance_report_with_si",
+        "si_effectiveness_in_performance_report",
+        "utils/performance_report.py"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
     },
     "si_intervention_effectiveness_gap": {
       "title": "SI interventions not improving rolling expectancy",

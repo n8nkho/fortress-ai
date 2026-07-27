@@ -1,0 +1,25 @@
+---
+description: Always include SI effectiveness when reporting trading performance
+alwaysApply: true
+---
+
+# Performance reports must include SI effectiveness
+
+When the user asks how the system did today / this week / since a date (performance, PnL, session review):
+
+1. Report **sleeve PnL** (skim, infra, combined) with exits and notable symbols.
+2. Always include an **SI effectiveness** block:
+   - `intervention_success_rate` vs target (0.35)
+   - skim/infra rolling expectancy and payoff
+   - open SI queue dispositions (pending_agent_review / pending_human_go / auto_implement_queued)
+   - deferred `execute_after_et` items if any
+3. Always end with **recommended fixes** (bounded, no pre_trade_gate weaken). Prefer wiring that exists: `edge_autofix_exhausted`, `symbol_session_brake`, gap→action registry, allowlist, queue cleanup.
+
+Prefer generating the snapshot via:
+
+```python
+from utils.performance_report import build_performance_report, format_performance_report_markdown
+print(format_performance_report_markdown())
+```
+
+Do not give PnL-only answers when SI health is relevant to "how are we doing."

@@ -43,4 +43,9 @@ data/spy_intraday/
 # Runtime merged beliefs (optional: regenerate via historical seeder)
 data/beliefs/*.json
 !data/beliefs/.gitkeep
-.cursor/
+# .cursor/  (see exceptions below)
+
+# Keep shared agent rules in repo
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
