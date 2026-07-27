@@ -184,6 +184,45 @@ class TestAllowlistAndDeferred(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual(reason, "ok")
 
+    def test_deferred_auto_implement_survives_deployed_reconcile(self) -> None:
+        from utils.si_recommendation_queue import (
+            DISPOSITION_AUTO_IMPLEMENT_QUEUED,
+            STATUS_OPEN,
+            reconcile_deployed_guards,
+        )
+
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "si_recommendation_queue.json"
+            p.write_text(
+                json.dumps(
+                    {
+                        "items": [
+                            {
+                                "id": "deferred-1",
+                                "code": "si_gap_action_registry",
+                                "status": STATUS_OPEN,
+                                "disposition": DISPOSITION_AUTO_IMPLEMENT_QUEUED,
+                                "execute_after_et": "2099-01-01",
+                                "cross_stack": False,
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            import utils.si_recommendation_queue as qmod
+
+            orig = qmod.queue_path
+            qmod.queue_path = lambda: p  # type: ignore[assignment]
+            try:
+                with patch("utils.si_fix_deployment.is_deployed", return_value=True):
+                    closed = reconcile_deployed_guards({"findings": []})
+                doc = json.loads(p.read_text(encoding="utf-8"))
+            finally:
+                qmod.queue_path = orig  # type: ignore[assignment]
+            self.assertEqual(closed, [])
+            self.assertEqual(doc["items"][0]["status"], STATUS_OPEN)
+
     def test_execute_after_blocks_until_date(self) -> None:
         item = {
             "status": "open",

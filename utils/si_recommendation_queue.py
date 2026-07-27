@@ -480,10 +480,23 @@ def reconcile_deployed_guards(scan: dict[str, Any]) -> list[str]:
     closed: list[str] = []
     queue = load_queue()
     changed = False
+    today_et = ""
+    try:
+        from utils.system_time import now
+
+        today_et = now().date().isoformat()
+    except Exception:
+        today_et = ""
     for i, item in enumerate(queue.get("items") or []):
         if not isinstance(item, dict) or item.get("status") != STATUS_OPEN:
             continue
         if is_cross_stack_item(item):
+            continue
+        # Deferred auto-implement must stay open until execute_after_et.
+        if item.get("disposition") == DISPOSITION_AUTO_IMPLEMENT_QUEUED:
+            continue
+        execute_after = str(item.get("execute_after_et") or "").strip()
+        if execute_after and (not today_et or execute_after > today_et):
             continue
         code = str(item.get("code") or "")
         if code in active:
