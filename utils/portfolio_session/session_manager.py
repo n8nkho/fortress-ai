@@ -4,6 +4,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from utils.portfolio_session.entry_block_breakdown import (
+    increment_market_relative_underperformance_breakdown,
+)
 from utils.portfolio_session.alpha_monitor import check_session_alpha
 from utils.portfolio_session.config import get_beta_leaders
 from utils.portfolio_session.entry_guard_manager import get_entry_guards
@@ -119,8 +122,9 @@ def _evaluate_entry_guards(session_context: dict[str, Any] | None = None) -> tup
         if not result.blocked:
             continue
 
-        breakdown = dict(state.get("entry_block_breakdown") or {})
-        breakdown["market_relative"] = int(breakdown.get("market_relative") or 0) + 1
+        breakdown = increment_market_relative_underperformance_breakdown(
+            state.get("entry_block_breakdown")
+        )
         state["entry_block_breakdown"] = breakdown
         state["entry_block_reason"] = result.reason or "market_relative_underperformance"
         log.warning(
@@ -171,6 +175,62 @@ def evaluate_entry_blocks(
         except ImportError:
             pass
     return decision.blocked, decision.reason, state
+
+
+def should_block_entry(session_state: dict[str, Any] | None = None) -> bool:
+    """Return True when session alpha vs SPY underperforms the configured threshold."""
+    from utils.portfolio_session.config import (
+        get_market_relative_underperformance_enabled,
+        get_market_relative_underperformance_threshold,
+    )
+    from utils.portfolio_session.guards.market_relative import check_market_relative_underperformance
+    from utils.portfolio_session.session_metrics import build_session_metrics
+
+    state = build_session_metrics(dict(session_state or {}))
+    if not get_market_relative_underperformance_enabled():
+        return False
+    if not state.get("benchmark_ok", True):
+        return False
+
+    threshold = get_market_relative_underperformance_threshold()
+    mag = abs(threshold) if threshold < 0 else threshold
+
+    session_alpha = state.get("session_return_pct")
+    if session_alpha is None:
+        session_alpha = state.get("session_pnl_pct")
+    spy_change = state.get("benchmark_change_1d_pct")
+    if spy_change is None:
+        spy_change = state.get("spy_return_pct")
+
+    block_reason: str | bool | None = None
+    if session_alpha is not None and spy_change is not None:
+        block_reason = check_market_relative_underperformance(
+            float(session_alpha),
+            float(spy_change),
+            mag,
+        )
+    else:
+        alpha = state.get("alpha_vs_spy_pct")
+        if alpha is None:
+            alpha = state.get("session_alpha_vs_spy")
+        if alpha is not None:
+            block_reason = check_market_relative_underperformance(float(alpha), threshold)
+
+    if not block_reason:
+        return False
+
+    reason_str = (
+        block_reason if isinstance(block_reason, str) else "market_relative_underperformance"
+    )
+    breakdown = increment_market_relative_underperformance_breakdown(state.get("entry_block_breakdown"))
+    state["entry_block_breakdown"] = breakdown
+    state["entry_block_reason"] = "market_relative_underperformance"
+    log.warning(
+        "entry_blocked_by_market_relative market_relative_underperformance "
+        "MarketRelativeGate swarm_gate_order_specific_before_macro %s",
+        reason_str,
+    )
+    return True
 
 
 def evaluate_entry_guards(session_context: dict[str, Any] | None = None) -> GuardResult:

@@ -4,6 +4,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from utils.portfolio_session.entry_block_breakdown import (
+    increment_market_relative_underperformance_breakdown,
+)
 from utils.portfolio_session.config import (
     get_market_relative_underperformance_enabled,
     get_market_relative_underperformance_threshold,
@@ -90,8 +93,9 @@ def evaluate_entry_blocks(
         pass
 
     bps = int(round(abs(threshold) * 100))
-    breakdown = dict(state.get("entry_block_breakdown") or {})
-    breakdown["market_relative"] = int(breakdown.get("market_relative") or 0) + 1
+    breakdown = increment_market_relative_underperformance_breakdown(
+        state.get("entry_block_breakdown")
+    )
     detail = (
         f"session_underperforming alpha_vs_spy={alpha:.4f} "
         f"market_relative_underperformance_threshold={threshold:.4f} "

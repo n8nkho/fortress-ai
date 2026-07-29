@@ -41,9 +41,26 @@ def _f(v: Any, default: float = 0.0) -> float:
 
 def _strong_tape_min_exits() -> int:
     try:
-        return max(1, int(os.environ.get("FORTRESS_CONSCIOUSNESS_MIN_EXITS", "4") or 4))
-    except ValueError:
-        return 4
+        from utils.si_capability_review import get_capability
+
+        return max(1, int(get_capability("strong_tape_min_exits", 6) or 6))
+    except Exception:
+        try:
+            return max(1, int(os.environ.get("FORTRESS_CONSCIOUSNESS_MIN_EXITS", "6") or 6))
+        except ValueError:
+            return 6
+
+
+def _participation_shortfall(self_st: dict[str, Any], exits: int, min_ex: int) -> int:
+    raw = self_st.get("participation_shortfall_exits")
+    if raw is not None:
+        try:
+            return max(0, int(raw))
+        except (TypeError, ValueError):
+            pass
+    if bool((self_st.get("strong_tape_1d") is True)) and exits < min_ex:
+        return min_ex - exits
+    return 0
 
 
 def compute_consciousness_posture(
@@ -79,6 +96,8 @@ def compute_consciousness_posture(
     exits = int(self_st.get("session_exit_count") or 0)
     strong_tape = bool(tape.get("strong_tape_1d"))
     tape_1d = _f(tape.get("change_1d_pct"))
+    min_ex = _strong_tape_min_exits()
+    shortfall = _participation_shortfall(self_st, exits, min_ex)
 
     vix = _f((features or {}).get("vix_last")) if features else 0.0
     if vix <= 0 and features:
@@ -98,15 +117,19 @@ def compute_consciousness_posture(
         parts.append(f"hist_bearish_slot mean={mean_ret:+.3f}%")
 
     # Participation gap on strong tape (Friday-style lesson)
-    min_ex = _strong_tape_min_exits()
-    if strong_tape and alpha < -0.25 and exits < min_ex and mean_ret >= -0.01:
+    participation_boost = False
+    if strong_tape and shortfall > 0 and alpha < -0.25 and (mean_ret >= -0.01 or shortfall <= 2):
         entry_delta -= min(0.045, _ENTRY_DELTA_MAX)
         score_delta += 0.018 if tape_1d >= 0 else -0.01
         mode = "participation_boost"
-        parts.append(f"participation_gap alpha={alpha:+.2f} exits={exits}")
+        participation_boost = True
+        parts.append(
+            f"participation_gap alpha={alpha:+.2f} exits={exits} shortfall={shortfall} "
+            f"do_not_over_tighten_strong_tape"
+        )
 
-    # Defensive tighten — high VIX or historically weak hour
-    if vix > 28 or mean_ret < -0.06:
+    # Defensive tighten — high VIX or historically weak hour (skip on strong-tape shortfall)
+    if not participation_boost and (vix > 28 or mean_ret < -0.06):
         entry_delta += min(0.04, _ENTRY_DELTA_MAX)
         score_delta -= 0.015
         mode = "defensive_tighten" if mode == "neutral" else mode
@@ -180,13 +203,15 @@ def proactive_si_trigger(consciousness: dict[str, Any] | None = None) -> dict[st
     alpha = _f(self_st.get("alpha_vs_spy_pct"))
     exits = int(self_st.get("session_exit_count") or 0)
     min_ex = _strong_tape_min_exits()
+    shortfall = _participation_shortfall(self_st, exits, min_ex)
 
-    if bool(tape.get("strong_tape_1d")) and alpha < -0.3 and exits < min_ex:
+    if bool(tape.get("strong_tape_1d")) and shortfall > 0 and alpha < -0.3:
         return {
             "triggered": True,
             "code": "consciousness_participation_gap",
             "alpha_vs_spy_pct": alpha,
             "session_exit_count": exits,
+            "participation_shortfall_exits": shortfall,
             "strong_tape_1d": True,
             "recommendation": "Run capability review — portfolio lagging SPY on strong tape with low participation.",
         }

@@ -20,12 +20,32 @@ class TestConsciousnessPosture(unittest.TestCase):
             "temporal": {"rth_active": True, "slot_key": "Fri-14"},
             "historical_hour_profile": {"SPY": {"mean_return_pct": 0.04, "win_rate_long": 0.55}},
             "market_tape": {"strong_tape_1d": True, "change_1d_pct": 0.5},
-            "self_state": {"alpha_vs_spy_pct": -0.6, "session_exit_count": 2},
+            "self_state": {
+                "alpha_vs_spy_pct": -0.6,
+                "session_exit_count": 2,
+                "participation_shortfall_exits": 4,
+            },
         }
         p = compute_consciousness_posture(mc, {"vix_last": 16})
         self.assertEqual(p["mode"], "participation_boost")
         self.assertLess(p["entry_threshold_delta"], 0)
         self.assertGreater(p["score_delta"], 0)
+
+    def test_participation_boost_with_small_shortfall_not_overtightened(self):
+        mc = {
+            "temporal": {"rth_active": True, "slot_key": "Fri-14"},
+            "historical_hour_profile": {"SPY": {"mean_return_pct": -0.08, "win_rate_long": 0.4}},
+            "market_tape": {"strong_tape_1d": True, "change_1d_pct": 0.36, "tape_trend": "downtrend"},
+            "self_state": {
+                "alpha_vs_spy_pct": -0.6,
+                "session_exit_count": 5,
+                "participation_shortfall_exits": 1,
+            },
+        }
+        p = compute_consciousness_posture(mc, {"vix_last": 30})
+        self.assertEqual(p["mode"], "participation_boost")
+        self.assertLess(p["entry_threshold_delta"], 0)
+        self.assertIn("do_not_over_tighten_strong_tape", p.get("reasoning", ""))
 
     def test_defensive_tighten_high_vix(self):
         mc = {
@@ -45,7 +65,11 @@ class TestConsciousnessPosture(unittest.TestCase):
         mc = {
             "enabled": True,
             "market_tape": {"strong_tape_1d": True},
-            "self_state": {"alpha_vs_spy_pct": -0.5, "session_exit_count": 1},
+            "self_state": {
+                "alpha_vs_spy_pct": -0.5,
+                "session_exit_count": 5,
+                "participation_shortfall_exits": 1,
+            },
         }
         t = proactive_si_trigger(mc)
         self.assertTrue(t.get("triggered"))

@@ -1,0 +1,63 @@
+---
+description: GitHub push auth on the Oracle VM (SSH deploy key or gh token).
+alwaysApply: true
+---
+
+# GitHub push from this host
+
+Commits are local until pushed. On this VM, use **SSH** (preferred) or **gh** for authentication.
+
+## Before push
+
+1. Confirm commits exist: `git status` / `git log -1`.
+2. Do not commit `.env`, `.vscode/`, or `.cursor/`.
+3. If any `*WHITEPAPER.md` changed: run `./scripts/ensure_whitepaper_pdf.sh --regenerate` and commit **both** `.md` + `.pdf` (see `whitepaper-pdf-sync.mdc`).
+4. Run e2e for the repo(s) you changed (`e2e_verify.sh` / `e2e_before_deploy.sh`).
+
+## Push (agent)
+
+```bash
+# Both repos (after SSH key is on GitHub)
+cd /home/ubuntu/fortress-ai && git push origin main
+cd /home/ubuntu/trading-bot && git push origin master
+```
+
+If push fails with `Permission denied (publickey)`:
+
+- Show deploy pubkey: `cat ~/.ssh/github_deploy.pub`
+- User must add it to GitHub (account SSH keys or repo deploy keys with write).
+- Re-run: `/home/ubuntu/fortress-ai/scripts/setup_github_push.sh`
+
+## Alternative: gh PAT
+
+```bash
+mkdir -p ~/.config/fortress && chmod 700 ~/.config/fortress
+# User creates ~/.config/fortress/github_token (chmod 600) with a fine-grained PAT (repo contents write)
+gh auth login --with-token < ~/.config/fortress/github_token
+gh auth setup-git
+```
+
+Remotes may stay HTTPS when using `gh auth setup-git`.
+
+## After push (always)
+
+After a successful push of **fortress-ai** code, restart affected services so the VM runs the new code:
+
+```bash
+sudo systemctl restart fortress-ai-dashboard fortress-ai-rth-intraday-si
+systemctl is-active fortress-ai-dashboard fortress-ai-rth-intraday-si
+```
+
+Also restart when those stacks changed:
+
+- `fortress-ai-skim-swarm` — skim agent / swarm code
+- `fortress-ai-infra-swarm` — infra swarm code
+- `fortress-ai-agent` — unified AI agent
+
+After **trading-bot** push, restart Classic dashboard if running:
+
+```bash
+sudo systemctl restart fortress-dashboard 2>/dev/null || true
+```
+
+The agent should **push and restart automatically** after commit/deploy unless the user explicitly says not to.

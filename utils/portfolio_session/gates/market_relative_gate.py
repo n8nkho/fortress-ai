@@ -173,7 +173,11 @@ class MarketRelativeGate(BaseGate):
                 f"exit_count={exit_count} realized_usd={realized_usd:.2f} "
                 f"window_seconds={self.window_seconds})"
             )
-            log.warning("market_relative_underperformance MarketRelativeGate %s", detail)
+            log.warning(
+                "market_relative_underperformance MarketRelativeGate entry_blocked_by_market_relative "
+                "session_underperforming swarm_gate_order_specific_before_macro %s",
+                detail,
+            )
             try:
                 from utils.portfolio_session.entry_manager import record_market_relative_block
 

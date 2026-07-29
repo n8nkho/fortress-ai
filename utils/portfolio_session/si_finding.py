@@ -8,6 +8,7 @@ ENTRY_BLOCK_BREAKDOWN_KEYS = (
     "pause_entries",
     "pattern_disables",
     "market_relative",
+    "market_relative_underperformance",
 )
 
 

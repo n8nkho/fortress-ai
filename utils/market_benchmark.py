@@ -186,6 +186,12 @@ def build_portfolio_session_metrics(
     }
 
 
+def _market_relative_finding_detail(**kwargs: Any) -> dict[str, Any]:
+    from utils.portfolio_session.si_finding import build_market_relative_finding_detail
+
+    return build_market_relative_finding_detail(**kwargs)
+
+
 def market_relative_findings(
     portfolio: dict[str, Any] | None = None,
     *,
@@ -217,13 +223,13 @@ def market_relative_findings(
                     f"alpha with {exits} exits and ${net:+.2f} realized — review entry blocks "
                     f"(denylist, pause_entries, pattern disables) on constructive tape."
                 ),
-                "detail": {
-                    "alpha_vs_spy_pct": alpha,
-                    "benchmark_change_1d_pct": spy_1d,
-                    "session_realized_usd": net,
-                    "session_exit_count": exits,
-                    "entry_block_breakdown": port.get("entry_block_breakdown") or {},
-                },
+                "detail": _market_relative_finding_detail(
+                    alpha_vs_spy_pct=alpha,
+                    benchmark_change_1d_pct=spy_1d,
+                    session_realized_usd=net,
+                    session_exit_count=exits,
+                    entry_block_breakdown=port.get("entry_block_breakdown"),
+                ),
             }
         )
 

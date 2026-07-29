@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import time
 from typing import Any
 
 from utils.alpaca_env import alpaca_credentials, alpaca_trading_client_kwargs
@@ -9,6 +11,106 @@ from utils.edge_quality import bracket_prices, clamp_bracket_prices
 from utils.edge_quality_config import bracket_exits_enabled, passive_entry_enabled
 
 logger = logging.getLogger("alpaca_execution")
+
+_open_exit_order_pending: dict[str, bool] = {}
+_LAST_STALE_SELL_CLEANUP_TS = 0.0
+_STALE_SELL_CLEANUP_INTERVAL_SEC = float(
+    os.environ.get("STALE_SELL_CLEANUP_INTERVAL_SEC", "60")
+)
+
+
+def set_open_exit_order_pending(symbol: str, pending: bool) -> None:
+    sym = str(symbol or "").upper()
+    if pending:
+        _open_exit_order_pending[sym] = True
+    else:
+        _open_exit_order_pending.pop(sym, None)
+
+
+def is_open_exit_order_pending(symbol: str) -> bool:
+    return _open_exit_order_pending.get(str(symbol or "").upper(), False)
+
+
+_TERMINAL_STATUSES = frozenset(
+    {"filled", "canceled", "cancelled", "expired", "rejected", "replaced"}
+)
+
+
+def _normalize_order_status(raw: Any) -> str:
+    return str(getattr(raw, "value", raw) or "").strip().lower()
+
+
+def _is_terminal_order_status(status: str) -> bool:
+    st = _normalize_order_status(status)
+    if not st:
+        return False
+    if st in _TERMINAL_STATUSES:
+        return True
+    return st.endswith(".filled") or st.endswith(".canceled") or st.endswith(".cancelled")
+
+
+def on_exit_submit_result(result: dict[str, Any] | None, *, symbol: str) -> bool:
+    """Apply open_exit_order_pending lifecycle after a SELL submit (broker_open_sell_backlog)."""
+    sym = str(symbol or "").upper()
+    if not isinstance(result, dict) or not result.get("success"):
+        set_open_exit_order_pending(sym, False)
+        return False
+
+    status = _normalize_order_status(result.get("status"))
+    if _is_terminal_order_status(status):
+        set_open_exit_order_pending(sym, False)
+        logger.info(
+            "open_exit_order_pending cleared symbol=%s order_id=%s status=%s broker_open_sell_backlog",
+            sym,
+            result.get("order_id"),
+            status,
+        )
+        return True
+
+    logger.debug(
+        "open_exit_order_pending retained symbol=%s order_id=%s status=%s",
+        sym,
+        result.get("order_id"),
+        status,
+    )
+    return False
+
+
+def clear_exit_pending(symbol: str) -> None:
+    """Reset per-symbol exit gate after fill/cancel/timeout."""
+    sym = str(symbol or "").upper()
+    set_open_exit_order_pending(sym, False)
+    logger.info(
+        "open_exit_order_pending cleared symbol=%s broker_open_sell_backlog",
+        sym,
+    )
+
+
+def gate_exit_submission(symbol: str, *, side: str = "SELL") -> dict[str, Any] | None:
+    """Cancel stale open SELL orders; return block dict when exit must not proceed."""
+    sym = str(symbol or "").upper()
+    cancel_stale_open_orders_for_symbol(sym)
+    if is_open_exit_order_pending(sym):
+        logger.warning(
+            "open_exit_order_pending symbol=%s block_reason=open_exit_order_pending in_flight",
+            sym,
+        )
+        return {
+            "executed": False,
+            "block_reason": "open_exit_order_pending",
+            "detail": "open_exit_order_pending:in_flight",
+        }
+    if has_open_exit_order(sym, side=side):
+        logger.warning(
+            "open_exit_order_pending symbol=%s block_reason=open_exit_order_pending open_sells",
+            sym,
+        )
+        return {
+            "executed": False,
+            "block_reason": "open_exit_order_pending",
+            "detail": "open_exit_order_pending",
+        }
+    return None
 
 
 def trading_client():
@@ -62,6 +164,54 @@ def passive_limit_price(*, side: str, quote: dict[str, float | None], fallback: 
     if ask and ask > 0:
         return round(ask, 2)
     return round(fallback * 1.0002, 2)
+
+
+def cancel_stale_open_orders_for_symbol(symbol: str, *, stale_sell_minutes: float = 0.5) -> dict[str, Any]:
+    """Cancel stale/phantom open SELL orders for one symbol before exit submission."""
+    tc = trading_client()
+    if not tc:
+        return {"ok": False, "error": "alpaca_not_configured"}
+    from utils.alpaca_order_hygiene import cancel_stale_open_orders
+
+    out = cancel_stale_open_orders(
+        tc,
+        symbols=[str(symbol or "").upper()],
+        stale_sell_minutes=float(stale_sell_minutes),
+    )
+    if out.get("cancelled_count"):
+        logger.info(
+            "broker_open_sell_backlog cancel_stale_open_orders symbol=%s cancelled=%d",
+            str(symbol or "").upper(),
+            out["cancelled_count"],
+        )
+    return out
+
+
+def cancel_all_stale_open_sell_orders(*, stale_sell_minutes: float = 5.0) -> dict[str, Any]:
+    """Cancel stale/phantom open SELL orders across all symbols (broker_open_sell_backlog)."""
+    tc = trading_client()
+    if not tc:
+        return {"ok": False, "error": "alpaca_not_configured"}
+    from utils.alpaca_order_hygiene import cancel_stale_open_orders
+
+    out = cancel_stale_open_orders(tc, stale_sell_minutes=float(stale_sell_minutes))
+    if out.get("cancelled_count"):
+        logger.info(
+            "broker_open_sell_backlog cancel_stale_open_orders cancelled=%d",
+            out["cancelled_count"],
+        )
+    return out
+
+
+def maybe_cancel_stale_open_sell_orders(*, force: bool = False) -> dict[str, Any] | None:
+    """Throttled periodic stale SELL cleanup (default every 5 minutes)."""
+    global _LAST_STALE_SELL_CLEANUP_TS
+    now = time.time()
+    interval = _STALE_SELL_CLEANUP_INTERVAL_SEC
+    if not force and now - _LAST_STALE_SELL_CLEANUP_TS < interval:
+        return None
+    _LAST_STALE_SELL_CLEANUP_TS = now
+    return cancel_all_stale_open_sell_orders()
 
 
 def has_open_exit_order(symbol: str, *, side: str = "SELL") -> bool:

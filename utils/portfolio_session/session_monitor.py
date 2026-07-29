@@ -75,6 +75,24 @@ def get_session_state(*, force: bool = False) -> dict[str, Any]:
     return update_session_metrics(force=force)
 
 
+def get_session_alpha_vs_spy(
+    session_state: dict[str, Any] | None = None,
+    *,
+    force: bool = False,
+) -> float | None:
+    """Return current 1d session alpha vs SPY in percent points."""
+    state = update_session_metrics(session_state, force=force)
+    alpha = state.get("alpha_vs_spy_pct")
+    if alpha is None:
+        alpha = state.get("session_alpha_vs_spy")
+    if alpha is None:
+        return None
+    try:
+        return float(alpha)
+    except (TypeError, ValueError):
+        return None
+
+
 def reset_session_monitor() -> None:
     """Clear cached monitor state (for tests)."""
     global _last_refresh_monotonic, _session_state

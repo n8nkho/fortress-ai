@@ -591,11 +591,16 @@ def scan_consciousness_kb_stale() -> list[dict[str, Any]]:
     """Flag missing or stale hourly knowledge base used by market consciousness."""
     findings: list[dict[str, Any]] = []
     try:
-        from agents.historical_seeder.paths import hourly_knowledge_path
-        from utils.system_time import now, parse_iso
+        from utils.market_consciousness_knowledge_base import (
+            knowledge_base_last_build_time,
+            knowledge_base_max_age_days,
+            should_rebuild_knowledge_base,
+        )
+        from utils.system_time import now
 
-        p = hourly_knowledge_path()
-        if not p.is_file():
+        max_age = knowledge_base_max_age_days()
+        built = knowledge_base_last_build_time()
+        if built is None:
             findings.append(
                 {
                     "code": "consciousness_kb_missing",
@@ -606,20 +611,20 @@ def scan_consciousness_kb_stale() -> list[dict[str, Any]]:
                 }
             )
             return findings
-        doc = json.loads(p.read_text(encoding="utf-8"))
-        built = parse_iso(str(doc.get("built_at") or ""))
-        if built is None:
-            return findings
-        age_days = (now() - built).total_seconds() / 86400.0
-        if age_days > 8:
+        age_days = round((now() - built).total_seconds() / 86400.0, 1)
+        if should_rebuild_knowledge_base(built, max_age_days=max_age):
             findings.append(
                 {
                     "code": "consciousness_kb_stale",
                     "severity": "medium",
                     "component": "market_consciousness",
-                    "recommendation": f"Hourly knowledge base is {age_days:.0f} days old; rebuild weekly.",
+                    "recommendation": (
+                        f"Hourly knowledge base is {age_days:.0f} days old; "
+                        f"rebuild when older than {max_age} days."
+                    ),
                     "si_action": "rebuild_hourly_knowledge",
-                    "age_days": round(age_days, 1),
+                    "age_days": age_days,
+                    "max_age_days": max_age,
                 }
             )
     except Exception:

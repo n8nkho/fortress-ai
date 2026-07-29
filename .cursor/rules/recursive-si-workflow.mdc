@@ -1,0 +1,57 @@
+---
+description: Recursive self-improvement workflow — auto-correct, queue, autonomous code implementation
+alwaysApply: true
+---
+
+# Recursive self-improvement (SI) workflow
+
+## Pipeline (every fix and anomaly)
+
+1. **Detect** — `utils/integrity_diagnostics.py` + `scan_opportunities()` in `utils/si_recommendation_queue.py`
+2. **Register** — known mitigations in `config/si_fix_registry.json` (add an entry for every code-level fix you ship)
+3. **Auto-correct** — bounded tunable nudges via governance (Tier 0/1); never weaken pre-trade gate or immutable caps
+4. **Queue** — unresolved items → `data/si_recommendation_queue.json` with disposition:
+   - `auto_resolved` / `auto_applied` / `monitoring`
+   - `pending_agent_review` → **auto-assess** (LLM or heuristic)
+   - `auto_implement_queued` → **Cursor agent implements** (no human go required)
+5. **Autonomous code** — `utils/si_code_implementation.py` on each queue process / RTH / governance cron
+6. **Governance cron** — `scripts/governance_maintenance.py` (daily) runs scan + queue + revert monitor
+
+## Autonomous code SI (default ON)
+
+Env: `FORTRESS_SI_AUTO_CODE=1` (assess + implement without human go).
+
+| Knob | Default | Effect |
+|------|---------|--------|
+| `FORTRESS_SI_AUTO_CODE` | 1 | Master switch |
+| `FORTRESS_SI_AUTO_CODE_MAX_PER_DAY` | 3 | Velocity cap |
+| `FORTRESS_SI_AUTO_CODE_REQUIRE_E2E` | 1 | e2e must pass before close |
+| `FORTRESS_SI_AUTO_COMMIT` | 1 | Git commit after e2e |
+| `FORTRESS_SI_AUTO_PUSH` | 1 | Push after commit |
+| `CURSOR_API_KEY` | — | Required for `cursor agent --print` |
+
+Safety: no `.env` edits, allowlisted paths only, immutable caps blocked.
+
+Manual: `python3 scripts/si_autonomous_code.py` or `POST /api/si/code/run`.
+
+Set `FORTRESS_SI_AUTO_CODE=0` to restore human-go queue (`pending_human_go`).
+
+## When implementing any bug fix or operational improvement
+
+- Add or update **`config/si_fix_registry.json`** with `code`, `mitigation_markers`, and `auto_tunable` if applicable
+- Ensure the fix is detectable in logs (block_reason / act detail markers)
+- Run `./scripts/e2e_verify.sh` before commit
+
+## APIs
+
+- `GET /api/si/recommendations`
+- `POST /api/si/recommendations/process`
+- `POST /api/si/code/run`
+- `POST /api/si/code/implement/<id>`
+- `POST /api/si/recommendations/<id>/agent-assess`
+- `POST /api/si/recommendations/<id>/human-go` (optional when auto code off)
+- `POST /api/si/recommendations/<id>/implemented`
+
+## Sibling repo
+
+Classic queue: `/home/ubuntu/trading-bot/data/si_recommendation_queue.json` — same review workflow via `recursive_evolution` phase-1.

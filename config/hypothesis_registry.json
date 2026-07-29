@@ -59,18 +59,18 @@
       "id": "edge_rr_cost_gates",
       "title": "RR and cost-aware entry admission before trade",
       "kind": "param_overlay",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_expectancy_usd": 0.0,
         "adversarial_min_improvement_usd": 0.0
       },
-      "notes": "Shipped 2026-06-01 — edge_quality gates wired in skim/infra signal paths."
+      "notes": "Shipped 2026-06-01 \u2014 edge_quality gates wired in skim/infra signal paths."
     },
     {
       "id": "broker_bracket_exits",
       "title": "Broker-native bracket OCO exits on entry",
       "kind": "param_overlay",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_expectancy_usd": -0.05,
         "adversarial_min_improvement_usd": 0.0
@@ -80,18 +80,18 @@
       "id": "swarm_critical_pause_entries",
       "title": "Pause all new swarm entries when session SI hits critical",
       "kind": "param_overlay",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_expectancy_usd": 0.0,
         "adversarial_min_improvement_usd": 0.05
       },
-      "notes": "Shipped 2026-06-01 — critical mode sets pause_new_entries in swarm_session_si."
+      "notes": "Shipped 2026-06-01 \u2014 critical mode sets pause_new_entries in swarm_session_si."
     },
     {
       "id": "orphan_symbol_entry_block",
       "title": "Block new entries on symbols outside configured swarm universe",
       "kind": "anticipation_gate",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_blocked_loser_pnl_usd": 0.5,
         "max_blocked_winner_pnl_usd": 0.1,
@@ -103,18 +103,18 @@
       "id": "unified_off_denylist_watchlist",
       "title": "Unified AI uses off-denylist watchlist only",
       "kind": "param_overlay",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_expectancy_usd": 0.0,
         "adversarial_min_improvement_usd": 0.0
       },
-      "notes": "Shipped 2026-06-01 — FORTRESS_AI_ELIGIBLE_UNIVERSE + unified_symbol_pool."
+      "notes": "Shipped 2026-06-01 \u2014 FORTRESS_AI_ELIGIBLE_UNIVERSE + unified_symbol_pool."
     },
     {
       "id": "opening_bell_stop_cluster_guard",
       "title": "Extra caution first 15 min RTH when payoff inverted",
       "kind": "anticipation_gate",
-      "status": "promoted",
+      "status": "shadow",
       "tests": {
         "min_blocked_loser_pnl_usd": 0.8,
         "max_blocked_winner_pnl_usd": 0.2,

@@ -8,6 +8,7 @@ import unittest
 class TestRiskController(unittest.TestCase):
     def setUp(self):
         os.environ["FORTRESS_MAX_ORDER_NOTIONAL_USD"] = "3000"
+        os.environ["FORTRESS_MAX_POSITION_NOTIONAL_USD"] = "3000"
         os.environ["FORTRESS_AI_DRY_RUN"] = "1"
 
     def test_flatten_legacy_positions_plans_chunked_trim(self):

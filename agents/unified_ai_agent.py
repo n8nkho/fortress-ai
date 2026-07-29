@@ -698,12 +698,13 @@ def act(decision: dict[str, Any], observation: dict[str, Any], usage: dict[str, 
                 return result
 
             if action == "exit_position":
-                from utils.alpaca_execution import has_open_exit_order
+                from utils.alpaca_execution import gate_exit_submission
 
-                if has_open_exit_order(sym, side=side):
+                block = gate_exit_submission(sym, side=side)
+                if block:
                     result["executed"] = False
-                    result["detail"] = "open_exit_order_pending"
-                    result["block_reason"] = "open_exit_order_pending"
+                    result["detail"] = block.get("detail")
+                    result["block_reason"] = block.get("block_reason")
                     return result
 
             order_data = MarketOrderRequest(

@@ -104,6 +104,58 @@ class TestConstructiveTapeOverride(unittest.TestCase):
         self.assertTrue(result.blocked)
         self.assertEqual(result.reason, "market_relative_underperformance")
 
+    def test_session_underperforming_allows_override_on_shortfall(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(
+                "os.environ",
+                {
+                    "FORTRESS_AI_DATA_DIR": td,
+                    "FORTRESS_CONSTRUCTIVE_TAPE_OVERRIDE": "1",
+                    "FORTRESS_MR_DEEP_ALPHA_FLOOR": "-1.0",
+                    "FORTRESS_MR_SOFT_ALPHA_THRESHOLD": "-0.8",
+                },
+                clear=False,
+            ):
+                gate = MarketRelativeUnderperformanceGate(threshold=-0.5)
+                result = gate.evaluate(
+                    {
+                        "session_underperforming": True,
+                        "alpha_vs_spy_pct": -0.9,
+                        "benchmark_ok": True,
+                        "strong_tape_1d": True,
+                        "participation_shortfall_exits": 1,
+                        "session_exit_count": 5,
+                    }
+                )
+                self.assertFalse(result.blocked)
+                self.assertEqual(result.reason, "constructive_tape_entry_override")
+
+    def test_pre_trade_gate_allows_override_on_participation_shortfall(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(
+                "os.environ",
+                {
+                    "FORTRESS_AI_DATA_DIR": td,
+                    "FORTRESS_CONSTRUCTIVE_TAPE_OVERRIDE": "1",
+                    "FORTRESS_MR_DEEP_ALPHA_FLOOR": "-1.0",
+                    "FORTRESS_MR_SOFT_ALPHA_THRESHOLD": "-0.8",
+                },
+                clear=False,
+            ):
+                from utils.portfolio_session.pre_trade_gate import check_market_relative_underperformance
+
+                result = check_market_relative_underperformance(
+                    {
+                        "alpha_vs_spy_pct": -0.9,
+                        "benchmark_ok": True,
+                        "strong_tape_1d": True,
+                        "participation_shortfall_exits": 1,
+                        "session_exit_count": 5,
+                    }
+                )
+                self.assertFalse(result.blocked)
+                self.assertEqual(result.reason, "constructive_tape_entry_override")
+
 
 class TestClassicSleeveDemotion(unittest.TestCase):
     def test_skips_classic_gaps_when_fills_stale(self) -> None:

@@ -13,6 +13,7 @@ GATE_REGISTRY: dict[str, type[BaseGate]] = {
 }
 
 PRE_TRADE_GATES: list[type[BaseGate]] = [
+    MarketRelativeGate,
     MarketRelativeUnderperformanceGate,
 ]
 

@@ -130,6 +130,8 @@ def _self_state() -> dict[str, Any]:
         out["session_realized_usd"] = port.get("session_realized_usd")
         out["session_exit_count"] = port.get("session_exit_count")
         out["alpha_vs_spy_pct"] = port.get("alpha_vs_spy_pct")
+        out["strong_tape_1d"] = bool(port.get("strong_tape_1d"))
+        out["participation_shortfall_exits"] = int(port.get("participation_shortfall_exits") or 0)
     except Exception:
         pass
     return out

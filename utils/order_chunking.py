@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import os
+import random
 from typing import Any
+
+CHUNK_DELAY_MIN_SEC = 0.1
+CHUNK_DELAY_MAX_SEC = 0.5
 
 
 def held_qty_for_symbol(positions: list[Any] | None, symbol: str) -> int:
@@ -28,11 +32,16 @@ def max_order_notional_usd(*, side: str, portfolio_equity_usd: float | None) -> 
             max_notional = 25000.0
     else:
         try:
-            from config.defaults import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
+            from config.risk_params import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
 
             max_notional = float(_cfg_cap)
         except Exception:
-            max_notional = 25000.0
+            try:
+                from config.defaults import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
+
+                max_notional = float(_cfg_cap)
+            except Exception:
+                max_notional = 25000.0
     sd = (side or "").strip().upper()
     if sd == "BUY" and portfolio_equity_usd is not None and float(portfolio_equity_usd) > 0:
         try:
@@ -60,3 +69,30 @@ def chunk_qtys(total_qty: int, *, px: float, max_notional_usd: float) -> list[in
         chunks.append(q)
         remaining -= q
     return chunks
+
+
+def chunk_exit_delay_sec() -> float:
+    """Random inter-order delay for chunked exits."""
+    return random.uniform(CHUNK_DELAY_MIN_SEC, CHUNK_DELAY_MAX_SEC)
+
+
+def chunk_exit_order(
+    symbol: str,
+    total_qty: int,
+    max_notional: float | None = None,
+    *,
+    px: float,
+) -> list[tuple[int, float]]:
+    """
+    Split total_qty into (qty, price) tuples where each chunk notional <= max_notional.
+
+    Uses FORTRESS_MAX_ORDER_NOTIONAL_USD when max_notional is omitted.
+    """
+    cap = float(max_notional) if max_notional is not None else max_order_notional_usd(
+        side="SELL", portfolio_equity_usd=None
+    )
+    price = float(px or 0)
+    qtys = chunk_qtys(int(total_qty), px=price, max_notional_usd=cap)
+    if not qtys:
+        return []
+    return [(q, price) for q in qtys]

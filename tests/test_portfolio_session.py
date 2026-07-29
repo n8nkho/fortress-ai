@@ -25,6 +25,10 @@ class TestEntryManager(unittest.TestCase):
         self.em.evaluate_entry_blocks("pattern_disabled:momentum", side="flat", action="wait")
         self.assertEqual(self.em.block_counts()["pattern_disables"], 1)
 
+    def test_market_relative_increment(self) -> None:
+        self.em.evaluate_entry_blocks("market_relative_underperformance", side="flat", action="wait")
+        self.assertEqual(self.em.block_counts()["market_relative"], 1)
+
     def test_ignores_non_flat_side(self) -> None:
         self.em.evaluate_entry_blocks("manual_denylist", side="long", action="wait")
         self.assertEqual(sum(self.em.block_counts().values()), 0)
@@ -75,7 +79,7 @@ class TestSessionReporting(unittest.TestCase):
             portfolio={"session_exit_count": 0},
             benchmark={"change_1d_pct": 0.42},
         )
-        self.assertEqual(line, "Entry blocks active: denylist=3, pause_entries=0, pattern_disables=5")
+        self.assertEqual(line, "Entry blocks active: denylist=3, pause_entries=0, pattern_disables=5, market_relative=0")
 
     def test_format_report_skips_when_exits_positive(self) -> None:
         line = format_session_report(

@@ -350,12 +350,30 @@ def _clamp_capability(name: str, value: float) -> float:
     return max(lo, min(hi, float(value)))
 
 
+def _participation_gap_on_strong_tape(
+    metrics: dict[str, Any],
+    gaps: list[dict[str, Any]],
+) -> bool:
+    if not any(g.get("objective_id") == "portfolio_participation_on_strong_tape" for g in gaps):
+        return False
+    port = metrics.get("portfolio_session") or {}
+    if not port.get("benchmark_ok", True):
+        return False
+    if not bool(port.get("strong_tape_1d")):
+        return False
+    try:
+        return int(port.get("participation_shortfall_exits") or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 def propose_capability_updates(
     metrics: dict[str, Any],
     gaps: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Bounded meta-SI proposals from objective gaps."""
     proposals: list[dict[str, Any]] = []
+    participation_gap = _participation_gap_on_strong_tape(metrics, gaps)
     skim = metrics.get("skim_swarm") or {}
     skim_exp = skim.get("rolling_expectancy_usd")
     skim_payoff = skim.get("rolling_payoff_ratio")
@@ -404,7 +422,7 @@ def propose_capability_updates(
     if gaps:
         cur_cadence = float(get_capability("rth_review_cadence_mult", 1.0) or 1.0)
         new_cadence = _clamp_capability("rth_review_cadence_mult", max(0.5, cur_cadence - 0.1))
-        if new_cadence < cur_cadence - 0.04:
+        if new_cadence < cur_cadence - 0.04 and not participation_gap:
             proposals.append(
                 {
                     "capability": "rth_review_cadence_mult",
@@ -465,7 +483,7 @@ def propose_capability_updates(
                     "reason": "Primary knobs saturated — increase rolling-aware autofix strength.",
                 }
             )
-    if any(g.get("objective_id") == "classic_fill_recency" for g in gaps):
+    if any(g.get("objective_id") == "classic_fill_recency" for g in gaps) and not participation_gap:
         cur_days = float(get_capability("classic_fill_recency_days_max", 7.0) or 7.0)
         new_days = _clamp_capability("classic_fill_recency_days_max", max(3.0, cur_days - 1.0 * gap_sev))
         if new_days < cur_days - 0.4:
@@ -477,7 +495,7 @@ def propose_capability_updates(
                     "reason": "Classic fill recency gap — tighten adaptive day threshold.",
                 }
             )
-    if any(g.get("component") == "unified_ai" for g in gaps) or gap_sev > 0.5:
+    if (any(g.get("component") == "unified_ai" for g in gaps) or gap_sev > 0.5) and not participation_gap:
         cur_trim = float(get_capability("unified_loser_trim_pct_equity", 0.05) or 0.05)
         new_trim = _clamp_capability("unified_loser_trim_pct_equity", max(0.02, cur_trim - 0.005 * gap_sev))
         if new_trim < cur_trim - 0.001:

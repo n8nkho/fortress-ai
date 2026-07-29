@@ -12,10 +12,12 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from agents.historical_seeder.hourly_knowledge import build_hourly_knowledge, build_symbol_slot_stats
+from config.constants import KNOWLEDGE_BASE_MAX_AGE_DAYS
 from utils.market_consciousness import (
     assemble_consciousness_inputs,
     current_temporal_slot,
     format_consciousness_prompt_section,
+    rebuild_hourly_knowledge,
     slot_profile,
 )
 
@@ -105,6 +107,56 @@ class TestMarketConsciousness(unittest.TestCase):
             bundle = assemble_consciousness_inputs(use_cache=False)
         self.assertTrue(bundle.get("enabled"))
         self.assertNotIn("recursive_guard", bundle)
+
+
+class TestConsciousnessKnowledgeBaseRebuild(unittest.TestCase):
+    def test_rebuild_hourly_knowledge_skips_when_fresh(self):
+        built = datetime(2026, 6, 20, 12, 0, tzinfo=ZoneInfo("America/New_York"))
+        with patch(
+            "utils.market_consciousness_knowledge_base.knowledge_base_last_build_time",
+            return_value=built,
+        ):
+            with patch(
+                "utils.market_consciousness_knowledge_base.now",
+                return_value=built + timedelta(days=1),
+            ):
+                out = rebuild_hourly_knowledge(force=False)
+        self.assertTrue(out.get("skipped"))
+        self.assertEqual(out.get("block_reason"), "consciousness_kb_fresh")
+
+    def test_rebuild_hourly_knowledge_rebuilds_when_stale(self):
+        built = datetime(2026, 1, 1, 12, 0, tzinfo=ZoneInfo("America/New_York"))
+        fake_out = {"symbols": ["SPY"], "knowledge_path": "data/hourly/market_hourly_knowledge.json"}
+        with patch(
+            "utils.market_consciousness_knowledge_base.knowledge_base_last_build_time",
+            return_value=built,
+        ):
+            with patch(
+                "utils.market_consciousness_knowledge_base.now",
+                return_value=built + timedelta(days=KNOWLEDGE_BASE_MAX_AGE_DAYS + 1),
+            ):
+                with patch(
+                    "agents.historical_seeder.hourly_knowledge.run_build",
+                    return_value=fake_out,
+                ) as run_build:
+                    out = rebuild_hourly_knowledge(force=False, download=False)
+        run_build.assert_called_once_with(download=False, force_download=False)
+        self.assertFalse(out.get("skipped"))
+        self.assertEqual(out.get("block_reason"), "consciousness_kb_rebuilt")
+
+    def test_si_processor_registers_rebuild_hourly_knowledge(self):
+        from utils.si_queue.handlers import handle_rebuild_hourly_knowledge
+        from utils.si_queue.si_processor import ACTION_HANDLERS, process_si_action
+
+        self.assertIs(ACTION_HANDLERS.get("rebuild_hourly_knowledge"), handle_rebuild_hourly_knowledge)
+        expected = {"skipped": True, "block_reason": "consciousness_kb_fresh"}
+        with patch(
+            "utils.market_consciousness_knowledge_base.rebuild_hourly_knowledge",
+            return_value=expected,
+        ):
+            out = process_si_action("rebuild_hourly_knowledge")
+        self.assertEqual(out.get("si_action"), "rebuild_hourly_knowledge")
+        self.assertEqual(out.get("block_reason"), "consciousness_kb_fresh")
 
 
 if __name__ == "__main__":

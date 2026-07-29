@@ -15,6 +15,7 @@ class TestOperatorStatusReport(unittest.TestCase):
         self.addCleanup(self._td.cleanup)
         os.environ["FORTRESS_AI_DATA_DIR"] = self._td.name
         os.environ["FORTRESS_ADAPTIVE_MAX_OPEN"] = "0"
+        os.environ["FORTRESS_RECONCILE_BROKER_LEDGER"] = "0"
 
     def test_persist_writes_latest_and_jsonl(self):
         from utils.operator_status_report import persist_operator_status

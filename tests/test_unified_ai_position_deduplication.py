@@ -119,9 +119,9 @@ class TestActIntegration(unittest.TestCase):
     def test_act_blocks_repeat_entry_when_already_holding(self):
         mock_ticker = MagicMock()
         mock_ticker.fast_info.get.return_value = 200.0
-        with patch("agents.unified_ai_agent._dry_run", return_value=False):
-            with patch("agents.unified_ai_agent._min_confidence_execute", return_value=0.5):
-                with patch("agents.unified_ai_agent.yf.Ticker", return_value=mock_ticker):
+        with patch("agents.unified_ai_agent._core._dry_run", return_value=False):
+            with patch("agents.unified_ai_agent._core._min_confidence_execute", return_value=0.5):
+                with patch("agents.unified_ai_agent._core.yf.Ticker", return_value=mock_ticker):
                     from agents.unified_ai_agent import act
 
                     result = act(
@@ -139,14 +139,14 @@ class TestActIntegration(unittest.TestCase):
     def test_act_chunks_large_exit(self):
         mock_ticker = MagicMock()
         mock_ticker.fast_info.get.return_value = 200.0
-        with patch("agents.unified_ai_agent._dry_run", return_value=False):
-            with patch("agents.unified_ai_agent._min_confidence_execute", return_value=0.5):
-                with patch("agents.unified_ai_agent.yf.Ticker", return_value=mock_ticker):
+        with patch("agents.unified_ai_agent._core._dry_run", return_value=False):
+            with patch("agents.unified_ai_agent._core._min_confidence_execute", return_value=0.5):
+                with patch("agents.unified_ai_agent._core.yf.Ticker", return_value=mock_ticker):
                     with patch(
-                        "agents.unified_ai_agent.evaluate_pre_trade_submission",
+                        "agents.unified_ai_agent._core.evaluate_pre_trade_submission",
                         return_value={"allowed": True},
                     ):
-                        with patch("agents.unified_ai_agent._alpaca_client") as mock_tc:
+                        with patch("agents.unified_ai_agent._core._alpaca_client") as mock_tc:
                             tc = MagicMock()
                             mock_tc.return_value = tc
                             order = MagicMock()

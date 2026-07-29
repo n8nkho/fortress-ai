@@ -1,4 +1,9 @@
 # Portfolio session entry guard configuration (Fortress stack).
+entry_blocks:
+  market_relative_underperformance:
+    enabled: true
+    threshold: -0.005  # -0.5% alpha vs SPY
+
 guards:
   market_relative:
     enabled: true

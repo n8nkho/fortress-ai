@@ -162,7 +162,11 @@ def scan_broker_open_orders_backlog(*, max_open_sells: int = 25) -> list[dict[st
                 "before submitting new exits."
             ),
             "si_action": "cancel_stale_open_orders",
-            "mitigation_markers": ["open_exit_order_pending"],
+            "mitigation_markers": [
+                "open_exit_order_pending",
+                "cancel_stale_open_orders",
+                "broker_open_sell_backlog",
+            ],
         }
     ]
 

@@ -1,0 +1,8 @@
+# Portfolio session symbol/session controls (Fortress stack).
+# Symbols exempt from negative alpha check during uptrend.
+beta_leaders: []
+
+# Block swarm entries when session alpha vs SPY underperforms threshold (percent points).
+market_relative_underperformance_enabled: true
+market_relative_underperformance_threshold: -0.5
+market_relative_underperformance_threshold_pct: -0.5

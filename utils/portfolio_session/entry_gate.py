@@ -5,7 +5,7 @@ import logging
 from functools import lru_cache
 from typing import Any
 
-from utils.portfolio_session.entry_guard_manager import get_entry_guards
+from utils.portfolio_session.entry_guard_router import get_entry_guards
 from utils.portfolio_session.entry_guards import (
     evaluate_entry_blocks as _evaluate_entry_guard_blocks,
     market_relative_underperformance_gate,

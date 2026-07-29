@@ -195,6 +195,34 @@ def get_beta_leaders() -> frozenset[str]:
 
 
 @lru_cache(maxsize=1)
+def get_market_relative_entry_block_config() -> dict[str, Any]:
+    """Load entry_blocks.market_relative_underperformance from portfolio_session.yaml."""
+    cfg: dict[str, Any] = {
+        "enabled": True,
+        "threshold": -0.005,
+    }
+    for path in (
+        _TRADING_BOT / "config" / "portfolio_session.yaml",
+        _FORTRESS_AI / "config" / "portfolio_session.yaml",
+    ):
+        doc = _load_yaml_doc(path)
+        section = doc.get("entry_blocks")
+        if not isinstance(section, dict):
+            continue
+        block = section.get("market_relative_underperformance")
+        if not isinstance(block, dict):
+            continue
+        if "enabled" in block:
+            cfg["enabled"] = _coerce_bool(block["enabled"], True)
+        if "threshold" in block:
+            try:
+                cfg["threshold"] = float(block["threshold"])
+            except (TypeError, ValueError):
+                pass
+    return cfg
+
+
+@lru_cache(maxsize=1)
 def load_market_relative_guard_config() -> dict[str, Any]:
     """Alias for RiskManager market-relative gate config (guard / gate naming)."""
     from utils.portfolio_session.risk_manager import load_market_relative_gate_config

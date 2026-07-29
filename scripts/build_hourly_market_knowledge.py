@@ -22,6 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Download hourly bars and build slot knowledge JSON")
     ap.add_argument("--skip-download", action="store_true", help="Rebuild knowledge from existing CSVs only")
     ap.add_argument("--force-download", action="store_true", help="Re-fetch hourly CSVs even if fresh")
+    ap.add_argument("--force", action="store_true", help="Rebuild even when knowledge base is still fresh")
     ap.add_argument("--years", type=int, default=None, help="Override FORTRESS_HOURLY_KNOWLEDGE_YEARS")
     args = ap.parse_args(argv)
 
@@ -30,10 +31,16 @@ def main(argv: list[str] | None = None) -> int:
 
         os.environ["FORTRESS_HOURLY_KNOWLEDGE_YEARS"] = str(args.years)
 
-    from agents.historical_seeder.hourly_knowledge import run_build
+    from utils.market_consciousness_knowledge_base import rebuild_hourly_knowledge
 
-    out = run_build(download=not args.skip_download, force_download=args.force_download)
+    out = rebuild_hourly_knowledge(
+        download=not args.skip_download,
+        force=args.force,
+        force_download=args.force_download,
+    )
     print(json.dumps(out, indent=2, default=str))
+    if out.get("skipped"):
+        return 0
     return 0 if out.get("symbols") else 1
 
 

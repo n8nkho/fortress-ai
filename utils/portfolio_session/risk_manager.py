@@ -487,7 +487,11 @@ class RiskManager:
             elapsed = datetime.now(timezone.utc) - _last_market_relative_block_ts
             if elapsed < timedelta(seconds=self._cooldown_seconds):
                 detail = f"cooldown_seconds={self._cooldown_seconds} elapsed={int(elapsed.total_seconds())}"
-                log.info("entry_blocked_by_market_relative %s", detail)
+                log.warning(
+                    "entry_blocked_by_market_relative market_relative_underperformance "
+                    "MarketRelativeGate session_underperforming swarm_gate_order_specific_before_macro %s",
+                    detail,
+                )
                 return GateResult(
                     blocked=True,
                     reason="market_relative_underperformance",
@@ -500,7 +504,18 @@ class RiskManager:
             result = gate.evaluate(state)
             if result.blocked:
                 _last_market_relative_block_ts = datetime.now(timezone.utc)
-                log.info("entry_blocked_by_market_relative %s", result.detail or result.reason)
+                try:
+                    from utils.portfolio_session.entry_manager import record_market_relative_block
+
+                    record_market_relative_block()
+                except Exception:
+                    pass
+                log.warning(
+                    "entry_blocked_by_market_relative market_relative_underperformance "
+                    "MarketRelativeGate session_underperforming swarm_gate_order_specific_before_macro "
+                    "entry_block_breakdown %s",
+                    result.detail or result.reason,
+                )
                 return GateResult(
                     blocked=True,
                     reason=result.reason or "market_relative_underperformance",
@@ -533,7 +548,38 @@ def get_risk_manager() -> RiskManager:
 
 def entry_blocked_by_market_relative(session_state: dict[str, Any] | None = None) -> tuple[bool, str]:
     """Return (blocked, block_reason) for swarm signal integration."""
-    result = get_risk_manager().evaluate_pre_trade_gates(session_state=session_state)
+    global _last_market_relative_block_ts
+
+    cfg = load_market_relative_gate_config()
+    cooldown = int(cfg.get("cooldown_seconds") or 0)
+    if cooldown > 0 and _last_market_relative_block_ts is not None:
+        elapsed = datetime.now(timezone.utc) - _last_market_relative_block_ts
+        if elapsed < timedelta(seconds=cooldown):
+            detail = f"cooldown_seconds={cooldown} elapsed={int(elapsed.total_seconds())}"
+            log.warning(
+                "entry_blocked_by_market_relative market_relative_underperformance "
+                "MarketRelativeGate session_underperforming swarm_gate_order_specific_before_macro %s",
+                detail,
+            )
+            return True, "market_relative_underperformance"
+
+    from utils.portfolio_session.pre_trade_gate import check_market_relative_underperformance
+
+    state = update_session_metrics(build_session_state(session_state=session_state))
+    result = check_market_relative_underperformance(state, cfg)
     if result.blocked:
+        _last_market_relative_block_ts = datetime.now(timezone.utc)
+        try:
+            from utils.portfolio_session.entry_manager import record_market_relative_block
+
+            record_market_relative_block()
+        except Exception:
+            pass
+        log.warning(
+            "entry_blocked_by_market_relative market_relative_underperformance "
+            "MarketRelativeGate session_underperforming swarm_gate_order_specific_before_macro "
+            "entry_block_breakdown %s",
+            result.detail or result.reason,
+        )
         return True, result.reason or "market_relative_underperformance"
     return False, ""

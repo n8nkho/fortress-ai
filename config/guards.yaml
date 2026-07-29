@@ -1,0 +1,26 @@
+# Portfolio session entry guard configuration.
+guards:
+  market_relative:
+    enabled: true
+    underperformance_threshold: 0.4  # percent magnitude; blocks when alpha_vs_spy_pct < -0.4
+
+market_relative:
+  enabled: true
+  underperformance_threshold_pct: -0.5
+
+market_relative_underperformance:
+  enabled: true
+  threshold_alpha_pct: -0.5  # block when session alpha vs SPY < -0.5%
+  market_relative_underperformance_threshold: 0.5  # default 0.5% underperformance before blocking
+  threshold: 0.005  # 0.5% underperformance triggers block
+  threshold_alpha_underperformance_pct: 0.5
+  market_relative_underperformance_threshold_bps: 50
+  threshold_alpha_vs_spy_pct: -0.5
+  market_relative_underperformance_threshold_pct: -0.5
+  underperformance_threshold_pct: -0.5
+  threshold_pct: -0.5
+  action: block_entries
+  lookback_period: '1d'
+  window_seconds: 300
+  cooldown_seconds: 300
+  cooldown_minutes: 60

@@ -63,11 +63,16 @@ def max_order_notional_usd(*, side: str = "SELL", portfolio_equity_usd: float | 
             base = 0.0
         if base <= 0:
             try:
-                from config.defaults import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
+                from config.risk_params import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
 
                 base = float(_cfg_cap)
             except Exception:
-                base = 50000.0
+                try:
+                    from config.defaults import FORTRESS_MAX_ORDER_NOTIONAL_USD as _cfg_cap
+
+                    base = float(_cfg_cap)
+                except Exception:
+                    base = 50000.0
 
     sd = (side or "").strip().upper()
     if sd == "BUY" and portfolio_equity_usd is not None and float(portfolio_equity_usd) > 0:
@@ -82,12 +87,82 @@ def max_order_notional_usd(*, side: str = "SELL", portfolio_equity_usd: float | 
     return base
 
 
-def position_deduplication_enabled() -> bool:
-    env_raw = (os.environ.get("POSITION_DEDUPLICATION_ENABLED") or "").strip().lower()
+def max_position_notional_usd(*, portfolio_equity_usd: float | None = None) -> float:
+    """Resolve max position notional from env, default.yaml, or config defaults."""
+    env_raw = (os.environ.get("FORTRESS_MAX_POSITION_NOTIONAL_USD") or "").strip()
+    if env_raw:
+        try:
+            base = float(env_raw)
+        except ValueError:
+            base = 100_000.0
+    else:
+        defaults = load_defaults()
+        try:
+            base = float(defaults.get("FORTRESS_MAX_POSITION_NOTIONAL_USD") or 0)
+        except (TypeError, ValueError):
+            base = 0.0
+        if base <= 0:
+            try:
+                base = float(defaults.get("MAX_POSITION_SIZE_PER_SYMBOL") or 0)
+            except (TypeError, ValueError):
+                base = 0.0
+        if base <= 0:
+            try:
+                from config.risk_params import FORTRESS_MAX_POSITION_NOTIONAL_USD as _cfg_cap
+
+                base = float(_cfg_cap)
+            except Exception:
+                try:
+                    from config.defaults import FORTRESS_MAX_POSITION_NOTIONAL_USD as _cfg_cap
+
+                    base = float(_cfg_cap)
+                except Exception:
+                    base = 100_000.0
+
+    if portfolio_equity_usd is not None and float(portfolio_equity_usd) > 0:
+        try:
+            from utils.tunable_overrides import get_position_size_pct
+
+            position_pct_cap = float(portfolio_equity_usd) * float(get_position_size_pct())
+            if position_pct_cap > 0:
+                return min(base, position_pct_cap)
+        except Exception:
+            pass
+    return base
+
+
+def flatten_legacy_on_startup() -> bool:
+    env_raw = (os.environ.get("FLATTEN_LEGACY_ON_STARTUP") or "").strip().lower()
     if env_raw in ("1", "true", "yes", "on"):
         return True
     if env_raw in ("0", "false", "no", "off"):
         return False
     defaults = load_defaults()
-    val = defaults.get("POSITION_DEDUPLICATION_ENABLED", True)
-    return bool(val)
+    if "FLATTEN_LEGACY_ON_STARTUP" in defaults:
+        return bool(defaults.get("FLATTEN_LEGACY_ON_STARTUP"))
+    try:
+        from config.defaults import FLATTEN_LEGACY_ON_STARTUP
+
+        return bool(FLATTEN_LEGACY_ON_STARTUP)
+    except Exception:
+        return True
+
+
+def position_deduplication_enabled() -> bool:
+    for key in ("ENFORCE_POSITION_DEDUPLICATION", "POSITION_DEDUPLICATION_ENABLED"):
+        env_raw = (os.environ.get(key) or "").strip().lower()
+        if env_raw in ("1", "true", "yes", "on"):
+            return True
+        if env_raw in ("0", "false", "no", "off"):
+            return False
+    defaults = load_defaults()
+    if "ENFORCE_POSITION_DEDUPLICATION" in defaults:
+        return bool(defaults.get("ENFORCE_POSITION_DEDUPLICATION"))
+    if "POSITION_DEDUPLICATION_ENABLED" in defaults:
+        return bool(defaults.get("POSITION_DEDUPLICATION_ENABLED"))
+    try:
+        from config.defaults import ENFORCE_POSITION_DEDUPLICATION
+
+        return bool(ENFORCE_POSITION_DEDUPLICATION)
+    except Exception:
+        return True

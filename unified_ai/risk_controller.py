@@ -3,14 +3,17 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
+from unified_ai.config import FORTRESS_MAX_ORDER_NOTIONAL_USD
 from unified_ai.order_executor import OrderExecutor
-from unified_ai.settings import max_order_notional_usd
+from unified_ai.settings import max_order_notional_usd, max_position_notional_usd
+from utils.order_chunking import CHUNK_DELAY_MIN_SEC
 
 log = logging.getLogger(__name__)
 
-FLATTEN_INTERVAL_SEC = 300.0
+FLATTEN_INTERVAL_SEC = 60.0
 
 
 def _position_fields(p: Any) -> tuple[str, int, float, float]:
@@ -65,11 +68,14 @@ class RiskController:
         Trim positions whose notional exceeds the cap by selling excess in chunked exits.
         """
         cap = max_order_notional_usd(side="SELL", portfolio_equity_usd=self._equity)
+        position_cap = max_position_notional_usd(portfolio_equity_usd=self._equity)
+        order_cap = min(float(FORTRESS_MAX_ORDER_NOTIONAL_USD), cap)
         out: dict[str, Any] = {
             "flattened": [],
             "skipped": [],
             "dry_run": self._dry_run,
-            "max_notional_usd": cap,
+            "max_notional_usd": order_cap,
+            "max_position_notional_usd": position_cap,
         }
         if not self._positions:
             return out
@@ -77,7 +83,7 @@ class RiskController:
         executor = OrderExecutor(self._positions)
         for p in self._positions:
             sym, qty, mkt, px = _position_fields(p)
-            if not sym or qty <= 0 or mkt <= cap:
+            if not sym or qty <= 0 or mkt <= position_cap:
                 if sym:
                     out["skipped"].append({"symbol": sym, "notional_usd": mkt})
                 continue
@@ -86,7 +92,7 @@ class RiskController:
                 out["skipped"].append({"symbol": sym, "reason": "no_price"})
                 continue
 
-            target_qty = max(1, int(cap // px))
+            target_qty = max(1, int(position_cap // px))
             if target_qty >= qty:
                 out["skipped"].append({"symbol": sym, "notional_usd": mkt})
                 continue
@@ -132,7 +138,17 @@ class RiskController:
                 from alpaca.trading.requests import MarketOrderRequest
 
                 submitted: list[dict[str, Any]] = []
-                for chunk_qty in order_qtys:
+                for i, chunk_qty in enumerate(order_qtys):
+                    if i > 0 and len(order_qtys) > 1:
+                        delay = CHUNK_DELAY_MIN_SEC
+                        log.info(
+                            "chunked_exit:%s delay=%.3fs before chunk %d/%d",
+                            sym,
+                            delay,
+                            i + 1,
+                            len(order_qtys),
+                        )
+                        time.sleep(delay)
                     order = self._trading_client.submit_order(
                         MarketOrderRequest(
                             symbol=sym,

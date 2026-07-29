@@ -47,6 +47,7 @@ def _order_age_minutes(o: Any, *, now: datetime | None = None) -> float | None:
 def cancel_stale_open_orders(
     trading_client: Any,
     *,
+    symbols: list[str] | None = None,
     cancel_phantom_sells: bool = True,
     cancel_duplicate_sells: bool = True,
     stale_sell_minutes: float = 30.0,
@@ -62,12 +63,15 @@ def cancel_stale_open_orders(
     from alpaca.trading.requests import GetOrdersRequest
 
     held = _broker_position_qty(trading_client)
+    want = {str(s or "").upper() for s in (symbols or []) if str(s or "").strip()} or None
     req = GetOrdersRequest(status=QueryOrderStatus.OPEN, limit=500)
     open_orders = list(trading_client.get_orders(filter=req) or [])
 
     by_sym: dict[str, list[Any]] = {}
     for o in open_orders:
         sym = str(getattr(o, "symbol", "")).upper()
+        if want is not None and sym not in want:
+            continue
         if _order_side(o) != "sell":
             continue
         by_sym.setdefault(sym, []).append(o)
@@ -124,6 +128,14 @@ def cancel_stale_open_orders(
             cancelled.append(oid)
         except Exception as e:
             errors.append(f"{oid}:{type(e).__name__}:{e}")
+
+    if cancelled:
+        import logging
+
+        logging.getLogger(__name__).info(
+            "cancel_stale_open_orders cancelled=%d broker_open_sell_backlog",
+            len(cancelled),
+        )
 
     return {
         "ok": True,

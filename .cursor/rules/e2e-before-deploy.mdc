@@ -1,0 +1,22 @@
+---
+description: Run end-to-end verification before git commit or deploy for Fortress stacks.
+alwaysApply: true
+---
+
+# End-to-end verification before commit / deploy
+
+Before committing or deploying changes to **fortress-ai**, run from the repo root:
+
+```bash
+./scripts/e2e_verify.sh
+```
+
+Use `./scripts/e2e_verify.sh --no-ingest` if you must avoid network (skips domain ingest; unit tests only).
+
+To verify **both** fortress-ai and sibling `trading-bot` on the same host:
+
+```bash
+./scripts/e2e_all_repos.sh
+```
+
+Do not treat a change as ready until the relevant script exits **0**.

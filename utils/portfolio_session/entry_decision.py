@@ -5,6 +5,9 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from utils.portfolio_session.entry_block_breakdown import (
+    increment_market_relative_underperformance_breakdown,
+)
 from utils.portfolio_session.config import (
     get_market_relative_underperformance_enabled,
     get_market_relative_underperformance_threshold,
@@ -12,6 +15,7 @@ from utils.portfolio_session.config import (
 from utils.portfolio_session.entry_guard_manager import get_entry_guards
 from utils.portfolio_session.entry_guards import market_relative_underperformance_gate
 from utils.portfolio_session.session_metrics import build_session_metrics
+from utils.portfolio_session.session_monitor import update_session_metrics
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +36,12 @@ class EntryDecision:
 
 
 def _increment_breakdown(session_state: dict[str, Any], key: str) -> dict[str, Any]:
+    if key == "market_relative":
+        updated = dict(session_state)
+        updated["entry_block_breakdown"] = increment_market_relative_underperformance_breakdown(
+            session_state.get("entry_block_breakdown")
+        )
+        return updated
     breakdown = dict(session_state.get("entry_block_breakdown") or {})
     breakdown[key] = int(breakdown.get(key) or 0) + 1
     updated = dict(session_state)
@@ -59,7 +69,7 @@ def evaluate_entry_decision(
     prior_block_reason: str = "",
 ) -> tuple[EntryDecision, dict[str, Any]]:
     """Run guard chain after pause_entries and pattern_disables; market-relative runs last."""
-    state = build_session_metrics(dict(session_state or {}))
+    state = update_session_metrics(build_session_metrics(dict(session_state or {})), force=True)
 
     # swarm_gate_order_specific_before_macro: macro gate follows per-symbol blocks
     if _order_specific_blocks_active(state, prior_block_reason):
@@ -91,7 +101,9 @@ def evaluate_entry_decision(
         state = _increment_breakdown(state, "market_relative")
         state["entry_block_reason"] = result.reason or "market_relative_underperformance"
         log.warning(
-            "entry_blocked_by_market_relative market_relative_underperformance MarketRelativeGate %s",
+            "entry_blocked_by_market_relative market_relative_underperformance MarketRelativeGate "
+            "swarm_gate_order_specific_before_macro entry_block_breakdown=%s %s",
+            state.get("entry_block_breakdown"),
             result.detail or result.reason,
         )
         return (
@@ -138,7 +150,9 @@ def evaluate_entry_decision(
             f"market_relative_underperformance_threshold_bps={bps}"
         )
         log.warning(
-            "entry_blocked_by_market_relative market_relative_underperformance MarketRelativeGate %s",
+            "entry_blocked_by_market_relative market_relative_underperformance MarketRelativeGate "
+            "swarm_gate_order_specific_before_macro session_underperforming entry_block_breakdown=%s %s",
+            state.get("entry_block_breakdown"),
             detail,
         )
         return (

@@ -18,6 +18,18 @@ class TestAlpacaOrderHygiene(unittest.TestCase):
         self.assertTrue(out.get("dry_run"))
         self.assertEqual(out.get("would_cancel"), 2)
 
+    def test_symbol_filter_limits_cancellations(self):
+        from utils.alpaca_order_hygiene import cancel_stale_open_orders
+
+        tc = MagicMock()
+        tc.get_all_positions.return_value = []
+        o1 = MagicMock(symbol="SPY", side=MagicMock(value="sell"), id="a", submitted_at="2026-06-19")
+        o2 = MagicMock(symbol="IWM", side=MagicMock(value="sell"), id="b", submitted_at="2026-06-19")
+        tc.get_orders.return_value = [o1, o2]
+        out = cancel_stale_open_orders(tc, symbols=["SPY"], dry_run=True)
+        self.assertEqual(out.get("would_cancel"), 1)
+        self.assertEqual(out.get("symbols"), ["SPY"])
+
 
 if __name__ == "__main__":
     unittest.main()

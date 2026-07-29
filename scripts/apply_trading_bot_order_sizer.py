@@ -52,6 +52,11 @@ def chunk_exit_delay_sec() -> float:
     return random.uniform(CHUNK_DELAY_MIN_SEC, CHUNK_DELAY_MAX_SEC)
 
 
+def create_exit_order(shares: int, mark_price: float) -> dict[str, Any]:
+    """Create a chunked exit order plan under FORTRESS_MAX_ORDER_NOTIONAL_USD."""
+    return plan_chunked_exit(shares, mark_price)
+
+
 def plan_chunked_exit(shares: int, mark_price: float) -> dict[str, Any]:
     """
     Plan exit order quantities under the notional cap.
@@ -457,6 +462,12 @@ def main() -> int:
     order_sizer_path = TRADING_BOT / "utils" / "order_sizer.py"
     order_sizer_path.write_text(ORDER_SIZER, encoding="utf-8")
     print(f"wrote {order_sizer_path}")
+
+    order_executor_src = Path(__file__).resolve().parent.parent / "deploy" / "trading-bot-patches" / "utils" / "order_executor.py"
+    order_executor_dst = TRADING_BOT / "utils" / "order_executor.py"
+    if order_executor_src.is_file():
+        order_executor_dst.write_text(order_executor_src.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"wrote {order_executor_dst}")
 
     test_path = TRADING_BOT / "tests" / "test_order_sizer.py"
     test_path.write_text(TEST_ORDER_SIZER, encoding="utf-8")

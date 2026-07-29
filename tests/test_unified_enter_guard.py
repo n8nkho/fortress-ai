@@ -45,9 +45,9 @@ class TestUnifiedActEnterCooldown(unittest.TestCase):
     def test_act_blocks_enter_cooldown(self):
         mock_ticker = MagicMock()
         mock_ticker.fast_info.get.return_value = 30.0
-        with patch("agents.unified_ai_agent._dry_run", return_value=False):
-            with patch("agents.unified_ai_agent._min_confidence_execute", return_value=0.5):
-                with patch("agents.unified_ai_agent.yf.Ticker", return_value=mock_ticker):
+        with patch("agents.unified_ai_agent._core._dry_run", return_value=False):
+            with patch("agents.unified_ai_agent._core._min_confidence_execute", return_value=0.5):
+                with patch("agents.unified_ai_agent._core.yf.Ticker", return_value=mock_ticker):
                     with patch(
                         "utils.unified_enter_guard.entry_blocked_by_cooldown",
                         return_value=(True, "enter_cooldown:HRL:120s"),

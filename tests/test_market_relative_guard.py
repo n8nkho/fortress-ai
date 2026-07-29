@@ -25,6 +25,7 @@ from utils.portfolio_session.risk_manager import (  # noqa: E402
     reset_market_relative_cooldown,
 )
 from utils.portfolio_session.session_manager import evaluate_entry_blocks, evaluate_entry_guards  # noqa: E402
+from utils.portfolio_session.session_monitor import get_session_alpha_vs_spy  # noqa: E402
 
 
 class TestMarketRelativeGuard(unittest.TestCase):
@@ -45,6 +46,15 @@ class TestMarketRelativeGuard(unittest.TestCase):
         self.assertTrue(check_market_relative_underperformance(-0.6, threshold))
         self.assertFalse(check_market_relative_underperformance(-0.4, threshold))
         self.assertFalse(check_market_relative_underperformance(0.0, threshold))
+
+    def test_check_market_relative_underperformance_three_arg_returns_reason(self) -> None:
+        reason = check_market_relative_underperformance(0.0, 0.64, 0.5)
+        self.assertIsNotNone(reason)
+        self.assertIn("market_relative_underperformance", str(reason))
+        self.assertIn("session_underperforming", str(reason))
+
+        self.assertIsNone(check_market_relative_underperformance(0.0, 0.3, 0.5))
+        self.assertIsNone(check_market_relative_underperformance(0.5, 0.2, 0.5))
 
     def test_market_relative_guard_check_si_plan_cases(self) -> None:
         guard = MarketRelativeGuard(underperformance_threshold=-0.5)
@@ -214,6 +224,28 @@ class TestMarketRelativeGuard(unittest.TestCase):
         self.assertTrue(blocked)
         self.assertEqual(reason, "market_relative_underperformance")
 
+    def test_session_manager_should_block_entry_si_plan(self) -> None:
+        from utils.portfolio_session.session_manager import should_block_entry as session_should_block
+
+        self.assertTrue(
+            session_should_block(
+                {
+                    "session_return_pct": 0.0,
+                    "benchmark_change_1d_pct": 0.64,
+                    "benchmark_ok": True,
+                }
+            )
+        )
+        self.assertFalse(
+            session_should_block(
+                {
+                    "session_return_pct": 0.0,
+                    "benchmark_change_1d_pct": 0.3,
+                    "benchmark_ok": True,
+                }
+            )
+        )
+
     def test_risk_guards_yaml_config_loading(self) -> None:
         from risk.guards.market_relative_guard import (
             MarketRelativeUnderperformanceGuard,
@@ -230,6 +262,54 @@ class TestMarketRelativeGuard(unittest.TestCase):
         self.assertEqual(guard.threshold_alpha_pct, -0.5)
         self.assertTrue(guard.check(-0.8))
         self.assertFalse(guard.check(-0.3))
+
+    def test_guard_cooldown_blocks_until_alpha_recovers(self) -> None:
+        MarketRelativeUnderperformanceGuard.reset_cooldown()
+        guard = MarketRelativeUnderperformanceGuard(
+            config={"underperformance_threshold_pct": -0.5},
+            cooldown_seconds=3600,
+        )
+        ctx = {"alpha_vs_spy_pct": -0.8, "benchmark_ok": True}
+        first = guard.evaluate(ctx)
+        self.assertTrue(first.blocked)
+
+        recovered = guard.evaluate({"alpha_vs_spy_pct": -0.2, "benchmark_ok": True})
+        self.assertFalse(recovered.blocked)
+
+        MarketRelativeUnderperformanceGuard.reset_cooldown()
+        guard.evaluate(ctx)
+        still_under = guard.evaluate({"alpha_vs_spy_pct": -0.7, "benchmark_ok": True})
+        self.assertTrue(still_under.blocked)
+        self.assertIn("cooldown_seconds", still_under.detail or "")
+
+    def test_get_session_alpha_vs_spy_from_monitor(self) -> None:
+        from utils.portfolio_session.session_monitor import reset_session_monitor
+
+        reset_session_monitor()
+        alpha = get_session_alpha_vs_spy(
+            {
+                "alpha_vs_spy_pct": -0.64,
+                "benchmark_ok": True,
+                "session_return_pct": 0.0,
+                "benchmark_change_1d_pct": 0.64,
+            },
+            force=True,
+        )
+        self.assertEqual(alpha, -0.64)
+
+    def test_config_guards_py_loads_threshold_and_cooldown(self) -> None:
+        from config.guards import get_guard_config
+
+        get_guard_config.cache_clear()
+        cfg = get_guard_config("market_relative_underperformance")
+        self.assertTrue(cfg["enabled"])
+        self.assertEqual(cfg["threshold_alpha_pct"], -0.5)
+        self.assertEqual(cfg["cooldown_seconds"], 300)
+
+    def test_root_guard_registry_includes_underperformance(self) -> None:
+        from guards import GUARD_REGISTRY
+
+        self.assertIn("market_relative_underperformance", GUARD_REGISTRY)
 
 
 if __name__ == "__main__":

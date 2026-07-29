@@ -1,0 +1,29 @@
+---
+description: Regenerate and commit whitepaper PDF whenever markdown changes.
+alwaysApply: true
+---
+
+# Whitepaper markdown + PDF (never ship one without the other)
+
+When you edit **any** of:
+
+- `docs/FORTRESS_AI_WHITEPAPER.md`
+- `docs/TRADING_BOT_WHITEPAPER.md` (sibling repo)
+
+**Before commit and push:**
+
+1. Regenerate PDF in the same repo:
+   ```bash
+   ./scripts/ensure_whitepaper_pdf.sh --regenerate
+   ```
+2. Stage **both** `.md` and `.pdf`.
+3. Run e2e (`./scripts/e2e_verify.sh` / `./scripts/e2e_before_deploy.sh` for trading-bot).
+4. Push **both repos** when either whitepaper changed on this VM:
+   ```bash
+   cd /home/ubuntu/fortress-ai && git push origin main
+   cd /home/ubuntu/trading-bot && git push origin master
+   ```
+
+E2e fails if PDF is older than markdown (`ensure_whitepaper_pdf.sh` without `--regenerate`).
+
+Fortress PDF generator may use `trading-bot/venv/bin/python` when fortress venv lacks `markdown`/`fpdf2`.

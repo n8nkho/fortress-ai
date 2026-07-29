@@ -26,6 +26,8 @@ def _alpha_from_session_stats(session_stats: dict[str, Any] | Any) -> float | No
         spy_return = session_stats.get("spy_return_pct")
         if spy_return is None:
             spy_return = session_stats.get("benchmark_change_1d_pct")
+        if spy_return is None:
+            spy_return = session_stats.get("spy_change_pct")
         if session_return is not None and spy_return is not None:
             try:
                 return float(session_return) - float(spy_return)
