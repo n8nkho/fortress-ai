@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-07-27T15:29:15.754371-04:00"
+      "registered_at_utc": "2026-07-28T22:10:19.216243-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1151,7 +1151,21 @@
       "mitigation_markers": [
         "si_gap_action_registry",
         "gap_action_dispatch",
-        "execute_after_et"
+        "execute_after_et",
+        "utils/si_gap_action_dispatch.py"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "gap_action_dispatch": {
+      "title": "Dispatch SI gaps to Tier 0/1 preferred actions during RTH",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "gap_action_dispatch",
+        "ensure_effectiveness_actions",
+        "FORTRESS_SI_GAP_ACTION_DISPATCH"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

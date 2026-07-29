@@ -228,20 +228,29 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
 
     winners = [x for x in losses if x[0] > 0]
     avg_win = sum(x[0] for x in winners) / len(winners) if winners else 0.25
+    # Clip avg_win so one AIQ-sized winner cannot raise the brake bar above small bleeders.
+    clipped_avg_win = min(float(avg_win), 0.75)
     brake_mult = float(_get_cap("symbol_session_loss_brake_mult", 1.0))
-    min_loss = max(0.12, avg_win * 0.35 * brake_mult)
+    min_loss = max(0.12, clipped_avg_win * 0.35 * brake_mult)
     min_exits = max(2, min(5, int(2 + brake_mult)))
     try:
         single_loss_usd = float(os.environ.get("FORTRESS_SI_SYMBOL_BRAKE_SINGLE_LOSS_USD", "0.25") or 0.25)
     except (TypeError, ValueError):
         single_loss_usd = 0.25
     single_loss_usd = max(0.15, single_loss_usd * brake_mult)
+    # Absolute multi-exit bleeder floor (independent of winner size).
+    try:
+        bleeder_floor = float(os.environ.get("FORTRESS_SI_SYMBOL_BRAKE_BLEEDER_USD", "0.15") or 0.15)
+    except (TypeError, ValueError):
+        bleeder_floor = 0.15
+    bleeder_floor = max(0.10, bleeder_floor)
 
     brakes: list[str] = []
     for pnl, ex, sym, doc in losses:
         large_single = pnl <= -single_loss_usd and ex >= 1
         multi_loser = pnl < -min_loss and ex >= min_exits
-        if not large_single and not multi_loser:
+        small_bleeder = pnl <= -bleeder_floor and ex >= 2
+        if not large_single and not multi_loser and not small_bleeder:
             continue
         severity = min(1.0, abs(pnl) / max(min_loss, single_loss_usd, 0.01))
         params = doc.setdefault("params", {})

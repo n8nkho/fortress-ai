@@ -29,7 +29,9 @@ DISPOSITION_PENDING_HUMAN = "pending_human_go"
 DISPOSITION_AUTO_IMPLEMENT_QUEUED = "auto_implement_queued"
 DISPOSITION_DISMISSED = "dismissed"
 
-CROSS_STACK_SOURCES = frozenset({"cross_stack_belief", "fortress_ai_belief", "capability_review"})
+# Belief-sharing with Classic only — capability_review is fortress-native SI.
+CROSS_STACK_SOURCES = frozenset({"cross_stack_belief", "fortress_ai_belief"})
+_CROSS_STACK_CODE_PREFIXES = ("classic_", "classic_mirror_")
 
 
 def is_cross_stack_source(source: str) -> bool:
@@ -37,12 +39,18 @@ def is_cross_stack_source(source: str) -> bool:
 
 
 def is_cross_stack_item(item: dict[str, Any] | None) -> bool:
-    """True when item originated from or is tagged as cross-stack belief sharing."""
+    """True when item is Classic belief-sharing / classic_* — not fortress capability gaps."""
     if not isinstance(item, dict):
         return False
-    if item.get("cross_stack"):
+    code = str(item.get("code") or "")
+    if code.startswith(_CROSS_STACK_CODE_PREFIXES) or str(item.get("component") or "") == "classic_fortress":
         return True
-    return is_cross_stack_source(str(item.get("source") or ""))
+    if is_cross_stack_source(str(item.get("source") or "")):
+        return True
+    # Ignore stale cross_stack flags on fortress-native capability codes.
+    if code.startswith(("skim_", "infra_", "si_", "premature_", "broker_", "market_relative")):
+        return False
+    return bool(item.get("cross_stack"))
 
 
 CROSS_STACK_FORBIDDEN_AUTO_DISPOSITIONS = frozenset(

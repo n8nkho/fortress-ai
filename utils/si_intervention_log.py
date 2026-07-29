@@ -16,8 +16,37 @@ _NO_OP_ACTIONS = frozenset(
         "si_meta_heartbeat",
     }
 )
+_PROTECTIVE_ACTIONS = frozenset(
+    {
+        "symbol_session_brake",
+        "swarm_session_tight",
+        "swarm_session_churn",
+        "edge_autofix",
+    }
+)
 _MIN_EXP_DELTA = 0.005
 _MIN_PAY_DELTA = 0.02
+
+
+def _is_protective(action: str) -> bool:
+    a = str(action or "")
+    if a in _PROTECTIVE_ACTIONS:
+        return True
+    return a.startswith("gap_dispatch:")
+
+
+def _held_or_improved(
+    *,
+    before: float,
+    after: float,
+    min_delta: float,
+    protective: bool,
+) -> bool:
+    if after > before + min_delta:
+        return True
+    if protective and after >= before - min_delta:
+        return True
+    return False
 
 
 def _data_dir() -> Path:
@@ -130,12 +159,19 @@ def intervention_success_rate(
     scored = 0
     for row in deduped.values():
         comp = str(row.get("component") or "")
+        action = str(row.get("action") or "")
+        protective = _is_protective(action)
         before = (row.get("metrics_snapshot") or {}).get(comp) or {}
         before_exp = _expectancy_usd(before)
         after_exp = _expectancy_usd(metrics.get(comp) or {})
         if before_exp is not None and after_exp is not None:
             scored += 1
-            if after_exp > before_exp + _MIN_EXP_DELTA:
+            if _held_or_improved(
+                before=before_exp,
+                after=after_exp,
+                min_delta=_MIN_EXP_DELTA,
+                protective=protective,
+            ):
                 improved += 1
             continue
         before_pay = before.get("rolling_payoff_ratio")
@@ -144,7 +180,12 @@ def intervention_success_rate(
             continue
         try:
             scored += 1
-            if float(after_pay) > float(before_pay) + _MIN_PAY_DELTA:
+            if _held_or_improved(
+                before=float(before_pay),
+                after=float(after_pay),
+                min_delta=_MIN_PAY_DELTA,
+                protective=protective,
+            ):
                 improved += 1
         except (TypeError, ValueError):
             continue

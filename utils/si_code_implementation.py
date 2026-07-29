@@ -198,9 +198,9 @@ def require_e2e() -> bool:
 
 def max_implementations_per_day() -> int:
     try:
-        return max(0, int(os.environ.get("FORTRESS_SI_AUTO_CODE_MAX_PER_DAY", "2") or 2))
+        return max(0, int(os.environ.get("FORTRESS_SI_AUTO_CODE_MAX_PER_DAY", "3") or 3))
     except ValueError:
-        return 2
+        return 3
 
 
 def implementation_runs_dir() -> Path:

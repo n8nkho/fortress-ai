@@ -1,7 +1,7 @@
 {
   "version": 1,
   "description": "Map SI objective/finding codes to Tier 0/1/2 actions. Wiring lands via deferred auto-implement (si_gap_action_registry).",
-  "status": "skeleton_pending_wire",
+  "status": "wired",
   "tiers": {
     "0": "bounded overlays / cooldowns / max_open (existing governance)",
     "1": "symbol session pause, clip shrink, time-stop mult, pattern disable",
@@ -11,7 +11,7 @@
     "edge_autofix": {"tier": 0, "handler": "utils.edge_autofix.apply_edge_autofix"},
     "edge_autofix_exhausted": {"tier": 1, "handler": "utils.si_adaptive_actions.apply_symbol_session_brakes", "escalates_to": "symbol_session_brake"},
     "symbol_session_brake": {"tier": 1, "handler": "utils.si_adaptive_actions.apply_symbol_session_brakes"},
-    "swarm_session_adapt": {"tier": 0, "handler": "utils.swarm_session_si.adapt_session_policy"}
+    "swarm_session_adapt": {"tier": 0, "handler": "utils.swarm_session_si.adapt_swarm_session"}
   },
   "gaps": {
     "skim_payoff_ratio_gap": {

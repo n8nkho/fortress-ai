@@ -189,6 +189,17 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
         out["adaptive_si"] = {"error": str(e)[:120]}
 
     try:
+        from utils.si_gap_action_dispatch import dispatch_gap_actions, ensure_effectiveness_actions
+
+        gaps = (cap if isinstance(cap, dict) else {}).get("objective_gaps") or []
+        out["gap_action_dispatch"] = dispatch_gap_actions(gaps)
+        out["si_effectiveness_dispatch"] = ensure_effectiveness_actions(
+            metrics=(cap if isinstance(cap, dict) else {}).get("metrics")
+        )
+    except Exception as e:
+        out["gap_action_dispatch"] = {"error": str(e)[:160]}
+
+    try:
         from agents.self_improvement_engine import get_engine
         from agents.performance_monitor import PerformanceMonitor
 

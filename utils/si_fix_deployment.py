@@ -356,8 +356,14 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
     ],
     "si_gap_action_registry": [
         _ROOT / "config" / "si_gap_action_registry.json",
+        _ROOT / "utils" / "si_gap_action_dispatch.py",
         _ROOT / "utils" / "si_code_implementation.py",
         _ROOT / "config" / "si_fix_registry.json",
+    ],
+    "gap_action_dispatch": [
+        _ROOT / "utils" / "si_gap_action_dispatch.py",
+        _ROOT / "utils" / "rth_autonomous_si.py",
+        _ROOT / "config" / "si_gap_action_registry.json",
     ],
     "performance_report_with_si": [
         _ROOT / "utils" / "performance_report.py",
