@@ -29,8 +29,10 @@ def update_session_metrics(
     global _last_refresh_monotonic, _session_state
 
     now = time.monotonic()
+    # Explicit session_state must always win — never serve a prior live/cache snapshot.
     if (
-        not force
+        session_state is None
+        and not force
         and _session_state
         and refresh_interval_sec > 0
         and (now - _last_refresh_monotonic) < refresh_interval_sec
@@ -65,9 +67,11 @@ def update_session_metrics(
     else:
         state.setdefault("session_underperforming", False)
 
-    _session_state = state
-    _last_refresh_monotonic = now
-    return dict(_session_state)
+    # Only cache live/default refreshes — not caller-provided unit-test snapshots.
+    if session_state is None:
+        _session_state = state
+        _last_refresh_monotonic = now
+    return state
 
 
 def get_session_state(*, force: bool = False) -> dict[str, Any]:
