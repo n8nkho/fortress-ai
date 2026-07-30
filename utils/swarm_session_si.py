@@ -187,7 +187,28 @@ def adapt_swarm_session(
     except Exception:
         pass
 
+    # Early tight: infra used to wait for 6 exits and stayed "normal" while bleeding.
+    try:
+        early_min = int(
+            os.environ.get(
+                "FORTRESS_SI_EARLY_TIGHT_MIN_EXITS",
+                "3" if component == "infra_swarm" else "4",
+            )
+            or ("3" if component == "infra_swarm" else "4")
+        )
+    except ValueError:
+        early_min = 3 if component == "infra_swarm" else 4
+    early_min = max(2, early_min)
+
     negative_edge = exits >= churn_min_exits and exp is not None and float(exp) < exp_floor
+    early_negative = (
+        (not negative_edge)
+        and exits >= early_min
+        and exp is not None
+        and float(exp) < exp_floor
+    )
+    if early_negative:
+        negative_edge = True
     over_churn = (
         exits >= churn_max
         and wr is not None
@@ -258,7 +279,8 @@ def adapt_swarm_session(
             pause_entries = False
 
         if negative_edge:
-            notes.append(f"negative_edge exp={exp:.3f}<{exp_floor:.3f}")
+            tag = "early_negative_edge" if early_negative else "negative_edge"
+            notes.append(f"{tag} exp={exp:.3f}<{exp_floor:.3f} exits={exits}")
         if over_churn:
             notes.append(f"over_churn exits={exits} wr={wr:.2f}<{churn_min_wr:.2f}")
 

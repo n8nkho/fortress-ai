@@ -164,9 +164,17 @@ class TestSymbolSessionBrake(unittest.TestCase):
                     "utils.si_adaptive_actions._session_date",
                     return_value="2099-01-02",
                 ):
-                    out = apply_symbol_session_brakes("skim_swarm")
+                    with patch(
+                        "utils.si_adaptive_actions._get_cap",
+                        return_value=1.0,
+                    ):
+                        with patch(
+                            "utils.si_adaptive_actions._rolling_symbol_loss_hits",
+                            return_value=[],
+                        ):
+                            out = apply_symbol_session_brakes("skim_swarm")
             self.assertTrue(out.get("brakes"))
-            self.assertTrue(any("pause_entries" in b for b in out["brakes"]))
+            self.assertTrue(any("pause_entries" in b or "mega_first_loss" in b for b in out["brakes"]))
             saved = json.loads((learned / "goog.json").read_text(encoding="utf-8"))
             self.assertTrue(saved["params"].get("pause_entries"))
 

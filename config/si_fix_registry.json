@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-07-28T22:12:41.185703-04:00"
+      "registered_at_utc": "2026-07-30T18:55:38.907260-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1166,6 +1166,19 @@
         "gap_action_dispatch",
         "ensure_effectiveness_actions",
         "FORTRESS_SI_GAP_ACTION_DISPATCH"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "si_predictability": {
+      "title": "Forecast SI intervention outcomes and score prediction accuracy",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_predictability",
+        "prediction_accuracy",
+        "utils/si_predictability.py"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

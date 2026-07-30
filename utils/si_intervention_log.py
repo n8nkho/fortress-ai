@@ -79,6 +79,27 @@ def record_intervention(
         "session_date_et": now().date().isoformat(),
         "markers": ["si_intervention_recorded"],
     }
+    if scoreable:
+        try:
+            from utils.si_predictability import attach_prediction_to_intervention
+
+            pred = attach_prediction_to_intervention(
+                component=component,
+                action=action,
+                metrics_snapshot=metrics_snapshot,
+                detail=detail,
+            )
+            row["prediction"] = {
+                "predicted_outcome": pred.get("predicted_outcome"),
+                "predicted_delta_expectancy_usd": pred.get("predicted_delta_expectancy_usd"),
+                "confidence": pred.get("confidence"),
+                "marker": "si_predictability",
+            }
+            markers = list(row["markers"])
+            markers.append("si_predictability")
+            row["markers"] = markers
+        except Exception:
+            pass
     with p.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(row, default=str) + "\n")
 

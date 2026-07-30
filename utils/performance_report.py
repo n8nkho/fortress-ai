@@ -96,9 +96,35 @@ def build_si_effectiveness_slice(metrics: dict[str, Any] | None = None) -> dict[
         open_by_disposition=by_disp,
     )
 
+    predictability: dict[str, Any] = {}
+    try:
+        from utils.si_predictability import score_prediction_accuracy
+
+        predictability = score_prediction_accuracy(metrics)
+    except Exception:
+        predictability = {"accuracy": None, "scored": 0}
+
+    if predictability.get("accuracy") is not None and float(predictability["accuracy"]) < 0.55:
+        recommendations.append(
+            f"SI prediction accuracy {predictability['accuracy']:.2f}<0.55 — "
+            "review brake/tight forecasts vs realized expectancy (si_predictability)."
+        )
+        recommendations = recommendations[:8]
+
+    gap_ids = {str(g.get("objective_id") or "") for g in gaps}
+    if "portfolio_session_alpha_vs_spy" in gap_ids or "portfolio_participation_on_strong_tape" in gap_ids:
+        recommendations.insert(
+            0,
+            "Strong-tape alpha/participation gap — dispatch constructive_tape_override + "
+            "swarm_session_adapt; do not disable market_relative gate.",
+        )
+        recommendations = recommendations[:8]
+
     return {
         "intervention_success_rate": round(float(rate), 4) if rate is not None else None,
         "target_min": 0.35,
+        "prediction_accuracy": predictability.get("accuracy"),
+        "prediction_scored": predictability.get("scored"),
         "skim_rolling_expectancy_usd": skim.get("rolling_expectancy_usd"),
         "skim_rolling_payoff_ratio": skim.get("rolling_payoff_ratio"),
         "infra_rolling_expectancy_usd": infra.get("rolling_expectancy_usd"),
@@ -282,6 +308,8 @@ def format_performance_report_markdown(report: dict[str, Any] | None = None) -> 
         "",
         f"- intervention_success_rate: **{si.get('intervention_success_rate')}** "
         f"(target ≥ {si.get('target_min')})",
+        f"- prediction_accuracy: {si.get('prediction_accuracy')} "
+        f"(scored={si.get('prediction_scored')})",
         f"- skim rolling expectancy: {si.get('skim_rolling_expectancy_usd')} | "
         f"payoff: {si.get('skim_rolling_payoff_ratio')}",
         f"- infra rolling expectancy: {si.get('infra_rolling_expectancy_usd')}",

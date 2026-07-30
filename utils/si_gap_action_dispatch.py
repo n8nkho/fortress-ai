@@ -132,6 +132,8 @@ def _invoke_action(action: str, meta: dict[str, Any], *, component: str) -> dict
                 result = adapt_swarm_session(component)
             except Exception:
                 result = fn(component) if fn.__code__.co_argcount >= 1 else fn()
+        elif action == "constructive_tape_override":
+            result = fn() if fn.__code__.co_argcount == 0 else fn(None)
         elif action == "classic_sleeve_demoted":
             result = {"marker": "classic_sleeve_demoted", "note": "demotion_policy_active"}
         else:
@@ -157,12 +159,14 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
             return False  # not scoreable success path
         return False
     if action == "symbol_session_brake":
-        return bool(res.get("brakes"))
+        return bool(res.get("brakes")) or bool(res.get("newly_applied"))
     if action == "edge_autofix":
         return bool(res.get("changes"))
     if action.startswith("swarm_session") or action == "swarm_session_adapt":
         mode = str(res.get("mode") or "")
-        return mode in ("tight", "churn", "pause") or bool(res.get("changed"))
+        return mode in ("tight", "churn", "pause", "critical") or bool(res.get("changed"))
+    if action == "constructive_tape_override":
+        return bool(res.get("constructive_tape_entry_override")) or bool(res.get("strong_tape_1d"))
     return True
 
 
@@ -270,7 +274,7 @@ def ensure_effectiveness_actions(*, metrics: dict[str, Any] | None = None) -> di
     force: list[str] = []
     try:
         from utils.si_intervention_log import intervention_success_rate
-        from utils.si_capability_review import collect_metrics
+        from utils.si_capability_review import collect_metrics, evaluate_objective_gaps
 
         m = metrics if metrics is not None else collect_metrics()
         rate = intervention_success_rate(m)
@@ -283,12 +287,27 @@ def ensure_effectiveness_actions(*, metrics: dict[str, Any] | None = None) -> di
         exp = skim.get("rolling_expectancy_usd")
         if exp is not None and float(exp) < 0:
             force.append("skim_session_expectancy_gap")
+        for g in evaluate_objective_gaps(m):
+            oid = str(g.get("objective_id") or "")
+            if oid in (
+                "portfolio_session_alpha_vs_spy",
+                "portfolio_participation_on_strong_tape",
+                "infra_session_expectancy",
+            ):
+                force.append(oid)
     except Exception:
         force.append("si_intervention_effectiveness_gap")
 
     if not force:
         return {"ok": True, "skipped": "effectiveness_ok", "marker": "gap_action_dispatch"}
-    return dispatch_gap_actions(force_codes=force)
+    # de-dupe preserve order
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for c in force:
+        if c not in seen:
+            seen.add(c)
+            ordered.append(c)
+    return dispatch_gap_actions(force_codes=ordered)
 
 
 __all__ = [

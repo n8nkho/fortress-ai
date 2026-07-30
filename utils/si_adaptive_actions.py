@@ -182,6 +182,37 @@ def _load_learned(component: str, symbol: str) -> dict[str, Any]:
     return load_learned(symbol)
 
 
+_MEGA_CAPS = frozenset(
+    {
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "AMZN",
+        "GOOG",
+        "GOOGL",
+        "META",
+        "TSLA",
+        "AVGO",
+        "BRK.B",
+        "JPM",
+        "V",
+        "UNH",
+        "XOM",
+    }
+)
+
+
+def _mega_cap_first_loss_usd() -> float:
+    try:
+        return float(os.environ.get("FORTRESS_SI_MEGA_CAP_FIRST_LOSS_USD", "0.40") or 0.40)
+    except (TypeError, ValueError):
+        return 0.40
+
+
+def _brake_fingerprint(brakes: list[str]) -> str:
+    return "|".join(sorted(brakes))
+
+
 def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     """
     Per-symbol adaptive loss brake — independent of swarm-wide session SI.
@@ -189,6 +220,7 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     Triggers:
     - Multi-exit session loser beyond scaled avg-win threshold (existing)
     - Single large adverse exit (mega-cap blowup) → pause_entries for session
+    - Mega-cap first-loss pause (MSFT-class) before a second clip
     - Rolling symbol expectancy deeply negative across recent experience (optional)
     """
     if not _enabled():
@@ -230,7 +262,8 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     avg_win = sum(x[0] for x in winners) / len(winners) if winners else 0.25
     # Clip avg_win so one AIQ-sized winner cannot raise the brake bar above small bleeders.
     clipped_avg_win = min(float(avg_win), 0.75)
-    brake_mult = float(_get_cap("symbol_session_loss_brake_mult", 1.0))
+    # Cap brake_mult so SI capability overlays cannot disable first-loss / bleeder floors.
+    brake_mult = min(2.0, max(0.5, float(_get_cap("symbol_session_loss_brake_mult", 1.0))))
     min_loss = max(0.12, clipped_avg_win * 0.35 * brake_mult)
     min_exits = max(2, min(5, int(2 + brake_mult)))
     try:
@@ -244,33 +277,47 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     except (TypeError, ValueError):
         bleeder_floor = 0.15
     bleeder_floor = max(0.10, bleeder_floor)
+    mega_first = max(0.25, _mega_cap_first_loss_usd() * brake_mult)
 
     brakes: list[str] = []
+    newly_applied: list[str] = []
     for pnl, ex, sym, doc in losses:
+        params = doc.setdefault("params", {})
+        already_paused = bool(params.get("pause_entries"))
+        mega_first_loss = sym in _MEGA_CAPS and pnl <= -mega_first and ex >= 1
         large_single = pnl <= -single_loss_usd and ex >= 1
         multi_loser = pnl < -min_loss and ex >= min_exits
         small_bleeder = pnl <= -bleeder_floor and ex >= 2
-        if not large_single and not multi_loser and not small_bleeder:
+        if not large_single and not multi_loser and not small_bleeder and not mega_first_loss:
             continue
-        severity = min(1.0, abs(pnl) / max(min_loss, single_loss_usd, 0.01))
-        params = doc.setdefault("params", {})
+        severity = min(1.0, abs(pnl) / max(min_loss, single_loss_usd, mega_first, 0.01))
         penalty = round(min(0.12, 0.03 * severity), 4)
-        params["enter_long_delta"] = round(
-            max(-0.15, float(params.get("enter_long_delta") or 0) - penalty),
-            4,
-        )
+        prev_long = float(params.get("enter_long_delta") or 0)
+        params["enter_long_delta"] = round(max(-0.15, prev_long - penalty), 4)
         params["enter_short_delta"] = round(
             min(0.15, float(params.get("enter_short_delta") or 0) + penalty),
             4,
         )
-        # Mega-cap / single blowup: pause all new entries on symbol for session.
-        if large_single or (severity >= 0.85 and ex >= min_exits):
+        # Mega-cap / single blowup / first mega loss: pause all new entries on symbol.
+        should_pause = (
+            large_single
+            or mega_first_loss
+            or (severity >= 0.85 and ex >= min_exits)
+        )
+        if should_pause:
             params["pause_entries"] = True
             params["pause_long"] = True
             params["pause_short"] = True
-            brakes.append(f"{sym}:pause_entries pnl={pnl:.2f} ex={ex} marker=symbol_session_brake")
+            tag = "mega_first_loss" if mega_first_loss and not already_paused else "pause_entries"
+            msg = f"{sym}:{tag} pnl={pnl:.2f} ex={ex} marker=symbol_session_brake"
+            brakes.append(msg)
+            if not already_paused:
+                newly_applied.append(msg)
         else:
-            brakes.append(f"{sym}:enter_delta-={penalty} pnl={pnl:.2f}")
+            msg = f"{sym}:enter_delta-={penalty} pnl={pnl:.2f}"
+            brakes.append(msg)
+            if abs(prev_long - float(params["enter_long_delta"])) >= 0.001:
+                newly_applied.append(msg)
 
         # Disable worst session pattern when lifetime stats justify it.
         lps = doc.get("lifetime_pattern_stats") or doc.get("pattern_stats") or {}
@@ -288,15 +335,21 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
             if worst_pat not in disabled:
                 disabled.add(worst_pat)
                 params["disable_patterns"] = sorted(disabled)
-                brakes.append(f"{sym}:disable_pattern:{worst_pat}")
+                msg = f"{sym}:disable_pattern:{worst_pat}"
+                brakes.append(msg)
+                newly_applied.append(msg)
 
         notes = list(doc.get("si_notes") or [])
         notes.append(f"session_brake:{pnl:.2f} severity={severity:.2f} marker=symbol_session_brake")
         doc["si_notes"] = notes[-8:]
         doc["session_date_et"] = sess
+        doc["si_brake_fingerprint"] = _brake_fingerprint(
+            [b for b in brakes if b.startswith(f"{sym}:")]
+        )
         _save_learned(component, sym, doc)
 
-    if brakes:
+    # Dedupe intervention spam: only record when something new applied this cycle.
+    if newly_applied:
         try:
             from utils.si_capability_review import collect_metrics
             from utils.si_intervention_log import record_intervention
@@ -305,7 +358,12 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
                 component=component,
                 action="symbol_session_brake",
                 metrics_snapshot=collect_metrics(),
-                detail={"brakes": brakes[:12], "marker": "symbol_session_brake"},
+                detail={
+                    "brakes": newly_applied[:12],
+                    "all_brakes": brakes[:12],
+                    "marker": "symbol_session_brake",
+                    "deduped": True,
+                },
                 scoreable=True,
             )
         except Exception:
@@ -314,8 +372,10 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
     return {
         "component": component,
         "brakes": brakes,
+        "newly_applied": newly_applied,
         "min_loss_usd": round(min_loss, 3),
         "single_loss_usd": round(single_loss_usd, 3),
+        "mega_first_loss_usd": round(mega_first, 3),
         "marker": "symbol_session_brake" if brakes else None,
     }
 
