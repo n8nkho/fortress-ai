@@ -200,6 +200,15 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
         out["gap_action_dispatch"] = {"error": str(e)[:160]}
 
     try:
+        from utils.si_participation_actions import run_participation_si_cycle
+
+        out["participation_si"] = run_participation_si_cycle(
+            metrics=(cap if isinstance(cap, dict) else {}).get("metrics")
+        )
+    except Exception as e:
+        out["participation_si"] = {"error": str(e)[:160]}
+
+    try:
         from agents.self_improvement_engine import get_engine
         from agents.performance_monitor import PerformanceMonitor
 

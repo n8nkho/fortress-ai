@@ -322,8 +322,13 @@ def upsert_from_finding(
         try:
             from utils.si_fix_deployment import is_deployed
 
-            if is_deployed(code) and sev not in ("critical", "high"):
-                disposition = DISPOSITION_AUTO_RESOLVED
+            if is_deployed(code):
+                # Deployed guards that re-fire as high runtime findings (e.g. market_relative)
+                # stay monitoring — never re-queue Cursor auto-code.
+                if meta.get("runtime_monitor_when_deployed") or sev in ("critical", "high"):
+                    disposition = DISPOSITION_MONITORING
+                else:
+                    disposition = DISPOSITION_AUTO_RESOLVED
         except Exception:
             pass
     elif meta.get("kind") == "monitor":
@@ -501,20 +506,36 @@ def reconcile_deployed_guards(scan: dict[str, Any]) -> list[str]:
         if is_cross_stack_item(item):
             continue
         # Deferred auto-implement must stay open until execute_after_et.
-        if item.get("disposition") == DISPOSITION_AUTO_IMPLEMENT_QUEUED:
-            continue
         execute_after = str(item.get("execute_after_et") or "").strip()
         if execute_after and (not today_et or execute_after > today_et):
             continue
+        # auto_implement_queued of already-deployed guards is noise — close even if
+        # runtime high-severity findings re-fire (gate working as designed).
         code = str(item.get("code") or "")
-        if code in active:
-            continue
+        disp = str(item.get("disposition") or "")
+        deployed = False
         try:
             from utils.si_fix_deployment import is_deployed
 
-            if not is_deployed(code):
-                continue
+            deployed = is_deployed(code)
         except Exception:
+            deployed = False
+        if not deployed:
+            continue
+        if disp == DISPOSITION_AUTO_IMPLEMENT_QUEUED:
+            item["status"] = STATUS_IMPLEMENTED
+            item["disposition"] = DISPOSITION_AUTO_RESOLVED
+            item["closed_reason"] = "deployed_guard_auto_implement_noise"
+            item["implementation_note"] = (
+                "Code guard already deployed; re-queued high/runtime finding demoted "
+                "to resolved so SI velocity is free for real work."
+            )
+            item["updated_utc"] = _now_iso()
+            queue["items"][i] = item
+            closed.append(code)
+            changed = True
+            continue
+        if code in active:
             continue
         item["status"] = STATUS_IMPLEMENTED
         item["disposition"] = DISPOSITION_AUTO_RESOLVED

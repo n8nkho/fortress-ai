@@ -198,14 +198,23 @@ def recommend_si_fixes(
             "wait for symbol_session_brake / material edge action, then re-score."
         )
 
-    if "si_intervention_effectiveness" in gap_ids:
-        out.append("Close stale si_intervention_effectiveness_gap once true-SI markers are deployed.")
+    if "portfolio_session_alpha_vs_spy" in gap_ids or "portfolio_participation_on_strong_tape" in gap_ids:
+        out.append(
+            "Strong-tape alpha/participation gap — SI runs deep_lag_wait / denylist_audit / "
+            "infra_strong_tape_soft (never disables market_relative gate)."
+        )
+
+    pending_auto = int(open_by_disposition.get("auto_implement_queued") or 0)
+    if pending_auto:
+        out.append(
+            f"{pending_auto} auto_implement_queued — reconcile deployed guards so velocity "
+            "is free (deployed_guard_auto_implement_noise)."
+        )
 
     pending_human = int(open_by_disposition.get("pending_human_go") or 0)
     if pending_human:
         out.append(
-            f"{pending_human} pending_human_go items — promote non-cross-stack code_guard "
-            "items or map them via si_gap_action_registry."
+            f"{pending_human} pending_human_go items — classic cross-stack stays monitor-only."
         )
 
     if not out:

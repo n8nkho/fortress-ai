@@ -132,8 +132,18 @@ def _invoke_action(action: str, meta: dict[str, Any], *, component: str) -> dict
                 result = adapt_swarm_session(component)
             except Exception:
                 result = fn(component) if fn.__code__.co_argcount >= 1 else fn()
-        elif action == "constructive_tape_override":
-            result = fn() if fn.__code__.co_argcount == 0 else fn(None)
+        elif action in (
+            "constructive_tape_override",
+            "deep_lag_wait",
+            "denylist_audit",
+            "denylist_thaw",
+            "infra_strong_tape_soft",
+        ):
+            # Portfolio-level handlers — no sleeve component required.
+            try:
+                result = fn()
+            except TypeError:
+                result = fn(None)
         elif action == "classic_sleeve_demoted":
             result = {"marker": "classic_sleeve_demoted", "note": "demotion_policy_active"}
         else:
@@ -165,6 +175,18 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
     if action.startswith("swarm_session") or action == "swarm_session_adapt":
         mode = str(res.get("mode") or "")
         return mode in ("tight", "churn", "pause", "critical") or bool(res.get("changed"))
+    if action == "deep_lag_wait":
+        return bool(res.get("ok")) and str(res.get("strategy") or "") == "deep_lag_wait"
+    if action == "denylist_audit":
+        return bool(res.get("ok")) and bool(
+            res.get("skim_blocked_in_universe")
+            or res.get("infra_blocked_in_universe")
+            or res.get("thaw_candidates") is not None
+        )
+    if action == "denylist_thaw":
+        return bool(res.get("thawed"))
+    if action == "infra_strong_tape_soft":
+        return bool(res.get("ok")) and res.get("enter_long_delta_boost") is not None
     if action == "constructive_tape_override":
         # Review-only path — strong_tape alone is not a material intervention.
         # Score only when override is actively eligible to change entry behavior.

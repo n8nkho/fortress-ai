@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-07-30T18:55:38.907260-04:00"
+      "registered_at_utc": "2026-08-04T16:58:54.084701-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -574,6 +574,7 @@
     "broker_open_sell_backlog": {
       "title": "Cancel stale open SELL orders and gate duplicate exit submissions",
       "kind": "code_guard",
+      "runtime_monitor_when_deployed": true,
       "mitigation_markers": [
         "open_exit_order_pending",
         "cancel_stale_open_orders",
@@ -603,6 +604,7 @@
     "premature_exit_ledger": {
       "title": "Block PnL ledger writes until Alpaca exit fill confirmed",
       "kind": "code_guard",
+      "runtime_monitor_when_deployed": true,
       "mitigation_markers": [
         "exit_fill_confirmed",
         "exit_unfilled",
@@ -875,6 +877,7 @@
     "market_relative_underperformance": {
       "title": "Block swarm entries when session alpha vs SPY exceeds underperformance threshold",
       "kind": "code_guard",
+      "runtime_monitor_when_deployed": true,
       "mitigation_markers": [
         "market_relative_underperformance",
         "MarketRelativeGate",
@@ -1179,6 +1182,21 @@
         "si_predictability",
         "prediction_accuracy",
         "utils/si_predictability.py"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "high"
+    },
+    "si_participation_policy": {
+      "title": "Deep-lag wait, denylist audit/thaw, infra strong-tape soft path",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_deep_lag_wait",
+        "si_denylist_audit",
+        "si_denylist_thaw",
+        "si_infra_strong_tape_soft",
+        "si_participation_cycle"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

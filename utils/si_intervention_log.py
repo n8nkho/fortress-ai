@@ -22,6 +22,10 @@ _PROTECTIVE_ACTIONS = frozenset(
         "swarm_session_tight",
         "swarm_session_churn",
         "edge_autofix",
+        "deep_lag_wait",
+        "denylist_thaw",
+        "infra_strong_tape_soft",
+        "denylist_audit",
     }
 )
 _MIN_EXP_DELTA = 0.005

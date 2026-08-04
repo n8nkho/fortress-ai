@@ -1,10 +1,10 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Map SI objective/finding codes to Tier 0/1/2 actions.",
   "status": "wired",
   "tiers": {
     "0": "bounded overlays / cooldowns / max_open (existing governance)",
-    "1": "symbol session pause, clip shrink, time-stop mult, pattern disable",
+    "1": "symbol session pause, clip shrink, denylist thaw, deep-lag wait",
     "2": "allowlisted code via Cursor SI (e2e + markers + registry)"
   },
   "actions": {
@@ -15,6 +15,22 @@
     "constructive_tape_override": {
       "tier": 0,
       "handler": "utils.portfolio_session.constructive_tape_override.review_entry_blocks_on_constructive_tape"
+    },
+    "deep_lag_wait": {
+      "tier": 1,
+      "handler": "utils.si_participation_actions.apply_deep_lag_wait_strategy"
+    },
+    "denylist_audit": {
+      "tier": 1,
+      "handler": "utils.si_participation_actions.audit_denylist_vs_universe"
+    },
+    "denylist_thaw": {
+      "tier": 1,
+      "handler": "utils.si_participation_actions.maybe_thaw_denylist_on_recovery"
+    },
+    "infra_strong_tape_soft": {
+      "tier": 0,
+      "handler": "utils.si_participation_actions.apply_infra_strong_tape_soft_path"
     }
   },
   "gaps": {
@@ -27,7 +43,7 @@
       "forbidden": ["loosen_pre_trade_gate"]
     },
     "infra_session_expectancy": {
-      "preferred_actions": ["swarm_session_adapt", "symbol_session_brake"],
+      "preferred_actions": ["swarm_session_adapt", "symbol_session_brake", "infra_strong_tape_soft"],
       "forbidden": ["loosen_pre_trade_gate"]
     },
     "si_intervention_effectiveness_gap": {
@@ -39,11 +55,11 @@
       "forbidden": ["revive_classic_without_ops"]
     },
     "portfolio_session_alpha_vs_spy": {
-      "preferred_actions": ["constructive_tape_override", "swarm_session_adapt", "symbol_session_brake"],
+      "preferred_actions": ["deep_lag_wait", "denylist_audit", "denylist_thaw", "constructive_tape_override"],
       "forbidden": ["loosen_pre_trade_gate", "disable_market_relative_gate"]
     },
     "portfolio_participation_on_strong_tape": {
-      "preferred_actions": ["constructive_tape_override", "swarm_session_adapt"],
+      "preferred_actions": ["deep_lag_wait", "denylist_audit", "infra_strong_tape_soft", "denylist_thaw", "constructive_tape_override"],
       "forbidden": ["loosen_pre_trade_gate", "disable_market_relative_gate"]
     }
   }

@@ -28,8 +28,45 @@ class TestSingularityClassicBridgeE2e(unittest.TestCase):
             src = _TB_ROOT / "utils" / name
             if src.is_file():
                 shutil.copy(src, utils / name)
+        # Minimal stubs when Classic modules are not present on this host.
+        if not (utils / "system_time.py").is_file():
+            (utils / "system_time.py").write_text(
+                "from datetime import datetime, timezone\n"
+                "def now_iso():\n"
+                "    return datetime.now(timezone.utc).isoformat()\n",
+                encoding="utf-8",
+            )
+        if not (utils / "si_recommendation_queue.py").is_file():
+            (utils / "si_recommendation_queue.py").write_text(
+                "import json\n"
+                "from pathlib import Path\n"
+                "def queue_path():\n"
+                "    return Path(__file__).resolve().parent.parent / 'data' / 'si_recommendation_queue.json'\n"
+                "def load_queue():\n"
+                "    p = queue_path()\n"
+                "    if not p.is_file():\n"
+                "        return {'version': 1, 'items': []}\n"
+                "    return json.loads(p.read_text(encoding='utf-8'))\n"
+                "def save_queue(doc):\n"
+                "    p = queue_path()\n"
+                "    p.parent.mkdir(parents=True, exist_ok=True)\n"
+                "    p.write_text(json.dumps(doc, indent=2), encoding='utf-8')\n"
+                "def upsert_from_finding(finding, source='test'):\n"
+                "    q = load_queue()\n"
+                "    item = dict(finding)\n"
+                "    item['source'] = source\n"
+                "    item['status'] = 'open'\n"
+                "    q.setdefault('items', []).append(item)\n"
+                "    save_queue(q)\n"
+                "    return item\n",
+                encoding="utf-8",
+            )
         return tb
 
+    @unittest.skipUnless(
+        _TB_ROOT.is_dir(),
+        "trading-bot root missing — classic bridge e2e skipped",
+    )
     def test_push_surpass_to_classic_queue(self):
         with TemporaryDirectory() as td:
             tb = self._stub_trading_bot_root(Path(td))

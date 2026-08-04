@@ -375,6 +375,12 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "utils" / "performance_report.py",
         _ROOT / "tests" / "test_si_predictability.py",
     ],
+    "si_participation_policy": [
+        _ROOT / "utils" / "si_participation_actions.py",
+        _ROOT / "utils" / "rth_autonomous_si.py",
+        _ROOT / "config" / "si_gap_action_registry.json",
+        _ROOT / "tests" / "test_si_participation_actions.py",
+    ],
     "performance_report_with_si": [
         _ROOT / "utils" / "performance_report.py",
         _ROOT / "tests" / "test_performance_report.py",
