@@ -166,8 +166,47 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
         mode = str(res.get("mode") or "")
         return mode in ("tight", "churn", "pause", "critical") or bool(res.get("changed"))
     if action == "constructive_tape_override":
-        return bool(res.get("constructive_tape_entry_override")) or bool(res.get("strong_tape_1d"))
+        # Review-only path — strong_tape alone is not a material intervention.
+        # Score only when override is actively eligible to change entry behavior.
+        return bool(res.get("constructive_tape_entry_override"))
     return True
+
+
+def _already_recorded_today(component: str, action: str, gap: str) -> bool:
+    """Avoid RTH spam re-logging the same gap_dispatch every cycle."""
+    try:
+        from utils.si_intervention_log import intervention_log_path
+        from utils.system_time import now
+
+        path = intervention_log_path()
+        if not path.is_file():
+            return False
+        today = now().date().isoformat()
+        # Read a modest tail — high-frequency spam is recent by definition.
+        raw = path.read_bytes()[-120_000:]
+        for line in raw.decode("utf-8", errors="replace").splitlines()[::-1]:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            if str(row.get("session_date_et") or "") != today:
+                # Older sessions: further reverse is older
+                if str(row.get("ts") or "")[:10] < today:
+                    break
+                continue
+            if str(row.get("component") or "") != component:
+                continue
+            if str(row.get("action") or "") != action:
+                continue
+            detail = row.get("detail") or {}
+            if str(detail.get("gap") or "") == gap:
+                return True
+        return False
+    except Exception:
+        return False
 
 
 def dispatch_gap_actions(
@@ -199,6 +238,12 @@ def dispatch_gap_actions(
         preferred = list(spec.get("preferred_actions") or [])
         forbidden = set(spec.get("forbidden") or []) | _FORBIDDEN
         applied_for_gap: list[dict[str, Any]] = []
+        # Portfolio-level actions run once (on skim component slot), not per sleeve.
+        gap_components = (
+            ("skim_swarm",)
+            if key.startswith("portfolio_") or key.startswith("si_")
+            else components
+        )
 
         for action in preferred:
             if action in forbidden:
@@ -214,7 +259,7 @@ def dispatch_gap_actions(
                 else meta
             ) or {}
 
-            for component in components:
+            for component in gap_components:
                 # Infra expectancy gaps only touch infra; skim gaps only skim.
                 if key.startswith("skim_") and component != "skim_swarm":
                     continue
@@ -225,6 +270,11 @@ def dispatch_gap_actions(
                 payload["component"] = component
                 applied_for_gap.append(payload)
                 if _result_material(run_action, payload):
+                    log_action = f"gap_dispatch:{run_action}"
+                    if record and _already_recorded_today(component, log_action, key):
+                        payload["deduped"] = True
+                        applied_for_gap[-1] = payload
+                        continue
                     scoreable_hits += 1
                     if record:
                         try:
@@ -233,7 +283,7 @@ def dispatch_gap_actions(
 
                             record_intervention(
                                 component=component,
-                                action=f"gap_dispatch:{run_action}",
+                                action=log_action,
                                 metrics_snapshot=collect_metrics(),
                                 detail={
                                     "marker": "gap_action_dispatch",
@@ -244,7 +294,15 @@ def dispatch_gap_actions(
                                         k: payload.get("result", {}).get(k)
                                         if isinstance(payload.get("result"), dict)
                                         else None
-                                        for k in ("marker", "brakes", "changes", "mode", "skipped")
+                                        for k in (
+                                            "marker",
+                                            "brakes",
+                                            "changes",
+                                            "mode",
+                                            "skipped",
+                                            "constructive_tape_entry_override",
+                                            "strong_tape_1d",
+                                        )
                                     },
                                 },
                                 scoreable=True,
