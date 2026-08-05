@@ -469,7 +469,60 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
             }
         )
 
+    findings.extend(scan_broker_error_spike(component="skim_swarm", blocks=blocks, rows=rows))
+
     return findings
+
+
+def scan_broker_error_spike(
+    *,
+    component: str,
+    blocks: dict[str, int] | None = None,
+    rows: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Spike of broker_error blocks → SI hygiene finding (monitor; do not loosen rails)."""
+    try:
+        threshold = max(2, int(os.environ.get("FORTRESS_SI_BROKER_ERROR_SPIKE", "3") or 3))
+    except ValueError:
+        threshold = 3
+    count = int((blocks or {}).get("broker_error") or 0)
+    if count < threshold and rows is not None:
+        recent = rows[-RECENT_DECISION_WINDOW:]
+        count = 0
+        for r in recent:
+            act = r.get("act") if isinstance(r.get("act"), dict) else {}
+            dec = r.get("decision") if isinstance(r.get("decision"), dict) else {}
+            br = str(act.get("block_reason") or dec.get("reasoning") or "")
+            if br == "broker_error" or br.startswith("broker_error"):
+                count += 1
+            for item in r.get("wave") or []:
+                if not isinstance(item, dict):
+                    continue
+                ibr = str(
+                    (item.get("act") or {}).get("block_reason")
+                    or item.get("block_reason")
+                    or ""
+                )
+                if ibr == "broker_error" or ibr.startswith("broker_error"):
+                    count += 1
+    if count < threshold:
+        return []
+    return [
+        {
+            "code": "broker_error_session_spike",
+            "severity": "medium",
+            "component": component,
+            "count_sampled": count,
+            "threshold": threshold,
+            "recommendation": (
+                "Broker submit/reject spike — inspect order payload, buying power, and open sell "
+                "lifecycle; SI monitors order hygiene without loosening gates."
+            ),
+            "si_action": "broker_order_hygiene_review",
+            "runtime_monitor_when_deployed": True,
+            "marker": "si_broker_error_spike",
+        }
+    ]
 
 
 def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -513,6 +566,8 @@ def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[s
                 "si_action": "tighten_infra_adaptive",
             }
         )
+
+    findings.extend(scan_broker_error_spike(component="infra_swarm", blocks=blocks, rows=rows))
 
     return findings
 

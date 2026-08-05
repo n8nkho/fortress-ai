@@ -381,6 +381,18 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "config" / "si_gap_action_registry.json",
         _ROOT / "tests" / "test_si_participation_actions.py",
     ],
+    "broker_error_session_spike": [
+        _ROOT / "utils" / "integrity_diagnostics.py",
+        _ROOT / "config" / "si_fix_registry.json",
+    ],
+    "symbol_first_session_loss_brake": [
+        _ROOT / "utils" / "si_adaptive_actions.py",
+        _ROOT / "tests" / "test_si_adaptive_actions.py",
+    ],
+    "si_env_truthy_comment_safe": [
+        _ROOT / "utils" / "si_code_implementation.py",
+        _ROOT / "tests" / "test_si_code_implementation.py",
+    ],
     "performance_report_with_si": [
         _ROOT / "utils" / "performance_report.py",
         _ROOT / "tests" / "test_performance_report.py",

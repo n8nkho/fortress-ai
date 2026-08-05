@@ -160,45 +160,37 @@ def _si_frozen_response(context: str) -> dict[str, Any] | None:
     return None
 
 
+def _env_token(name: str, default: str = "") -> str:
+    """Read env value, stripping inline `# comments` (systemd EnvironmentFile keeps them)."""
+    raw = str(os.environ.get(name, default) if name in os.environ else default)
+    if "#" in raw:
+        raw = raw.split("#", 1)[0]
+    return raw.strip()
+
+
+def _env_truthy(name: str, default: str = "0") -> bool:
+    return _env_token(name, default).lower() in ("1", "true", "yes", "on")
+
+
 def auto_code_enabled() -> bool:
-    return str(os.environ.get("FORTRESS_SI_AUTO_CODE", "1")).strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return _env_truthy("FORTRESS_SI_AUTO_CODE", "1")
 
 
 def auto_commit_enabled() -> bool:
-    return str(os.environ.get("FORTRESS_SI_AUTO_COMMIT", "0")).strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return _env_truthy("FORTRESS_SI_AUTO_COMMIT", "0")
 
 
 def auto_push_enabled() -> bool:
-    return str(os.environ.get("FORTRESS_SI_AUTO_PUSH", "0")).strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return _env_truthy("FORTRESS_SI_AUTO_PUSH", "0")
 
 
 def require_e2e() -> bool:
-    return str(os.environ.get("FORTRESS_SI_AUTO_CODE_REQUIRE_E2E", "1")).strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return _env_truthy("FORTRESS_SI_AUTO_CODE_REQUIRE_E2E", "1")
 
 
 def max_implementations_per_day() -> int:
     try:
-        return max(0, int(os.environ.get("FORTRESS_SI_AUTO_CODE_MAX_PER_DAY", "3") or 3))
+        return max(0, int(_env_token("FORTRESS_SI_AUTO_CODE_MAX_PER_DAY", "3") or 3))
     except ValueError:
         return 3
 

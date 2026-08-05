@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-08-04T16:58:54.084701-04:00"
+      "registered_at_utc": "2026-08-05T15:59:04.658973-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1196,11 +1196,55 @@
         "si_denylist_audit",
         "si_denylist_thaw",
         "si_infra_strong_tape_soft",
-        "si_participation_cycle"
+        "si_participation_cycle",
+        "si_participation_session_rollover",
+        "already_applied_session",
+        "not_near_entry_threshold"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "medium",
+      "impact": "high"
+    },
+    "broker_error_session_spike": {
+      "title": "Broker error block spike \u2014 order hygiene review",
+      "kind": "code_guard",
+      "severity_default": "medium",
+      "runtime_monitor_when_deployed": true,
+      "mitigation_markers": [
+        "si_broker_error_spike",
+        "broker_order_hygiene_review",
+        "scan_broker_error_spike"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "medium",
+      "impact": "medium"
+    },
+    "symbol_first_session_loss_brake": {
+      "title": "Pause re-entry after first session loss on a symbol",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "first_session_loss",
+        "symbol_session_brake",
+        "FORTRESS_SI_SYMBOL_BRAKE_FIRST_LOSS_USD"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "si_env_truthy_comment_safe": {
+      "title": "Parse FORTRESS_SI env flags with inline # comments stripped",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "_env_truthy",
+        "_env_token",
+        "auto_code_enabled"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
       "impact": "high"
     },
     "performance_report_with_si": {

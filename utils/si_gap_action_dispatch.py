@@ -181,12 +181,15 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
         return bool(res.get("ok")) and bool(
             res.get("skim_blocked_in_universe")
             or res.get("infra_blocked_in_universe")
-            or res.get("thaw_candidates") is not None
+            or res.get("skim_decision_blocked")
+            or res.get("infra_decision_blocked")
         )
     if action == "denylist_thaw":
         return bool(res.get("thawed"))
     if action == "infra_strong_tape_soft":
-        return bool(res.get("ok")) and res.get("enter_long_delta_boost") is not None
+        return bool(res.get("ok")) and res.get("enter_long_delta_boost") is not None and not res.get(
+            "skipped"
+        )
     if action == "constructive_tape_override":
         # Review-only path — strong_tape alone is not a material intervention.
         # Score only when override is actively eligible to change entry behavior.

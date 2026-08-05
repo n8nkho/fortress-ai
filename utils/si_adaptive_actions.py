@@ -278,6 +278,12 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
         bleeder_floor = 0.15
     bleeder_floor = max(0.10, bleeder_floor)
     mega_first = max(0.25, _mega_cap_first_loss_usd() * brake_mult)
+    # Any-symbol first session loss (covers AIQ-class ~-$0.15 with 1 exit re-entry).
+    try:
+        first_loss = float(os.environ.get("FORTRESS_SI_SYMBOL_BRAKE_FIRST_LOSS_USD", "0.12") or 0.12)
+    except (TypeError, ValueError):
+        first_loss = 0.12
+    first_loss = max(0.08, first_loss * brake_mult)
 
     brakes: list[str] = []
     newly_applied: list[str] = []
@@ -288,9 +294,16 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
         large_single = pnl <= -single_loss_usd and ex >= 1
         multi_loser = pnl < -min_loss and ex >= min_exits
         small_bleeder = pnl <= -bleeder_floor and ex >= 2
-        if not large_single and not multi_loser and not small_bleeder and not mega_first_loss:
+        first_session_loss = pnl <= -first_loss and ex >= 1
+        if not (
+            large_single
+            or multi_loser
+            or small_bleeder
+            or mega_first_loss
+            or first_session_loss
+        ):
             continue
-        severity = min(1.0, abs(pnl) / max(min_loss, single_loss_usd, mega_first, 0.01))
+        severity = min(1.0, abs(pnl) / max(min_loss, single_loss_usd, mega_first, first_loss, 0.01))
         penalty = round(min(0.12, 0.03 * severity), 4)
         prev_long = float(params.get("enter_long_delta") or 0)
         params["enter_long_delta"] = round(max(-0.15, prev_long - penalty), 4)
@@ -298,17 +311,23 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
             min(0.15, float(params.get("enter_short_delta") or 0) + penalty),
             4,
         )
-        # Mega-cap / single blowup / first mega loss: pause all new entries on symbol.
+        # Mega-cap / single blowup / first session loss: pause all new entries on symbol.
         should_pause = (
             large_single
             or mega_first_loss
+            or first_session_loss
             or (severity >= 0.85 and ex >= min_exits)
         )
         if should_pause:
             params["pause_entries"] = True
             params["pause_long"] = True
             params["pause_short"] = True
-            tag = "mega_first_loss" if mega_first_loss and not already_paused else "pause_entries"
+            if mega_first_loss and not already_paused:
+                tag = "mega_first_loss"
+            elif first_session_loss and not large_single and not already_paused:
+                tag = "first_session_loss"
+            else:
+                tag = "pause_entries"
             msg = f"{sym}:{tag} pnl={pnl:.2f} ex={ex} marker=symbol_session_brake"
             brakes.append(msg)
             if not already_paused:
@@ -376,6 +395,7 @@ def apply_symbol_session_brakes(component: str) -> dict[str, Any]:
         "min_loss_usd": round(min_loss, 3),
         "single_loss_usd": round(single_loss_usd, 3),
         "mega_first_loss_usd": round(mega_first, 3),
+        "first_session_loss_usd": round(first_loss, 3),
         "marker": "symbol_session_brake" if brakes else None,
     }
 

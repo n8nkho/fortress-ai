@@ -28,6 +28,12 @@ class TestSiCodeImplementation(unittest.TestCase):
         os.environ.pop("FORTRESS_SI_AUTO_CODE", None)
         self.assertTrue(auto_code_enabled())
 
+    def test_auto_code_enabled_with_inline_comment(self):
+        os.environ["FORTRESS_SI_AUTO_CODE"] = "1              # master switch — ON by default"
+        self.assertTrue(auto_code_enabled())
+        os.environ["FORTRESS_SI_AUTO_CODE"] = "0  # off"
+        self.assertFalse(auto_code_enabled())
+
     def test_heuristic_assess_queues_implement(self):
         from utils.si_recommendation_queue import (
             DISPOSITION_AUTO_IMPLEMENT_QUEUED,

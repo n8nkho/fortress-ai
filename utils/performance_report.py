@@ -201,7 +201,7 @@ def recommend_si_fixes(
     if "portfolio_session_alpha_vs_spy" in gap_ids or "portfolio_participation_on_strong_tape" in gap_ids:
         out.append(
             "Strong-tape alpha/participation gap — SI runs deep_lag_wait / denylist_audit / "
-            "infra_strong_tape_soft (never disables market_relative gate)."
+            "infra_strong_tape_soft once/session when scores near threshold (never disables MR gate)."
         )
 
     pending_auto = int(open_by_disposition.get("auto_implement_queued") or 0)

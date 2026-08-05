@@ -108,6 +108,31 @@ class TestSymbolBrakes(unittest.TestCase):
             doc = json.loads((learned / "qqq.json").read_text())
             self.assertLess(float(doc["params"]["enter_long_delta"]), 0.0)
 
+    def test_first_session_loss_pauses_reentry(self):
+        """AIQ-class −$0.15 single exit must pause re-entry (not only mega-caps)."""
+        with tempfile.TemporaryDirectory() as td:
+            data = Path(td)
+            learned = data / "skim_swarm" / "learned"
+            learned.mkdir(parents=True)
+            (learned / "aiq.json").write_text(
+                json.dumps(
+                    {
+                        "session_date_et": "2026-08-05",
+                        "session_stats": {"exits": 1, "sum_pnl_usd": -0.15},
+                        "params": {"enter_long_delta": 0.0},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch.dict(os.environ, {"FORTRESS_AI_DATA_DIR": str(data)}):
+                with patch("utils.si_adaptive_actions._enabled", return_value=True):
+                    with patch("utils.si_adaptive_actions._session_date", return_value="2026-08-05"):
+                        with patch("utils.si_adaptive_actions._get_cap", return_value=1.0):
+                            result = apply_symbol_session_brakes("skim_swarm")
+            self.assertTrue(any("first_session_loss" in b or "pause_entries" in b for b in result.get("brakes") or []))
+            doc = json.loads((learned / "aiq.json").read_text())
+            self.assertTrue(doc["params"].get("pause_entries"))
+
 
 class TestUnifiedLoser(unittest.TestCase):
     def test_blocks_symbol_after_trim_dry_run(self):
