@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-08-05T15:59:04.658973-04:00"
+      "registered_at_utc": "2026-08-05T16:34:31.731639-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1176,11 +1176,14 @@
       "impact": "high"
     },
     "si_predictability": {
-      "title": "Forecast SI intervention outcomes and score prediction accuracy",
+      "title": "Forecast SI intervention outcomes; evolvable model updates online",
       "kind": "code_guard",
       "mitigation_markers": [
         "si_predictability",
         "prediction_accuracy",
+        "si_prediction_evolution",
+        "prediction_model",
+        "prediction_scale_multipliers",
         "utils/si_predictability.py"
       ],
       "auto_tunable": {},

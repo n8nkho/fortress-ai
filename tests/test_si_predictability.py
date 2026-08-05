@@ -1,17 +1,24 @@
-"""SI predictability + early infra tight + mega-cap first-loss brake."""
+"""SI predictability + evolving prediction model + early infra / mega brakes."""
 from __future__ import annotations
 
 import json
 import tempfile
 import unittest
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
 from utils.si_predictability import (
+    action_family,
+    evolve_prediction_model,
+    load_prediction_model,
+    model_status_summary,
     predict_intervention_outcome,
-    score_prediction_accuracy,
+    prediction_scale_multipliers,
     record_prediction,
+    score_prediction_accuracy,
 )
+from utils.system_time import now_iso
 
 
 class TestSiPredictability(unittest.TestCase):
@@ -23,7 +30,10 @@ class TestSiPredictability(unittest.TestCase):
             detail={"brakes": ["MSFT:pause"]},
         )
         self.assertEqual(pred.get("marker"), "si_predictability")
+        self.assertEqual(pred.get("action_family"), "symbol_session_brake")
         self.assertIn("hold", str(pred.get("predicted_outcome") or ""))
+        self.assertIn("features", pred)
+        self.assertTrue(pred.get("id"))
 
     def test_score_predictions(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -38,10 +48,106 @@ class TestSiPredictability(unittest.TestCase):
                     }
                 )
                 out = score_prediction_accuracy(
-                    {"skim_swarm": {"rolling_expectancy_usd": 0.11}}
+                    {"skim_swarm": {"rolling_expectancy_usd": 0.11}},
+                    evolve=False,
                 )
         self.assertEqual(out.get("scored"), 1)
         self.assertEqual(out.get("accuracy"), 1.0)
+
+
+class TestEvolvablePredictionModel(unittest.TestCase):
+    def test_evolve_updates_family_and_scale(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(
+                "os.environ",
+                {
+                    "FORTRESS_AI_DATA_DIR": td,
+                    "FORTRESS_SI_PREDICTABILITY": "1",
+                    "FORTRESS_SI_PREDICTION_EVOLVE": "1",
+                },
+                clear=False,
+            ):
+                from utils.system_time import now
+
+                past = (now() - timedelta(hours=2)).isoformat()
+                # Seed 10 resolved-worthy predictions across a family with lifts.
+                for i in range(10):
+                    record_prediction(
+                        {
+                            "id": f"pred-{i}",
+                            "ts": past,
+                            "component": "skim_swarm",
+                            "action": "symbol_session_brake",
+                            "action_family": "symbol_session_brake",
+                            "baseline_expectancy_usd": 0.10,
+                            "predicted_delta_expectancy_usd": 0.0,
+                            "confidence": 0.7,
+                            "horizon_minutes": 60,
+                            "features": {
+                                "rolling_exp": 0.2,
+                                "rolling_pay": 0.1,
+                                "alpha_vs_spy": -0.1,
+                                "strong_tape": 0.0,
+                                "session_exits_norm": 0.2,
+                                "open_positions_norm": 0.1,
+                            },
+                            "session_date_et": past[:10],
+                        }
+                    )
+                metrics = {"skim_swarm": {"rolling_expectancy_usd": 0.12}}
+                evo = evolve_prediction_model(metrics, lookback=20, max_updates=10)
+                self.assertGreaterEqual(int(evo.get("updates") or 0), 8)
+                model = load_prediction_model()
+                fam = (model.get("action_families") or {}).get("symbol_session_brake") or {}
+                self.assertGreaterEqual(int(fam.get("n") or 0), 8)
+                self.assertGreater(float(fam.get("hit_rate") or 0), 0.5)
+                status = model_status_summary(model)
+                self.assertGreaterEqual(int(status.get("n_updates") or 0), 8)
+                scale = prediction_scale_multipliers()
+                self.assertIn(scale.get("mode"), ("scaled", "warmup"))
+                # Second evolve must not re-process same ids.
+                evo2 = evolve_prediction_model(metrics, lookback=20, max_updates=10)
+                self.assertEqual(int(evo2.get("updates") or 0), 0)
+
+    def test_action_family_gap_dispatch(self) -> None:
+        self.assertEqual(action_family("gap_dispatch:symbol_session_brake"), "symbol_session_brake")
+        self.assertEqual(action_family("deep_lag_wait"), "deep_lag_wait")
+
+    def test_learned_delta_moves_on_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(
+                "os.environ",
+                {"FORTRESS_AI_DATA_DIR": td, "FORTRESS_SI_PREDICTION_EVOLVE": "1"},
+                clear=False,
+            ):
+                from utils.system_time import now
+
+                past = (now() - timedelta(hours=3)).isoformat()
+                record_prediction(
+                    {
+                        "id": "miss-1",
+                        "ts": past,
+                        "component": "infra_swarm",
+                        "action": "edge_autofix",
+                        "action_family": "edge_autofix",
+                        "baseline_expectancy_usd": 0.20,
+                        "predicted_delta_expectancy_usd": 0.02,
+                        "confidence": 0.6,
+                        "horizon_minutes": 30,
+                        "features": {"rolling_exp": 0.4, "rolling_pay": 0.0, "alpha_vs_spy": 0.0,
+                                     "strong_tape": 0.0, "session_exits_norm": 0.0, "open_positions_norm": 0.0},
+                        "session_date_et": past[:10],
+                    }
+                )
+                # Actual worsens → miss; learned_delta should decrease from prior 0.005
+                before = load_prediction_model()["action_families"]["edge_autofix"]["learned_delta"]
+                evolve_prediction_model(
+                    {"infra_swarm": {"rolling_expectancy_usd": 0.10}},
+                    lookback=5,
+                    max_updates=5,
+                )
+                after = load_prediction_model()["action_families"]["edge_autofix"]["learned_delta"]
+                self.assertLess(float(after), float(before) + 0.001)
 
 
 class TestEarlyInfraTight(unittest.TestCase):
@@ -51,7 +157,6 @@ class TestEarlyInfraTight(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             learned = Path(td) / "infra_swarm" / "learned"
             learned.mkdir(parents=True)
-            # 4 exits, negative expectancy — previously needed 6 for infra.
             (learned / "avgo.json").write_text(
                 json.dumps(
                     {
@@ -158,7 +263,6 @@ class TestMegaCapFirstLoss(unittest.TestCase):
                                 return_value={"skim_swarm": {"rolling_expectancy_usd": 0.1}},
                             ):
                                 out = apply_symbol_session_brakes("skim_swarm")
-                                # Second call should not re-record newly_applied
                                 out2 = apply_symbol_session_brakes("skim_swarm")
             self.assertTrue(any("MSFT" in b and ("pause" in b or "mega_first" in b) for b in out.get("brakes") or []))
             self.assertTrue(out.get("newly_applied"))

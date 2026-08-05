@@ -107,7 +107,18 @@ def build_si_effectiveness_slice(metrics: dict[str, Any] | None = None) -> dict[
     if predictability.get("accuracy") is not None and float(predictability["accuracy"]) < 0.55:
         recommendations.append(
             f"SI prediction accuracy {predictability['accuracy']:.2f}<0.55 — "
-            "review brake/tight forecasts vs realized expectancy (si_predictability)."
+            "evolve model (prediction_model.json) / review brake forecasts vs realized expectancy."
+        )
+        recommendations = recommendations[:8]
+    evo_n = 0
+    try:
+        evo_n = int(((predictability.get("model") or {}).get("n_updates") or 0))
+    except (TypeError, ValueError):
+        evo_n = 0
+    if evo_n >= 8 and float(predictability.get("accuracy_ema") or 0.55) >= 0.65:
+        recommendations.append(
+            f"Prediction model scaled (n={evo_n}, acc_ema={predictability.get('accuracy_ema')}) — "
+            "SI strength/soft mult from model scale."
         )
         recommendations = recommendations[:8]
 
@@ -125,6 +136,9 @@ def build_si_effectiveness_slice(metrics: dict[str, Any] | None = None) -> dict[
         "target_min": 0.35,
         "prediction_accuracy": predictability.get("accuracy"),
         "prediction_scored": predictability.get("scored"),
+        "prediction_accuracy_ema": predictability.get("accuracy_ema"),
+        "prediction_model": predictability.get("model"),
+        "prediction_scale": predictability.get("scale") or (predictability.get("model") or {}).get("scale"),
         "skim_rolling_expectancy_usd": skim.get("rolling_expectancy_usd"),
         "skim_rolling_payoff_ratio": skim.get("rolling_payoff_ratio"),
         "infra_rolling_expectancy_usd": infra.get("rolling_expectancy_usd"),

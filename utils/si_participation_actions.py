@@ -603,6 +603,14 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
     except (TypeError, ValueError):
         ease = -0.025
     ease = max(-0.05, min(0.0, ease))
+    try:
+        from utils.si_predictability import prediction_scale_multipliers
+
+        soft_m = float(prediction_scale_multipliers().get("soft_path_mult") or 1.0)
+        # soft_m < 1 shrinks ease (less aggressive); > 1 deepens slightly toward -0.05 cap.
+        ease = max(-0.05, min(0.0, ease * soft_m))
+    except Exception:
+        pass
 
     from utils.swarm_session_si import load_session_policy, save_session_policy
 

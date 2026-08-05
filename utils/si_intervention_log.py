@@ -94,9 +94,13 @@ def record_intervention(
                 detail=detail,
             )
             row["prediction"] = {
+                "id": pred.get("id"),
                 "predicted_outcome": pred.get("predicted_outcome"),
                 "predicted_delta_expectancy_usd": pred.get("predicted_delta_expectancy_usd"),
                 "confidence": pred.get("confidence"),
+                "action_family": pred.get("action_family"),
+                "family_hit_rate": pred.get("family_hit_rate"),
+                "model_n_updates": pred.get("model_n_updates"),
                 "marker": "si_predictability",
             }
             markers = list(row["markers"])

@@ -52,7 +52,10 @@ def rolling_metrics(component: str) -> dict[str, Any]:
 
 
 def adaptive_strength_from_gaps(gaps: list[dict[str, Any]], *, component: str) -> float:
-    """0..1 severity from open capability gaps for a component."""
+    """0..1 severity from open capability gaps for a component.
+
+    Multiplies by prediction-model strength when the evolvable model has left warmup.
+    """
     base = float(_get_cap("rolling_edge_autofix_strength", 0.55))
     sev = 0.0
     for g in gaps:
@@ -62,7 +65,15 @@ def adaptive_strength_from_gaps(gaps: list[dict[str, Any]], *, component: str) -
         pri = str(g.get("priority") or "medium")
         weight = {"critical": 1.0, "high": 0.7, "medium": 0.4, "low": 0.2}.get(pri, 0.4)
         sev = max(sev, min(1.0, gap * weight * 2.0))
-    return round(min(1.0, base * max(0.15, sev)), 4)
+    strength = base * max(0.15, sev)
+    try:
+        from utils.si_predictability import prediction_scale_multipliers
+
+        sm = float(prediction_scale_multipliers().get("strength_mult") or 1.0)
+        strength *= max(0.7, min(1.35, sm))
+    except Exception:
+        pass
+    return round(min(1.0, strength), 4)
 
 
 def apply_rolling_aware_edge_autofix(

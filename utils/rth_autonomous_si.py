@@ -209,6 +209,15 @@ def run_rth_intraday_cycle(*, force: bool = False) -> dict[str, Any]:
         out["participation_si"] = {"error": str(e)[:160]}
 
     try:
+        from utils.si_predictability import evolve_prediction_model, model_status_summary
+
+        metrics = (cap if isinstance(cap, dict) else {}).get("metrics") or {}
+        out["prediction_model"] = evolve_prediction_model(metrics)
+        out["prediction_model_status"] = model_status_summary()
+    except Exception as e:
+        out["prediction_model"] = {"error": str(e)[:160]}
+
+    try:
         from agents.self_improvement_engine import get_engine
         from agents.performance_monitor import PerformanceMonitor
 
