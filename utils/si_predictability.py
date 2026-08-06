@@ -38,6 +38,7 @@ _FAMILY_PRIORS: dict[str, dict[str, float]] = {
     "constructive_tape_override": {"prior_delta": 0.0, "prior_conf": 0.55, "protective": 1.0},
     "gap_dispatch": {"prior_delta": 0.0, "prior_conf": 0.6, "protective": 1.0},
     "first_session_loss": {"prior_delta": 0.0, "prior_conf": 0.7, "protective": 1.0},
+    "broker_error_hygiene": {"prior_delta": 0.0, "prior_conf": 0.7, "protective": 1.0},
     "default": {"prior_delta": 0.0, "prior_conf": 0.4, "protective": 0.0},
 }
 
@@ -139,7 +140,7 @@ def _default_model() -> dict[str, Any]:
             "strength_mult": 1.0,
             "participation_mult": 1.0,
             "soft_path_mult": 1.0,
-            "min_updates_for_scale": 8,
+            "min_updates_for_scale": 4,
         },
         "resolved_ids": [],
     }
@@ -311,9 +312,9 @@ def predict_intervention_outcome(
 
     pred_id = str(uuid.uuid4())
     try:
-        horizon = max(15, int(os.environ.get("FORTRESS_SI_PRED_HORIZON_MIN", "60") or 60))
+        horizon = max(10, int(os.environ.get("FORTRESS_SI_PRED_HORIZON_MIN", "20") or 20))
     except ValueError:
-        horizon = 60
+        horizon = 20
 
     return {
         "id": pred_id,
@@ -484,11 +485,166 @@ def _recompute_scale(model: dict[str, Any]) -> dict[str, Any]:
     return scale
 
 
+def _min_resolve_age_min(horizon: int) -> float:
+    try:
+        env_min = float(os.environ.get("FORTRESS_SI_PRED_MIN_AGE_MIN", "5") or 5)
+    except (TypeError, ValueError):
+        env_min = 5.0
+    # Resolve after max(3m, min_age, 15% of horizon) — leave warmup fast.
+    return max(3.0, env_min, float(horizon) * 0.15)
+
+
+def _resolve_prediction_row(
+    model: dict[str, Any],
+    *,
+    row: dict[str, Any],
+    metrics: dict[str, Any],
+    resolved_ids: set[str],
+) -> dict[str, Any] | None:
+    """Resolve one prediction row into a model update. Returns summary or None if skipped."""
+    if row.get("scoreable") is False or row.get("resolved") is True:
+        return None
+    if row.get("type") == "evolution_batch":
+        return None
+    fp = _fingerprint(row)
+    if fp in resolved_ids:
+        return None
+    comp = str(row.get("component") or "")
+    if not comp or comp == "si_meta":
+        return None
+    baseline = row.get("baseline_expectancy_usd")
+    if baseline is None:
+        return None
+    after = _expectancy_after(metrics, comp)
+    if after is None:
+        return None
+
+    try:
+        horizon = int(row.get("horizon_minutes") or 20)
+    except (TypeError, ValueError):
+        horizon = 20
+    ts_raw = str(row.get("ts") or "")
+    if ts_raw:
+        try:
+            from utils.system_time import parse_iso
+
+            ts = parse_iso(ts_raw)
+            if ts is not None:
+                age_min = (now() - ts).total_seconds() / 60.0
+                if age_min < _min_resolve_age_min(horizon):
+                    return None
+        except Exception:
+            pass
+
+    try:
+        mv = int(row.get("model_version") or 0)
+    except (TypeError, ValueError):
+        mv = 0
+    if mv < 2 and not isinstance(row.get("features"), dict):
+        resolved_ids.add(fp)
+        return {"skipped_legacy": True, "id": fp}
+
+    try:
+        baseline_f = float(baseline)
+        after_f = float(after)
+        pred_d = float(row.get("predicted_delta_expectancy_usd") or 0)
+        conf = float(row.get("confidence") or 0.5)
+    except (TypeError, ValueError):
+        return None
+
+    sess = str(row.get("session_date_et") or "")[:10]
+    today = now().date().isoformat()
+    if sess and sess < today:
+        from datetime import date
+
+        try:
+            d0 = date.fromisoformat(sess)
+            if (now().date() - d0).days > 2:
+                resolved_ids.add(fp)
+                return {"skipped_stale": True, "id": fp}
+        except ValueError:
+            pass
+
+    actual_delta = after_f - baseline_f
+    if abs(actual_delta) > 0.5:
+        resolved_ids.add(fp)
+        return {"skipped_noise": True, "id": fp}
+
+    family = str(row.get("action_family") or action_family(str(row.get("action") or "")))
+    st_pre = _family_state(model, family)
+    protective = float(st_pre.get("protective") or 0) >= 0.5
+    if protective:
+        hit = actual_delta >= -0.01
+    else:
+        hit = actual_delta >= pred_d - 0.01
+    feats = row.get("features") if isinstance(row.get("features"), dict) else None
+    features_f: dict[str, float] | None = None
+    if feats:
+        features_f = {}
+        for k, v in feats.items():
+            try:
+                features_f[str(k)] = float(v)
+            except (TypeError, ValueError):
+                pass
+
+    _update_family_from_outcome(
+        model,
+        family=family,
+        pred_delta=pred_d,
+        actual_delta=actual_delta,
+        hit=hit,
+        features=features_f,
+        confidence=conf,
+    )
+    resolved_ids.add(fp)
+    return {"hit": hit, "family": family, "id": fp, "actual_delta": actual_delta}
+
+
+def _predictions_from_interventions() -> list[dict[str, Any]]:
+    """Materialize prediction rows from intervention log (all scoreable actions)."""
+    from utils.si_intervention_log import intervention_log_path
+
+    out: list[dict[str, Any]] = []
+    for row in _read_tail(intervention_log_path(), max_bytes=500_000):
+        if row.get("scoreable") is False:
+            continue
+        if not row.get("session_date_et"):
+            continue
+        pred = row.get("prediction") if isinstance(row.get("prediction"), dict) else {}
+        if not pred:
+            continue
+        comp = str(row.get("component") or "")
+        snap = (row.get("metrics_snapshot") or {}).get(comp) or {}
+        baseline = snap.get("rolling_expectancy_usd")
+        if baseline is None:
+            baseline = snap.get("session_expectancy_usd")
+        if baseline is None:
+            baseline = pred.get("baseline_expectancy_usd")
+        synth = {
+            "id": pred.get("id") or f"ivn-{_fingerprint(row)}",
+            "ts": row.get("ts"),
+            "component": comp,
+            "action": row.get("action"),
+            "action_family": pred.get("action_family") or action_family(str(row.get("action") or "")),
+            "baseline_expectancy_usd": baseline,
+            "predicted_delta_expectancy_usd": pred.get("predicted_delta_expectancy_usd"),
+            "confidence": pred.get("confidence"),
+            "horizon_minutes": pred.get("horizon_minutes") or 20,
+            "model_version": pred.get("model_version") or 2,
+            "features": pred.get("features"),
+            "session_date_et": row.get("session_date_et"),
+            "source": "intervention_log",
+        }
+        if synth.get("baseline_expectancy_usd") is not None:
+            out.append(synth)
+    return out
+
+
 def evolve_prediction_model(
     metrics: dict[str, Any],
     *,
-    lookback: int = 48,
-    max_updates: int = 24,
+    lookback: int = 80,
+    max_updates: int = 40,
 ) -> dict[str, Any]:
     """Resolve aged predictions against live metrics and update the learning model."""
     if not predictability_enabled() or not evolution_enabled():
@@ -497,128 +653,40 @@ def evolve_prediction_model(
     model = load_prediction_model()
     resolved_ids = set(str(x) for x in (model.get("resolved_ids") or []))
     rows = _read_tail(predictability_log_path())[-lookback:]
+    # Merge intervention-derived forecasts so scoreable brakes/soft/etc. always train.
+    rows = list(rows) + _predictions_from_interventions()[-lookback:]
     updates = 0
     hits = 0
     scored = 0
+    skipped = {"legacy": 0, "stale": 0, "noise": 0}
 
-    # Process oldest first among unresolved so evolution is chronological.
     for row in rows:
         if updates >= max_updates:
             break
-        if row.get("scoreable") is False:
-            continue
-        if row.get("resolved") is True:
-            continue
-        fp = _fingerprint(row)
-        if fp in resolved_ids:
-            continue
-        comp = str(row.get("component") or "")
-        if not comp or comp == "si_meta":
-            continue
-        baseline = row.get("baseline_expectancy_usd")
-        if baseline is None:
-            continue
-        after = _expectancy_after(metrics, comp)
-        if after is None:
-            continue
-        # Require prediction age ≥ half horizon (or any age if re-scored with force lookback).
-        try:
-            horizon = int(row.get("horizon_minutes") or 60)
-        except (TypeError, ValueError):
-            horizon = 60
-        ts_raw = str(row.get("ts") or "")
-        age_ok = True
-        if ts_raw:
-            try:
-                from utils.system_time import parse_iso
-
-                ts = parse_iso(ts_raw)
-                if ts is not None:
-                    age_min = (now() - ts).total_seconds() / 60.0
-                    # Allow resolve after half horizon to tighten learning feedback.
-                    age_ok = age_min >= max(10.0, horizon * 0.5)
-            except Exception:
-                age_ok = True
-        if not age_ok:
-            continue
-
-        # Legacy heuristic predictions (pre model_version 2) lack feature vectors and
-        # reliable horizon — mark seen without training to avoid poisoning learned priors.
-        try:
-            mv = int(row.get("model_version") or 0)
-        except (TypeError, ValueError):
-            mv = 0
-        if mv < 2 and not isinstance(row.get("features"), dict):
-            resolved_ids.add(fp)
-            continue
-
-        try:
-            baseline_f = float(baseline)
-            after_f = float(after)
-            pred_d = float(row.get("predicted_delta_expectancy_usd") or 0)
-            conf = float(row.get("confidence") or 0.5)
-        except (TypeError, ValueError):
-            continue
-
-        # Only resolve predictions from this/previous session — older rows
-        # resolve against unrelated live metrics and poison the model.
-        sess = str(row.get("session_date_et") or "")[:10]
-        today = now().date().isoformat()
-        if sess and sess < today:
-            from datetime import date
-
-            try:
-                d0 = date.fromisoformat(sess)
-                if (now().date() - d0).days > 1:
-                    resolved_ids.add(fp)  # drop stale without learning
-                    continue
-            except ValueError:
-                pass
-
-        actual_delta = after_f - baseline_f
-        # Unrealistically large expected drift for a 60m horizon → skip (metric noise).
-        if abs(actual_delta) > 0.5:
-            resolved_ids.add(fp)
-            continue
-
-        family = str(row.get("action_family") or action_family(str(row.get("action") or "")))
-        st_pre = _family_state(model, family)
-        protective = float(st_pre.get("protective") or 0) >= 0.5
-        # Protective: hit if held (not worse than 1¢); growth actions: hit if >= predicted delta.
-        if protective:
-            hit = actual_delta >= -0.01
-        else:
-            hit = actual_delta >= pred_d - 0.01
-        feats = row.get("features") if isinstance(row.get("features"), dict) else None
-        features_f: dict[str, float] | None = None
-        if feats:
-            features_f = {}
-            for k, v in feats.items():
-                try:
-                    features_f[str(k)] = float(v)
-                except (TypeError, ValueError):
-                    pass
-
-        _update_family_from_outcome(
-            model,
-            family=family,
-            pred_delta=pred_d,
-            actual_delta=actual_delta,
-            hit=hit,
-            features=features_f,
-            confidence=conf,
+        res = _resolve_prediction_row(
+            model, row=row, metrics=metrics, resolved_ids=resolved_ids
         )
-        resolved_ids.add(fp)
+        if res is None:
+            continue
+        if res.get("skipped_legacy"):
+            skipped["legacy"] += 1
+            continue
+        if res.get("skipped_stale"):
+            skipped["stale"] += 1
+            continue
+        if res.get("skipped_noise"):
+            skipped["noise"] += 1
+            continue
         updates += 1
         scored += 1
-        if hit:
+        if res.get("hit"):
             hits += 1
 
+    # Persist resolved ring even if only legacy drops (prevents reprocessing).
+    model["resolved_ids"] = list(resolved_ids)[-800:]
     if updates:
-        model["resolved_ids"] = list(resolved_ids)[-800:]
         _recompute_scale(model)
         save_prediction_model(model)
-        # Append resolution summary for audit (one compact row).
         try:
             record_prediction(
                 {
@@ -630,6 +698,7 @@ def evolve_prediction_model(
                     "accuracy_batch": round(hits / scored, 4) if scored else None,
                     "accuracy_ema": (model.get("global") or {}).get("accuracy_ema"),
                     "scale": model.get("scale"),
+                    "skipped": skipped,
                     "scoreable": False,
                     "resolved": True,
                     "session_date_et": now().date().isoformat(),
@@ -644,6 +713,8 @@ def evolve_prediction_model(
             (model.get("global") or {}).get("accuracy_ema"),
             (model.get("scale") or {}).get("strength_mult"),
         )
+    else:
+        save_prediction_model(model)
 
     return {
         "ok": True,
@@ -651,6 +722,7 @@ def evolve_prediction_model(
         "updates": updates,
         "hits": hits,
         "scored": scored,
+        "skipped": skipped,
         "accuracy_ema": (model.get("global") or {}).get("accuracy_ema"),
         "n_updates": (model.get("global") or {}).get("n_updates"),
         "scale": model.get("scale"),

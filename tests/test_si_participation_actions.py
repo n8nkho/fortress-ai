@@ -83,7 +83,7 @@ class TestInfraSoftPath(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pol_path = Path(td) / "infra_swarm" / "session_policy.json"
             pol_path.parent.mkdir(parents=True)
-            pol_path.write_text(json.dumps({"mode": "normal"}), encoding="utf-8")
+            pol_path.write_text(json.dumps({"mode": "normal", "session_exits": 0}), encoding="utf-8")
             with patch.dict("os.environ", {"FORTRESS_AI_DATA_DIR": td}, clear=False):
                 with patch(
                     "utils.si_capability_review.collect_metrics",
@@ -93,33 +93,38 @@ class TestInfraSoftPath(unittest.TestCase):
                         "utils.si_participation_actions._infra_near_entry_threshold",
                         return_value={"near": True, "max_score": 0.08, "floor": -0.05},
                     ):
-                        out = apply_infra_strong_tape_soft_path(
-                            port={
-                                "strong_tape_1d": True,
-                                "session_exit_count": 0,
-                                "alpha_vs_spy_pct": -0.5,
-                            }
-                        )
-                        out2 = apply_infra_strong_tape_soft_path(
-                            port={
-                                "strong_tape_1d": True,
-                                "session_exit_count": 0,
-                                "alpha_vs_spy_pct": -0.5,
-                            }
-                        )
+                        with patch(
+                            "utils.si_participation_actions._infra_session_exits",
+                            return_value=0,
+                        ):
+                            out = apply_infra_strong_tape_soft_path(
+                                port={
+                                    "strong_tape_1d": True,
+                                    "session_exit_count": 0,
+                                    "alpha_vs_spy_pct": -0.5,
+                                }
+                            )
+                            out2 = apply_infra_strong_tape_soft_path(
+                                port={
+                                    "strong_tape_1d": True,
+                                    "session_exit_count": 0,
+                                    "alpha_vs_spy_pct": -0.5,
+                                }
+                            )
         self.assertTrue(out.get("ok"))
         self.assertEqual(out.get("marker"), "si_infra_strong_tape_soft")
         self.assertLessEqual(float(out.get("enter_long_delta_boost") or 0), 0)
         self.assertEqual(out2.get("skipped"), "already_applied_session")
 
     def test_soft_path_blocked_by_deep_lag(self) -> None:
-        out = apply_infra_strong_tape_soft_path(
-            port={
-                "strong_tape_1d": True,
-                "session_exit_count": 0,
-                "alpha_vs_spy_pct": -2.0,
-            }
-        )
+        with patch("utils.si_participation_actions._infra_session_exits", return_value=0):
+            out = apply_infra_strong_tape_soft_path(
+                port={
+                    "strong_tape_1d": True,
+                    "session_exit_count": 0,
+                    "alpha_vs_spy_pct": -2.0,
+                }
+            )
         self.assertEqual(out.get("skipped"), "deep_lag_blocks_soft_path")
 
     def test_soft_path_skips_without_near_score(self) -> None:
@@ -129,13 +134,17 @@ class TestInfraSoftPath(unittest.TestCase):
                     "utils.si_participation_actions._infra_near_entry_threshold",
                     return_value={"near": False, "reason": "scores_too_weak", "max_score": -0.2},
                 ):
-                    out = apply_infra_strong_tape_soft_path(
-                        port={
-                            "strong_tape_1d": True,
-                            "session_exit_count": 0,
-                            "alpha_vs_spy_pct": -0.3,
-                        }
-                    )
+                    with patch(
+                        "utils.si_participation_actions._infra_session_exits",
+                        return_value=0,
+                    ):
+                        out = apply_infra_strong_tape_soft_path(
+                            port={
+                                "strong_tape_1d": True,
+                                "session_exit_count": 0,
+                                "alpha_vs_spy_pct": -0.3,
+                            }
+                        )
         self.assertEqual(out.get("skipped"), "not_near_entry_threshold")
 
 

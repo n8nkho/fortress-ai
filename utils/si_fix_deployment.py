@@ -383,11 +383,22 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
     ],
     "broker_error_session_spike": [
         _ROOT / "utils" / "integrity_diagnostics.py",
+        _ROOT / "utils" / "si_broker_hygiene.py",
+        _ROOT / "utils" / "si_decision_scan.py",
         _ROOT / "config" / "si_fix_registry.json",
+        _ROOT / "tests" / "test_si_broker_hygiene.py",
     ],
     "symbol_first_session_loss_brake": [
         _ROOT / "utils" / "si_adaptive_actions.py",
         _ROOT / "tests" / "test_si_adaptive_actions.py",
+    ],
+    "si_true_learning_loop": [
+        _ROOT / "utils" / "si_predictability.py",
+        _ROOT / "utils" / "si_participation_actions.py",
+        _ROOT / "utils" / "si_broker_hygiene.py",
+        _ROOT / "utils" / "si_decision_scan.py",
+        _ROOT / "tests" / "test_si_predictability.py",
+        _ROOT / "tests" / "test_si_broker_hygiene.py",
     ],
     "si_env_truthy_comment_safe": [
         _ROOT / "utils" / "si_code_implementation.py",

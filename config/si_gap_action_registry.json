@@ -31,6 +31,14 @@
     "infra_strong_tape_soft": {
       "tier": 0,
       "handler": "utils.si_participation_actions.apply_infra_strong_tape_soft_path"
+    },
+    "broker_error_hygiene": {
+      "tier": 1,
+      "handler": "utils.si_broker_hygiene.apply_broker_error_symbol_brakes"
+    },
+    "denylist_reconcile": {
+      "tier": 1,
+      "handler": "utils.si_participation_actions.audit_denylist_vs_universe"
     }
   },
   "gaps": {
@@ -61,6 +69,10 @@
     "portfolio_participation_on_strong_tape": {
       "preferred_actions": ["deep_lag_wait", "denylist_audit", "infra_strong_tape_soft", "denylist_thaw", "constructive_tape_override"],
       "forbidden": ["loosen_pre_trade_gate", "disable_market_relative_gate"]
+    },
+    "broker_error_session_spike": {
+      "preferred_actions": ["broker_error_hygiene", "symbol_session_brake"],
+      "forbidden": ["loosen_pre_trade_gate"]
     }
   }
 }

@@ -129,51 +129,60 @@ def _denylist_sources(cfg: Any) -> dict[str, Any]:
 
 def _decision_denylist_symbols(component: str, *, today: str) -> list[str]:
     """Symbols blocked with manual_denylist/denylist in today's decisions (actual gate path)."""
-    sub = "skim_swarm" if "skim" in component else "infra_swarm"
+    from utils.si_decision_scan import block_reason, item_symbol, iter_session_decisions
+
+    sub = "skim_swarm" if "infra" not in component else "infra_swarm"
+    if component in ("skim_swarm", "infra_swarm"):
+        sub = component
     path = _data_dir() / sub / "decisions.jsonl"
+    found: set[str] = set()
+    for _wave, item in iter_session_decisions(path, today=today):
+        br = block_reason(item)
+        if br != "manual_denylist" and "denylist" not in br.lower():
+            continue
+        sym = item_symbol(item)
+        if sym:
+            found.add(sym)
+    return sorted(found)
+
+
+def _persist_observed_denylist(component: str, symbols: list[str], today: str) -> None:
+    """Mirror decision-trail denylist so SI/RTH (missing env vars) still sees effective set."""
+    if not symbols:
+        return
+    path = _data_dir() / "si_capability" / "observed_denylist.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    doc: dict[str, Any] = {}
+    if path.is_file():
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            doc = {}
+    if not isinstance(doc, dict):
+        doc = {}
+    doc[component] = {
+        "session_date_et": today,
+        "symbols": sorted(set(symbols)),
+        "ts": now_iso(),
+        "marker": _MARKER_DENY,
+    }
+    path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+
+
+def _observed_denylist_symbols(component: str, *, today: str) -> list[str]:
+    path = _data_dir() / "si_capability" / "observed_denylist.json"
     if not path.is_file():
         return []
-    found: set[str] = set()
     try:
-        raw = path.read_bytes()[-400_000:]
-        for line in raw.decode("utf-8", errors="replace").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                row = json.loads(line)
-            except Exception:
-                continue
-            ts = str(row.get("ts") or "")
-            sess = str(row.get("session_date_et") or "")
-            if today not in ts and sess != today:
-                continue
-            dec = row.get("decision") if isinstance(row.get("decision"), dict) else {}
-            act = row.get("act") if isinstance(row.get("act"), dict) else {}
-            br = str(act.get("block_reason") or dec.get("reasoning") or "")
-            if br != "manual_denylist" and "denylist" not in br.lower():
-                continue
-            sym = str(row.get("symbol") or dec.get("symbol") or "").strip().upper()
-            if sym:
-                found.add(sym)
-            # wave decisions may nest per-symbol results
-            for item in row.get("wave") or row.get("symbols") or []:
-                if not isinstance(item, dict):
-                    continue
-                ibr = str(
-                    (item.get("act") or {}).get("block_reason")
-                    or (item.get("decision") or {}).get("reasoning")
-                    or item.get("block_reason")
-                    or ""
-                )
-                if ibr != "manual_denylist" and "denylist" not in ibr.lower():
-                    continue
-                s2 = str(item.get("symbol") or "").strip().upper()
-                if s2:
-                    found.add(s2)
+        doc = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        pass
-    return sorted(found)
+        return []
+    if not isinstance(doc, dict):
+        return []
+    slot = doc.get(component) if isinstance(doc.get(component), dict) else {}
+    if str(slot.get("session_date_et") or "") != today:
+        return []
+    return [str(x).upper() for x in (slot.get("symbols") or []) if str(x).strip()]
 
 
 def _session_pause_entry_symbols(component: str, *, today: str) -> list[str]:
@@ -216,15 +225,31 @@ def audit_denylist_vs_universe() -> dict[str, Any]:
 
     skim_decision = _decision_denylist_symbols("skim_swarm", today=today)
     infra_decision = _decision_denylist_symbols("infra_swarm", today=today)
+    # Persist so later SI processes (RTH without skim env) see truth.
+    _persist_observed_denylist("skim_swarm", skim_decision, today)
+    _persist_observed_denylist("infra_swarm", infra_decision, today)
+    skim_observed = _observed_denylist_symbols("skim_swarm", today=today)
+    infra_observed = _observed_denylist_symbols("infra_swarm", today=today)
     skim_pause_learned = _session_pause_entry_symbols("skim_swarm", today=today)
     infra_pause_learned = _session_pause_entry_symbols("infra_swarm", today=today)
 
     # Union that matches signal gate + observed blocks + session brakes.
-    skim_effective = skim_deny | set(skim_decision)
-    infra_effective = infra_deny | set(infra_decision)
+    skim_effective = skim_deny | set(skim_decision) | set(skim_observed)
+    infra_effective = infra_deny | set(infra_decision) | set(infra_observed)
 
     skim_overlap = sorted(skim_effective & skim_uni)
     infra_overlap = sorted(infra_effective & infra_uni)
+
+    env_empty_but_blocking = bool(skim_decision) and not skim_deny and not skim_sources.get("env")
+    source_mismatch = {
+        "skim": env_empty_but_blocking,
+        "note": (
+            "process env denylist not visible to this SI process; "
+            "using decision-trail + observed_denylist.json"
+            if env_empty_but_blocking
+            else None
+        ),
+    }
 
     candidates: list[dict[str, Any]] = []
     for component, symbols in (("skim_swarm", skim_overlap), ("infra_swarm", infra_overlap)):
@@ -267,12 +292,15 @@ def audit_denylist_vs_universe() -> dict[str, Any]:
     out = {
         "ok": True,
         "session_date_et": today,
-        "skim_denylist_count": len(skim_deny),
-        "infra_denylist_count": len(infra_deny),
+        "skim_denylist_count": len(skim_effective),
+        "infra_denylist_count": len(infra_effective),
         "skim_sources": {k: v for k, v in skim_sources.items() if k != "env_key"},
         "infra_sources": {k: v for k, v in infra_sources.items() if k != "env_key"},
         "skim_decision_blocked": skim_decision,
         "infra_decision_blocked": infra_decision,
+        "skim_observed": skim_observed,
+        "infra_observed": infra_observed,
+        "source_mismatch": source_mismatch,
         "skim_pause_entries": skim_pause_learned,
         "infra_pause_entries": infra_pause_learned,
         "skim_blocked_in_universe": skim_overlap,
@@ -510,39 +538,37 @@ def maybe_thaw_denylist_on_recovery(*, port: dict[str, Any] | None = None) -> di
 
 def _infra_near_entry_threshold() -> dict[str, Any]:
     """True when recent infra decisions show entry scores near the soft-path window."""
+    from utils.si_decision_scan import block_reason, iter_session_decisions
+
     try:
         floor = float(os.environ.get("FORTRESS_SI_INFRA_SOFT_SCORE_FLOOR", "-0.05") or -0.05)
     except (TypeError, ValueError):
         floor = -0.05
     path = _data_dir() / "infra_swarm" / "decisions.jsonl"
     scores: list[float] = []
-    if path.is_file():
-        try:
-            raw = path.read_bytes()[-250_000:]
-            today = now().date().isoformat()
-            for line in raw.decode("utf-8", errors="replace").splitlines()[::-1]:
-                if len(scores) >= 40:
-                    break
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    row = json.loads(line)
-                except Exception:
-                    continue
-                ts = str(row.get("ts") or "")
-                if today not in ts and str(row.get("session_date_et") or "") != today:
-                    continue
-                blob = json.dumps(row, default=str)
-                for m in _SCORE_RE.finditer(blob):
-                    try:
-                        scores.append(float(m.group(1)))
-                    except ValueError:
-                        pass
-        except Exception:
+    today = now().date().isoformat()
+    for _wave, item in iter_session_decisions(path, today=today):
+        if len(scores) >= 40:
+            break
+        blob = json.dumps(item, default=str)
+        for m in _SCORE_RE.finditer(blob):
+            try:
+                scores.append(float(m.group(1)))
+            except ValueError:
+                pass
+        # Also raw decision.score near-miss
+        dec = item.get("decision") if isinstance(item.get("decision"), dict) else {}
+        sc = dec.get("score")
+        if sc is not None:
+            try:
+                scores.append(float(sc))
+            except (TypeError, ValueError):
+                pass
+        br = block_reason(item)
+        # keep focus on no_entry-ish reasons for threshold scores
+        if "no_entry" not in br and sc is None:
             pass
     if not scores:
-        # No measured near-miss — do not apply soft path (avoids dead-weight boost spam).
         return {"near": False, "reason": "no_recent_scores", "max_score": None, "floor": floor}
     mx = max(scores)
     return {
@@ -554,8 +580,35 @@ def _infra_near_entry_threshold() -> dict[str, Any]:
     }
 
 
+def _infra_session_exits() -> int:
+    try:
+        from utils.swarm_session_si import load_session_policy
+
+        pol = load_session_policy("infra_swarm")
+        return int(pol.get("session_exits") or 0)
+    except Exception:
+        return 0
+
+
+def _infra_rolling_positive() -> bool:
+    try:
+        from utils.si_capability_review import collect_metrics
+
+        m = (collect_metrics() or {}).get("infra_swarm") or {}
+        exp = m.get("rolling_expectancy_usd")
+        return exp is not None and float(exp) > 0
+    except Exception:
+        return False
+
+
 def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Strong-tape day, 0 exits, not deep lag: ease infra once/session if scores near enter."""
+    """Idle infra + constructive setup: ease enter once/session if scores near threshold.
+
+    Conditions (never deep lag, never when SI deep-lag wait active):
+    - strong tape OR positive rolling infra expectancy
+    - infra sleeve has 0 session exits (not portfolio-wide exits)
+    - recent scores near enter floor (score-family gated)
+    """
     if not _enabled():
         return {"skipped": "participation_policy_disabled", "marker": _MARKER_INFRA}
     if str(os.environ.get("FORTRESS_SI_INFRA_STRONG_TAPE_SOFT", "1")).strip().lower() not in (
@@ -569,18 +622,21 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
     ensure_participation_policy_session()
     port = port if port is not None else _portfolio()
     strong = bool(port.get("strong_tape_1d"))
-    exits = int(port.get("session_exit_count") or 0)
+    infra_exits = _infra_session_exits()
+    roll_pos = _infra_rolling_positive()
     alpha = port.get("alpha_vs_spy_pct")
     try:
         alpha_f = float(alpha) if alpha is not None else None
     except (TypeError, ValueError):
         alpha_f = None
     floor = _deep_floor()
-    if not strong or exits > 0:
+    eligible = (strong or roll_pos) and infra_exits == 0
+    if not eligible:
         return {
-            "skipped": "not_idle_strong_tape",
+            "skipped": "not_idle_infra_soft_setup",
             "strong_tape_1d": strong,
-            "session_exit_count": exits,
+            "infra_session_exits": infra_exits,
+            "rolling_positive": roll_pos,
             "marker": _MARKER_INFRA,
         }
     if alpha_f is not None and alpha_f <= floor:
@@ -711,10 +767,11 @@ def run_participation_si_cycle(*, metrics: dict[str, Any] | None = None) -> dict
         out["denylist_audit"] = out["deep_lag"].get("audit") if isinstance(out["deep_lag"], dict) else None
     else:
         out["deep_lag"] = {"skipped": "not_deep_lag"}
-        if bool(port.get("strong_tape_1d")):
-            out["denylist_audit"] = audit_denylist_vs_universe()
+        # Always reconcile denylist truth vs decision trail (env may be invisible to RTH).
+        out["denylist_audit"] = audit_denylist_vs_universe()
         if alpha_f is not None and alpha_f >= soft:
             out["thaw"] = maybe_thaw_denylist_on_recovery(port=port)
+        # Soft path: strong tape OR positive rolling infra + near scores (handler decides).
         out["infra_soft"] = apply_infra_strong_tape_soft_path(port=port)
 
     return out

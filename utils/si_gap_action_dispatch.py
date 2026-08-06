@@ -136,6 +136,7 @@ def _invoke_action(action: str, meta: dict[str, Any], *, component: str) -> dict
             "constructive_tape_override",
             "deep_lag_wait",
             "denylist_audit",
+            "denylist_reconcile",
             "denylist_thaw",
             "infra_strong_tape_soft",
         ):
@@ -144,6 +145,12 @@ def _invoke_action(action: str, meta: dict[str, Any], *, component: str) -> dict
                 result = fn()
             except TypeError:
                 result = fn(None)
+        elif action == "broker_error_hygiene":
+            # Prefer sleeve from gap; default both handled by run cycle paths.
+            try:
+                result = fn(component)
+            except TypeError:
+                result = fn()
         elif action == "classic_sleeve_demoted":
             result = {"marker": "classic_sleeve_demoted", "note": "demotion_policy_active"}
         else:
@@ -177,7 +184,7 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
         return mode in ("tight", "churn", "pause", "critical") or bool(res.get("changed"))
     if action == "deep_lag_wait":
         return bool(res.get("ok")) and str(res.get("strategy") or "") == "deep_lag_wait"
-    if action == "denylist_audit":
+    if action == "denylist_audit" or action == "denylist_reconcile":
         return bool(res.get("ok")) and bool(
             res.get("skim_blocked_in_universe")
             or res.get("infra_blocked_in_universe")
@@ -190,6 +197,8 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
         return bool(res.get("ok")) and res.get("enter_long_delta_boost") is not None and not res.get(
             "skipped"
         )
+    if action == "broker_error_hygiene":
+        return bool(res.get("newly_applied") or res.get("brakes"))
     if action == "constructive_tape_override":
         # Review-only path — strong_tape alone is not a material intervention.
         # Score only when override is actively eligible to change entry behavior.
@@ -378,6 +387,16 @@ def ensure_effectiveness_actions(*, metrics: dict[str, Any] | None = None) -> di
                 "infra_session_expectancy",
             ):
                 force.append(oid)
+        try:
+            from utils.integrity_diagnostics import run_integrity_scan
+
+            scan = run_integrity_scan(log=False)
+            for f in scan.get("findings") or []:
+                if str(f.get("code") or "") == "broker_error_session_spike":
+                    force.append("broker_error_session_spike")
+                    break
+        except Exception:
+            pass
     except Exception:
         force.append("si_intervention_effectiveness_gap")
 

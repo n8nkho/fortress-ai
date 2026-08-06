@@ -26,6 +26,7 @@ _PROTECTIVE_ACTIONS = frozenset(
         "denylist_thaw",
         "infra_strong_tape_soft",
         "denylist_audit",
+        "broker_error_hygiene",
     }
 )
 _MIN_EXP_DELTA = 0.005

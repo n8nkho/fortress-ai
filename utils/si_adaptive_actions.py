@@ -628,4 +628,10 @@ def run_adaptive_si_cycle(
         out[component] = {"rolling_edge": roll_fix, "symbol_brakes": brakes}
 
     out["unified_losers"] = apply_unified_loser_management()
+    try:
+        from utils.si_broker_hygiene import run_broker_hygiene_cycle
+
+        out["broker_hygiene"] = run_broker_hygiene_cycle()
+    except Exception as e:
+        out["broker_hygiene"] = {"error": str(e)[:120]}
     return out
