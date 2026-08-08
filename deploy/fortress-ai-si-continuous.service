@@ -1,0 +1,26 @@
+# Continuous SI auto-improvement (integrity + queue + auto-code). Outside RTH too.
+# Install:
+#   sudo cp deploy/fortress-ai-si-continuous.service deploy/fortress-ai-si-continuous.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now fortress-ai-si-continuous.timer
+
+[Unit]
+Description=Fortress AI continuous SI auto-code cycle
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/fortress-ai
+Environment=PYTHONPATH=/home/ubuntu/fortress-ai
+Environment=PATH=/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=TZ=America/New_York
+Environment=FORTRESS_SYSTEM_TZ=America/New_York
+Environment=FORTRESS_SI_AUTO_CODE=1
+Environment=FORTRESS_SI_AUTO_COMMIT=1
+Environment=FORTRESS_SI_AUTO_PUSH=1
+Environment=FORTRESS_SI_CONTINUOUS=1
+EnvironmentFile=-/home/ubuntu/fortress-ai/.env
+ExecStart=/usr/bin/python3 /home/ubuntu/fortress-ai/scripts/si_continuous_cycle.py --json
+Nice=10

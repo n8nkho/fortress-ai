@@ -21,20 +21,42 @@ def main() -> int:
     from utils.si_recommendation_queue import process_scan_to_queue, status_dict
 
     out: dict = {}
-    scan = run_integrity_scan(log=False)
-    out["integrity_scan"] = {"counts": scan.get("counts"), "findings": len(scan.get("findings") or [])}
-    out["recommendation_queue"] = process_scan_to_queue(scan)
-    out["queue_status"] = status_dict()
+    # Prefer the continuous SI orchestrator (queue hygiene + participation + auto-code).
+    try:
+        from utils.si_continuous_cycle import run_continuous_si_cycle
+
+        cont = run_continuous_si_cycle(skip_code=False)
+        out["continuous_si"] = {
+            "ok": cont.get("ok"),
+            "ts": cont.get("ts"),
+            "integrity": cont.get("integrity"),
+            "queue_status": cont.get("queue_status"),
+            "autonomous_code_si": cont.get("autonomous_code_si"),
+            "stale_closed": cont.get("stale_closed"),
+        }
+        out["integrity_scan"] = cont.get("integrity") or {}
+        out["queue_status"] = cont.get("queue_status") or status_dict()
+        out["capability_review"] = cont.get("capability_review")
+        out["performance"] = cont.get("performance")
+    except Exception as e:
+        out["continuous_si_error"] = str(e)[:200]
+        scan = run_integrity_scan(log=False)
+        out["integrity_scan"] = {
+            "counts": scan.get("counts"),
+            "findings": len(scan.get("findings") or []),
+        }
+        out["recommendation_queue"] = process_scan_to_queue(scan)
+        out["queue_status"] = status_dict()
+        try:
+            from utils.si_capability_review import run_capability_review_cycle
+
+            out["capability_review"] = run_capability_review_cycle(apply=True)
+        except Exception as e2:
+            out["capability_review"] = {"error": str(e2)[:120]}
     gov = get_engine().process_autonomous_governance()
     if gov:
         out["governance"] = gov
     out["reversions"] = PerformanceMonitor().monitor_active_changes()
-    try:
-        from utils.si_capability_review import run_capability_review_cycle
-
-        out["capability_review"] = run_capability_review_cycle(apply=True)
-    except Exception as e:
-        out["capability_review"] = {"error": str(e)[:120]}
     print(json.dumps(out, default=str))
     return 0
 

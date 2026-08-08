@@ -1,0 +1,20 @@
+[Unit]
+Description=Fortress AI continuous SI auto-improvement timer
+
+[Timer]
+# Wake often enough to learn from sessions without user prompts.
+# America/New_York wall clock via system TZ (service sets TZ).
+OnBootSec=5min
+OnUnitActiveSec=2h
+# Post-open, mid-day, near close, after market — dense learning windows.
+OnCalendar=Mon..Fri *-*-* 09:50:00
+OnCalendar=Mon..Fri *-*-* 12:30:00
+OnCalendar=Mon..Fri *-*-* 15:45:00
+OnCalendar=Mon..Fri *-*-* 16:20:00
+OnCalendar=Mon..Fri *-*-* 18:15:00
+OnCalendar=*-*-* 06:30:00
+Persistent=true
+Unit=fortress-ai-si-continuous.service
+
+[Install]
+WantedBy=timers.target

@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-08-08T10:29:30.806567-04:00"
+      "registered_at_utc": "2026-08-08T10:41:27.994733-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1222,6 +1222,22 @@
         "si_mid_lag_participation",
         "mid_lag_focus",
         "si_mid_lag_session"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
+    "si_continuous_auto_code": {
+      "title": "Continuous SI auto-code loop (timer + governance; no daily human prompt)",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_continuous_cycle",
+        "si_auto_code",
+        "FORTRESS_SI_AUTO_CODE",
+        "FORTRESS_SI_AUTO_COMMIT",
+        "FORTRESS_SI_AUTO_PUSH",
+        "stale_not_worth_reopen"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

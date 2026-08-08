@@ -177,11 +177,12 @@ def auto_code_enabled() -> bool:
 
 
 def auto_commit_enabled() -> bool:
-    return _env_truthy("FORTRESS_SI_AUTO_COMMIT", "0")
+    # Default ON so continuous SI ships improvements without daily human prompts.
+    return _env_truthy("FORTRESS_SI_AUTO_COMMIT", "1")
 
 
 def auto_push_enabled() -> bool:
-    return _env_truthy("FORTRESS_SI_AUTO_PUSH", "0")
+    return _env_truthy("FORTRESS_SI_AUTO_PUSH", "1")
 
 
 def require_e2e() -> bool:
@@ -335,7 +336,8 @@ def can_auto_implement(item: dict[str, Any]) -> tuple[bool, str]:
         return False, "auto_code_disabled"
     if item.get("status") != "open":
         return False, "not_open"
-    if item.get("code_implementation", {}).get("status") == "implementing":
+    impl_status = str((item.get("code_implementation") or {}).get("status") or "")
+    if impl_status == "implementing":
         return False, "already_implementing"
 
     # Deferred auto-implement: wait until execute_after_et (America/New_York date).
@@ -479,8 +481,14 @@ def auto_assess_item(item_id: str) -> dict[str, Any]:
     item["agent_assessment"] = {**assessed, "assessed_utc": now_iso()}
 
     if is_cross_stack_item(item):
-        item["disposition"] = DISPOSITION_PENDING_HUMAN
-        item["requires_human_go"] = True
+        if assessed.get("worth_implementing"):
+            item["disposition"] = DISPOSITION_PENDING_HUMAN
+            item["requires_human_go"] = True
+        else:
+            item["status"] = "closed"
+            item["disposition"] = "dismissed"
+            item["closed_reason"] = "cross_stack_monitor_not_worth"
+            item["requires_human_go"] = True
         item["updated_utc"] = now_iso()
         _save_item(item)
         return item
@@ -682,21 +690,77 @@ def _run_e2e(repo: Path) -> tuple[bool, str]:
         return False, str(e)[:200]
 
 
+def _stage_allowed_paths(repo: Path) -> list[str]:
+    """Stage only allowlisted code paths (never data/, .env, queue JSON)."""
+    try:
+        r = subprocess.run(
+            ["git", "status", "--porcelain", "-u"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if r.returncode != 0:
+            return []
+    except Exception:
+        return []
+    staged: list[str] = []
+    for line in (r.stdout or "").splitlines():
+        if len(line) < 4:
+            continue
+        # porcelain: XY path  or  XY orig -> path
+        path = line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1].strip()
+        path = path.strip().strip('"')
+        if not path or _path_is_data_or_runtime(path):
+            continue
+        allowed, _ = _diff_allowed([path])
+        if not allowed:
+            continue
+        try:
+            subprocess.run(
+                ["git", "add", "--", path],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            staged.append(path)
+        except Exception:
+            continue
+    return staged
+
+
+def _git_ssh_env() -> dict[str, str]:
+    env = os.environ.copy()
+    local_bin = str(Path.home() / ".local/bin")
+    if local_bin not in (env.get("PATH") or "").split(":"):
+        env["PATH"] = f"{local_bin}:{env.get('PATH', '')}"
+    deploy = Path.home() / ".ssh" / "github_deploy"
+    if deploy.is_file() and "GIT_SSH_COMMAND" not in env:
+        env["GIT_SSH_COMMAND"] = f"ssh -i {deploy} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+    return env
+
+
 def _auto_commit(repo: Path, message: str) -> tuple[bool, str]:
     if not auto_commit_enabled():
         return True, "commit_disabled"
     try:
-        subprocess.run(["git", "add", "-A"], cwd=repo, check=False, timeout=60)
+        staged = _stage_allowed_paths(repo)
+        if not staged:
+            return True, "nothing_to_commit"
         r = subprocess.run(
             ["git", "commit", "-m", message],
             cwd=repo,
             capture_output=True,
             text=True,
             timeout=60,
+            env=_git_ssh_env(),
         )
         if r.returncode != 0 and "nothing to commit" in (r.stdout + r.stderr):
             return True, "nothing_to_commit"
-        return r.returncode == 0, (r.stdout or r.stderr or "")[-500:]
+        return r.returncode == 0, (r.stdout or r.stderr or "")[-500:] + f" staged={len(staged)}"
     except Exception as e:
         return False, str(e)[:200]
 
@@ -712,6 +776,7 @@ def _auto_push(repo: Path) -> tuple[bool, str]:
             capture_output=True,
             text=True,
             timeout=120,
+            env=_git_ssh_env(),
         )
         return r.returncode == 0, (r.stdout or r.stderr or "")[-500:]
     except Exception as e:
