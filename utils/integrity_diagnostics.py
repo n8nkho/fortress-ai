@@ -487,23 +487,16 @@ def scan_broker_error_spike(
         threshold = 3
     count = int((blocks or {}).get("broker_error") or 0)
     if count < threshold and rows is not None:
+        from utils.si_decision_scan import block_reason, iter_wave_items
+
         recent = rows[-RECENT_DECISION_WINDOW:]
         count = 0
         for r in recent:
-            act = r.get("act") if isinstance(r.get("act"), dict) else {}
-            dec = r.get("decision") if isinstance(r.get("decision"), dict) else {}
-            br = str(act.get("block_reason") or dec.get("reasoning") or "")
-            if br == "broker_error" or br.startswith("broker_error"):
-                count += 1
-            for item in r.get("wave") or []:
-                if not isinstance(item, dict):
-                    continue
-                ibr = str(
-                    (item.get("act") or {}).get("block_reason")
-                    or item.get("block_reason")
-                    or ""
-                )
-                if ibr == "broker_error" or ibr.startswith("broker_error"):
+            if not isinstance(r, dict):
+                continue
+            for item in iter_wave_items(r):
+                br = block_reason(item)
+                if br == "broker_error" or br.startswith("broker_error"):
                     count += 1
     if count < threshold:
         return []
@@ -516,10 +509,10 @@ def scan_broker_error_spike(
             "threshold": threshold,
             "recommendation": (
                 "Broker submit/reject spike — inspect order payload, buying power, and open sell "
-                "lifecycle; SI monitors order hygiene without loosening gates."
+                "lifecycle; SI runs broker_error_hygiene without loosening gates."
             ),
             "si_action": "broker_order_hygiene_review",
-            "runtime_monitor_when_deployed": True,
+            "runtime_monitor_when_deployed": False,
             "marker": "si_broker_error_spike",
         }
     ]

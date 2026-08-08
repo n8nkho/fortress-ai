@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-08-06T16:06:17.215953-04:00"
+      "registered_at_utc": "2026-08-08T10:29:30.806567-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -1194,25 +1194,42 @@
       "impact": "high"
     },
     "si_participation_policy": {
-      "title": "Deep-lag wait, denylist audit/thaw, infra strong-tape soft path",
+      "title": "Deep/mid-lag wait, denylist audit/thaw, gated infra soft path",
       "kind": "code_guard",
       "mitigation_markers": [
         "si_deep_lag_wait",
+        "si_mid_lag_participation",
+        "si_mid_lag_focus",
         "si_denylist_audit",
         "si_denylist_thaw",
         "si_infra_strong_tape_soft",
         "si_participation_cycle",
         "si_participation_session_rollover",
         "already_applied_session",
-        "not_near_entry_threshold"
+        "not_near_entry_threshold",
+        "mr_blocks_dominate",
+        "mid_or_deep_lag_blocks_soft"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
       "effort": "medium",
       "impact": "high"
     },
+    "si_mid_lag_participation": {
+      "title": "Mid-lag (strong tape shortfall + soft alpha) \u2014 focus/denylist, not soft ease",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_mid_lag_participation",
+        "mid_lag_focus",
+        "si_mid_lag_session"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "high"
+    },
     "broker_error_session_spike": {
-      "title": "Broker error block spike \u2014 order hygiene review",
+      "title": "Broker error block spike \u2014 pause + cancel side-conflict open orders",
       "kind": "code_guard",
       "severity_default": "medium",
       "runtime_monitor_when_deployed": false,
@@ -1221,7 +1238,9 @@
         "si_broker_hygiene",
         "broker_error_hygiene",
         "broker_order_hygiene_review",
-        "scan_broker_error_spike"
+        "scan_broker_error_spike",
+        "side_conflict_clear",
+        "cancelled_open"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

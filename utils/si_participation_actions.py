@@ -1,9 +1,11 @@
-"""SI participation policy — true SI acts on strong-tape / deep-lag situations.
+"""SI participation policy — true SI acts on strong-tape / lag situations.
 
 Strategies (never loosens pre_trade_gate or MR rails):
 1. Deep lag (alpha << deep floor on strong tape): wait + denylist audit; no tape override.
-2. Alpha recovered: selective denylist thaw of high-rolling-expectancy universe names.
-3. Strong tape, 0 exits, not deep-lagging, near-threshold scores: infra soft entry (once/session).
+2. Mid lag (strong tape, shortfall, alpha soft but not deep): denylist audit + slight tighten; no soft.
+3. Alpha recovered: selective denylist thaw of high-rolling-expectancy universe names.
+4. Strong tape, 0 exits, not mid/deep-lagging, near-threshold scores: infra soft entry (once/session).
+   Soft is blocked when market_relative blocks dominate session decision trails.
 """
 from __future__ import annotations
 
@@ -11,6 +13,7 @@ import json
 import logging
 import os
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +22,7 @@ from utils.system_time import now, now_iso
 log = logging.getLogger(__name__)
 
 _MARKER_DEEP = "si_deep_lag_wait"
+_MARKER_MID = "si_mid_lag_participation"
 _MARKER_DENY = "si_denylist_audit"
 _MARKER_THAW = "si_denylist_thaw"
 _MARKER_INFRA = "si_infra_strong_tape_soft"
@@ -601,13 +605,241 @@ def _infra_rolling_positive() -> bool:
         return False
 
 
+def _session_block_counts(component: str) -> Counter[str]:
+    from utils.si_decision_scan import block_reason, iter_session_decisions
+
+    sub = "infra_swarm" if "infra" in component else "skim_swarm"
+    if component in ("skim_swarm", "infra_swarm"):
+        sub = component
+    path = _data_dir() / sub / "decisions.jsonl"
+    today = now().date().isoformat()
+    ctr: Counter[str] = Counter()
+    for _wave, item in iter_session_decisions(path, today=today):
+        br = block_reason(item)
+        if not br:
+            continue
+        key = br.split(":")[0].strip()
+        if key:
+            ctr[key] += 1
+    return ctr
+
+
+def _mr_blocks_dominate(component: str = "infra_swarm") -> dict[str, Any]:
+    """True when market-relative underperformance is a large share of session blocks."""
+    try:
+        ratio_thr = float(os.environ.get("FORTRESS_SI_SOFT_MR_BLOCK_RATIO", "0.35") or 0.35)
+    except (TypeError, ValueError):
+        ratio_thr = 0.35
+    try:
+        min_mr = max(2, int(os.environ.get("FORTRESS_SI_SOFT_MR_BLOCK_MIN", "3") or 3))
+    except ValueError:
+        min_mr = 3
+    ctr = _session_block_counts(component)
+    total = int(sum(ctr.values()))
+    mr = 0
+    for k, v in ctr.items():
+        kl = k.lower()
+        if "market_relative" in kl or kl.startswith("mr_") or "underperformance" in kl:
+            mr += int(v)
+    ratio = (mr / total) if total else 0.0
+    dominate = mr >= min_mr and ratio >= ratio_thr
+    return {
+        "dominate": dominate,
+        "mr_blocks": mr,
+        "total_blocks": total,
+        "ratio": round(ratio, 4),
+        "ratio_threshold": ratio_thr,
+        "min_mr": min_mr,
+        "top": dict(ctr.most_common(6)),
+    }
+
+
+def _mid_alpha_ceiling() -> float:
+    """Alpha must be below this (more lagging) to count as mid-lag; above deep floor."""
+    try:
+        return float(os.environ.get("FORTRESS_SI_MID_LAG_ALPHA_CEIL", "-0.25") or -0.25)
+    except (TypeError, ValueError):
+        return -0.25
+
+
+def _mid_shortfall_min() -> int:
+    try:
+        return max(2, int(os.environ.get("FORTRESS_SI_MID_LAG_SHORTFALL_MIN", "3") or 3))
+    except ValueError:
+        return 3
+
+
+def apply_mid_lag_strategy(*, port: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Strong tape + participation shortfall + alpha lagging (not deep): focus, don't force soft.
+
+    Actions:
+    - denylist audit (surface blocked universe names)
+    - slight enter tighten (prefer quality over size); never disable MR
+    - once per session scoreable intervention
+    """
+    if not _enabled():
+        return {"skipped": "participation_policy_disabled", "marker": _MARKER_MID}
+    if str(os.environ.get("FORTRESS_SI_MID_LAG", "1")).strip().lower() not in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        return {"skipped": "mid_lag_disabled", "marker": _MARKER_MID}
+
+    ensure_participation_policy_session()
+    port = port if port is not None else _portfolio()
+    strong = bool(port.get("strong_tape_1d"))
+    alpha = port.get("alpha_vs_spy_pct")
+    try:
+        alpha_f = float(alpha) if alpha is not None else None
+    except (TypeError, ValueError):
+        alpha_f = None
+    try:
+        shortfall = int(port.get("participation_shortfall_exits") or 0)
+    except (TypeError, ValueError):
+        shortfall = 0
+    deep = _deep_floor()
+    ceil = _mid_alpha_ceiling()
+    need_sf = _mid_shortfall_min()
+
+    if not strong:
+        return {"skipped": "not_strong_tape", "marker": _MARKER_MID}
+    if alpha_f is None:
+        return {"skipped": "alpha_unknown", "marker": _MARKER_MID}
+    if alpha_f <= deep:
+        return {
+            "skipped": "deep_lag_prefers_wait",
+            "alpha_vs_spy_pct": alpha_f,
+            "deep_floor": deep,
+            "marker": _MARKER_MID,
+        }
+    if alpha_f > ceil:
+        return {
+            "skipped": "alpha_not_mid_lag",
+            "alpha_vs_spy_pct": alpha_f,
+            "mid_alpha_ceil": ceil,
+            "marker": _MARKER_MID,
+        }
+    if shortfall < need_sf:
+        return {
+            "skipped": "shortfall_low",
+            "participation_shortfall_exits": shortfall,
+            "need": need_sf,
+            "marker": _MARKER_MID,
+        }
+
+    today = now().date().isoformat()
+    policy = _load_policy()
+    if str(policy.get("mid_lag_session") or "") == today or any(
+        isinstance(ev, dict) and str(ev.get("strategy")) == "mid_lag_focus" for ev in (policy.get("events") or [])
+    ):
+        return {
+            "skipped": "already_applied_session",
+            "strategy": "mid_lag_focus",
+            "marker": _MARKER_MID,
+        }
+
+    audit = audit_denylist_vs_universe()
+    try:
+        tighten = float(os.environ.get("FORTRESS_SI_MID_LAG_ENTER_DELTA", "0.02") or 0.02)
+    except (TypeError, ValueError):
+        tighten = 0.02
+    tighten = max(0.0, min(0.06, tighten))
+
+    session_notes: dict[str, Any] = {}
+    for component in ("skim_swarm", "infra_swarm"):
+        try:
+            from utils.swarm_session_si import load_session_policy, save_session_policy
+
+            pol = load_session_policy(component)
+            boost = float(pol.get("enter_long_delta_boost") or 0)
+            # Mid-lag prefers slightly harder entries (positive boost = tighter long entry),
+            # never eases. Clamp under soft-path negatives by lifting toward tighten.
+            new_boost = round(max(boost, tighten), 4)
+            pol["enter_long_delta_boost"] = new_boost
+            pol["si_mid_lag_focus"] = True
+            pol["si_mid_lag_session"] = today
+            notes = list(pol.get("notes") or [])
+            notes.append(
+                f"{_MARKER_MID} shortfall={shortfall} alpha={alpha_f:.3f} "
+                f"blocked={len((audit.get('skim_blocked_in_universe') or []) if component == 'skim_swarm' else (audit.get('infra_blocked_in_universe') or []))}"
+            )
+            pol["notes"] = notes[-8:]
+            save_session_policy(component, pol)
+            session_notes[component] = {"enter_long_delta_boost": new_boost}
+        except Exception as e:
+            session_notes[component] = {"error": str(e)[:80]}
+
+    events = list(policy.get("events") or [])
+    events.append(
+        {
+            "ts": now_iso(),
+            "strategy": "mid_lag_focus",
+            "alpha": alpha_f,
+            "shortfall": shortfall,
+            "marker": _MARKER_MID,
+        }
+    )
+    policy.update(
+        {
+            "session_date_et": today,
+            "strategy": "mid_lag_focus",
+            "mid_lag_session": today,
+            "alpha_vs_spy_pct": alpha_f,
+            "participation_shortfall_exits": shortfall,
+            "marker": _MARKER_MID,
+            "updated_utc": now_iso(),
+            "events": events[-20:],
+            "thaw_candidates_pending_alpha_recovery": audit.get("thaw_candidates") or [],
+        }
+    )
+    _save_policy(policy)
+
+    try:
+        from utils.si_capability_review import collect_metrics
+        from utils.si_intervention_log import record_intervention
+
+        record_intervention(
+            component="portfolio_session",
+            action="mid_lag_focus",
+            metrics_snapshot=collect_metrics(),
+            detail={
+                "marker": _MARKER_MID,
+                "alpha_vs_spy_pct": alpha_f,
+                "shortfall": shortfall,
+                "audit": {
+                    "skim_blocked": audit.get("skim_blocked_in_universe"),
+                    "infra_blocked": audit.get("infra_blocked_in_universe"),
+                    "decision_blocked": audit.get("skim_decision_blocked"),
+                },
+                "session_notes": session_notes,
+                "do_not_disable_mr": True,
+            },
+            scoreable=True,
+        )
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "strategy": "mid_lag_focus",
+        "alpha_vs_spy_pct": alpha_f,
+        "participation_shortfall_exits": shortfall,
+        "audit": audit,
+        "session_notes": session_notes,
+        "marker": _MARKER_MID,
+    }
+
+
 def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> dict[str, Any]:
     """Idle infra + constructive setup: ease enter once/session if scores near threshold.
 
-    Conditions (never deep lag, never when SI deep-lag wait active):
+    Conditions (never deep lag, never mid-lag, never when SI deep-lag wait active):
     - strong tape OR positive rolling infra expectancy
     - infra sleeve has 0 session exits (not portfolio-wide exits)
     - recent scores near enter floor (score-family gated)
+    - market_relative blocks do not dominate the session trail
     """
     if not _enabled():
         return {"skipped": "participation_policy_disabled", "marker": _MARKER_INFRA}
@@ -620,6 +852,25 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
         return {"skipped": "soft_path_disabled", "marker": _MARKER_INFRA}
 
     ensure_participation_policy_session()
+    today = now().date().isoformat()
+    # Hard once-per-session on participation policy first (survives adapt rewrite).
+    pdoc_early = _load_policy()
+    if str(pdoc_early.get("infra_soft_session") or "") == today:
+        return {
+            "skipped": "already_applied_session",
+            "source": "participation_policy",
+            "marker": _MARKER_INFRA,
+        }
+    if str(pdoc_early.get("mid_lag_session") or "") == today or str(pdoc_early.get("strategy") or "") in (
+        "mid_lag_focus",
+        "deep_lag_wait",
+    ):
+        return {
+            "skipped": "mid_or_deep_lag_blocks_soft",
+            "strategy": pdoc_early.get("strategy"),
+            "marker": _MARKER_INFRA,
+        }
+
     port = port if port is not None else _portfolio()
     strong = bool(port.get("strong_tape_1d"))
     infra_exits = _infra_session_exits()
@@ -643,6 +894,14 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
         return {
             "skipped": "deep_lag_blocks_soft_path",
             "alpha_vs_spy_pct": alpha_f,
+            "marker": _MARKER_INFRA,
+        }
+
+    mr = _mr_blocks_dominate("infra_swarm")
+    if mr.get("dominate"):
+        return {
+            "skipped": "mr_blocks_dominate",
+            "mr_check": mr,
             "marker": _MARKER_INFRA,
         }
 
@@ -670,13 +929,16 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
 
     from utils.swarm_session_si import load_session_policy, save_session_policy
 
-    today = now().date().isoformat()
     pol = load_session_policy("infra_swarm")
-    if pol.get("si_deep_lag_wait"):
-        return {"skipped": "deep_lag_wait_active", "marker": _MARKER_INFRA}
+    if pol.get("si_deep_lag_wait") or pol.get("si_mid_lag_focus"):
+        return {
+            "skipped": "deep_or_mid_lag_wait_active",
+            "marker": _MARKER_INFRA,
+        }
     if str(pol.get("si_infra_strong_tape_soft_session") or "") == today:
         return {
             "skipped": "already_applied_session",
+            "source": "session_policy",
             "enter_long_delta_boost": pol.get("enter_long_delta_boost"),
             "marker": _MARKER_INFRA,
         }
@@ -705,6 +967,7 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
     )
     pdoc["events"] = events[-20:]
     pdoc["infra_soft_session"] = today
+    pdoc["session_date_et"] = today
     pdoc["updated_utc"] = now_iso()
     _save_policy(pdoc)
 
@@ -721,6 +984,7 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
                 "enter_long_delta_boost": new_boost,
                 "alpha_vs_spy_pct": alpha_f,
                 "near_check": near,
+                "mr_check": mr,
                 "once_per_session": True,
             },
             scoreable=True,
@@ -733,12 +997,13 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
         "enter_long_delta_boost": new_boost,
         "alpha_vs_spy_pct": alpha_f,
         "near_check": near,
+        "mr_check": mr,
         "marker": _MARKER_INFRA,
     }
 
 
 def run_participation_si_cycle(*, metrics: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Orchestrate deep-lag / denylist thaw / infra soft path for RTH SI."""
+    """Orchestrate deep / mid lag, denylist thaw, and gated infra soft path for RTH SI."""
     if not _enabled():
         return {"skipped": "participation_policy_disabled"}
     rollover = ensure_participation_policy_session()
@@ -765,14 +1030,21 @@ def run_participation_si_cycle(*, metrics: dict[str, Any] | None = None) -> dict
     if bool(port.get("strong_tape_1d")) and alpha_f is not None and alpha_f <= floor:
         out["deep_lag"] = apply_deep_lag_wait_strategy(port=port)
         out["denylist_audit"] = out["deep_lag"].get("audit") if isinstance(out["deep_lag"], dict) else None
+        out["mid_lag"] = {"skipped": "deep_lag_active"}
+        out["infra_soft"] = {"skipped": "deep_lag_blocks_soft_path"}
     else:
         out["deep_lag"] = {"skipped": "not_deep_lag"}
         # Always reconcile denylist truth vs decision trail (env may be invisible to RTH).
         out["denylist_audit"] = audit_denylist_vs_universe()
+        out["mid_lag"] = apply_mid_lag_strategy(port=port)
         if alpha_f is not None and alpha_f >= soft:
             out["thaw"] = maybe_thaw_denylist_on_recovery(port=port)
-        # Soft path: strong tape OR positive rolling infra + near scores (handler decides).
-        out["infra_soft"] = apply_infra_strong_tape_soft_path(port=port)
+        # Soft path only when not mid-lag focus (handler also double-checks).
+        mid_ok = isinstance(out.get("mid_lag"), dict) and out["mid_lag"].get("ok")
+        if mid_ok:
+            out["infra_soft"] = {"skipped": "mid_lag_focus_active", "marker": _MARKER_INFRA}
+        else:
+            out["infra_soft"] = apply_infra_strong_tape_soft_path(port=port)
 
     return out
 
@@ -780,6 +1052,7 @@ def run_participation_si_cycle(*, metrics: dict[str, Any] | None = None) -> dict
 __all__ = [
     "apply_deep_lag_wait_strategy",
     "apply_infra_strong_tape_soft_path",
+    "apply_mid_lag_strategy",
     "audit_denylist_vs_universe",
     "ensure_participation_policy_session",
     "maybe_thaw_denylist_on_recovery",

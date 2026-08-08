@@ -224,6 +224,43 @@ def adapt_swarm_session(
     prev = load_session_policy(component)
     notes: list[str] = []
 
+    # Keys stamped by participation SI — adapt rewrites policy each cycle and must not wipe them
+    # (wiping si_*_session causes soft path / mid-lag to re-fire and spam ease).
+    _SI_STAMP_KEYS = (
+        "si_infra_strong_tape_soft_session",
+        "si_infra_strong_tape_soft",
+        "si_deep_lag_wait",
+        "si_mid_lag_session",
+        "si_mid_lag_focus",
+    )
+
+    def _preserve_si_stamps(policy: dict[str, Any]) -> dict[str, Any]:
+        for k in _SI_STAMP_KEYS:
+            if prev.get(k) is not None and k not in policy:
+                policy[k] = prev[k]
+            elif prev.get(k) is not None and policy.get(k) is None:
+                policy[k] = prev[k]
+        # Keep once-applied soft ease on normal recoveries within the same ET session.
+        try:
+            from utils.system_time import now as _now
+
+            today_et = _now().date().isoformat()
+        except Exception:
+            today_et = ""
+        soft_sess = str(prev.get("si_infra_strong_tape_soft_session") or "")
+        if soft_sess and soft_sess == today_et and str(policy.get("mode") or "") == "normal":
+            try:
+                soft_boost = float(prev.get("enter_long_delta_boost") or 0)
+                cur_boost = float(policy.get("enter_long_delta_boost") or 0)
+                if soft_boost < cur_boost:
+                    policy["enter_long_delta_boost"] = soft_boost
+            except (TypeError, ValueError):
+                pass
+            policy["si_infra_strong_tape_soft_session"] = soft_sess
+            if prev.get("si_infra_strong_tape_soft"):
+                policy["si_infra_strong_tape_soft"] = True
+        return policy
+
     if not negative_edge and not over_churn:
         mode = "normal"
         policy = _default_policy()
@@ -313,6 +350,7 @@ def adapt_swarm_session(
             "notes": notes + [f"swarm_session_{mode}"],
         }
 
+    policy = _preserve_si_stamps(policy)
     policy["updated_utc"] = datetime.now(timezone.utc).isoformat()
     save_session_policy(component, policy)
 

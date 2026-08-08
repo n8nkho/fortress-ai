@@ -1,4 +1,4 @@
-"""SI participation policy — deep lag, denylist, infra soft path."""
+"""SI participation policy — deep lag, mid lag, denylist, infra soft path."""
 from __future__ import annotations
 
 import json
@@ -10,6 +10,7 @@ from unittest.mock import patch
 from utils.si_participation_actions import (
     apply_deep_lag_wait_strategy,
     apply_infra_strong_tape_soft_path,
+    apply_mid_lag_strategy,
     ensure_participation_policy_session,
     run_participation_si_cycle,
 )
@@ -49,6 +50,54 @@ class TestDeepLagWait(unittest.TestCase):
             port={"strong_tape_1d": True, "alpha_vs_spy_pct": -0.2}
         )
         self.assertEqual(out.get("skipped"), "not_deep_lag")
+
+
+class TestMidLag(unittest.TestCase):
+    def test_mid_lag_on_strong_tape_shortfall(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict("os.environ", {"FORTRESS_AI_DATA_DIR": td}, clear=False):
+                with patch(
+                    "utils.si_participation_actions.audit_denylist_vs_universe",
+                    return_value={
+                        "ok": True,
+                        "skim_blocked_in_universe": ["CRWD"],
+                        "infra_blocked_in_universe": [],
+                        "thaw_candidates": [],
+                    },
+                ):
+                    with patch(
+                        "utils.si_capability_review.collect_metrics",
+                        return_value={"portfolio_session": {"alpha_vs_spy_pct": -0.6}},
+                    ):
+                        with patch("utils.swarm_session_si.load_session_policy", return_value={}):
+                            with patch("utils.swarm_session_si.save_session_policy"):
+                                out = apply_mid_lag_strategy(
+                                    port={
+                                        "strong_tape_1d": True,
+                                        "alpha_vs_spy_pct": -0.6,
+                                        "participation_shortfall_exits": 5,
+                                    }
+                                )
+                                out2 = apply_mid_lag_strategy(
+                                    port={
+                                        "strong_tape_1d": True,
+                                        "alpha_vs_spy_pct": -0.6,
+                                        "participation_shortfall_exits": 5,
+                                    }
+                                )
+        self.assertEqual(out.get("strategy"), "mid_lag_focus")
+        self.assertEqual(out.get("marker"), "si_mid_lag_participation")
+        self.assertEqual(out2.get("skipped"), "already_applied_session")
+
+    def test_mid_lag_skips_when_shortfall_low(self) -> None:
+        out = apply_mid_lag_strategy(
+            port={
+                "strong_tape_1d": True,
+                "alpha_vs_spy_pct": -0.5,
+                "participation_shortfall_exits": 1,
+            }
+        )
+        self.assertEqual(out.get("skipped"), "shortfall_low")
 
 
 class TestSessionRollover(unittest.TestCase):
@@ -97,35 +146,72 @@ class TestInfraSoftPath(unittest.TestCase):
                             "utils.si_participation_actions._infra_session_exits",
                             return_value=0,
                         ):
-                            out = apply_infra_strong_tape_soft_path(
-                                port={
-                                    "strong_tape_1d": True,
-                                    "session_exit_count": 0,
-                                    "alpha_vs_spy_pct": -0.5,
-                                }
-                            )
-                            out2 = apply_infra_strong_tape_soft_path(
-                                port={
-                                    "strong_tape_1d": True,
-                                    "session_exit_count": 0,
-                                    "alpha_vs_spy_pct": -0.5,
-                                }
-                            )
+                            with patch(
+                                "utils.si_participation_actions._mr_blocks_dominate",
+                                return_value={"dominate": False, "mr_blocks": 0, "total_blocks": 0},
+                            ):
+                                out = apply_infra_strong_tape_soft_path(
+                                    port={
+                                        "strong_tape_1d": True,
+                                        "session_exit_count": 0,
+                                        "alpha_vs_spy_pct": -0.15,
+                                        "participation_shortfall_exits": 0,
+                                    }
+                                )
+                                out2 = apply_infra_strong_tape_soft_path(
+                                    port={
+                                        "strong_tape_1d": True,
+                                        "session_exit_count": 0,
+                                        "alpha_vs_spy_pct": -0.15,
+                                        "participation_shortfall_exits": 0,
+                                    }
+                                )
         self.assertTrue(out.get("ok"))
         self.assertEqual(out.get("marker"), "si_infra_strong_tape_soft")
         self.assertLessEqual(float(out.get("enter_long_delta_boost") or 0), 0)
         self.assertEqual(out2.get("skipped"), "already_applied_session")
 
     def test_soft_path_blocked_by_deep_lag(self) -> None:
-        with patch("utils.si_participation_actions._infra_session_exits", return_value=0):
-            out = apply_infra_strong_tape_soft_path(
-                port={
-                    "strong_tape_1d": True,
-                    "session_exit_count": 0,
-                    "alpha_vs_spy_pct": -2.0,
-                }
-            )
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict("os.environ", {"FORTRESS_AI_DATA_DIR": td}, clear=False):
+                with patch("utils.si_participation_actions._infra_session_exits", return_value=0):
+                    out = apply_infra_strong_tape_soft_path(
+                        port={
+                            "strong_tape_1d": True,
+                            "session_exit_count": 0,
+                            "alpha_vs_spy_pct": -2.0,
+                        }
+                    )
         self.assertEqual(out.get("skipped"), "deep_lag_blocks_soft_path")
+
+    def test_soft_path_blocked_by_mr_dominate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict("os.environ", {"FORTRESS_AI_DATA_DIR": td}, clear=False):
+                with patch(
+                    "utils.si_participation_actions._infra_session_exits",
+                    return_value=0,
+                ):
+                    with patch(
+                        "utils.si_participation_actions._infra_near_entry_threshold",
+                        return_value={"near": True, "max_score": 0.1},
+                    ):
+                        with patch(
+                            "utils.si_participation_actions._mr_blocks_dominate",
+                            return_value={
+                                "dominate": True,
+                                "mr_blocks": 10,
+                                "total_blocks": 12,
+                                "ratio": 0.83,
+                            },
+                        ):
+                            out = apply_infra_strong_tape_soft_path(
+                                port={
+                                    "strong_tape_1d": True,
+                                    "session_exit_count": 0,
+                                    "alpha_vs_spy_pct": -0.1,
+                                }
+                            )
+        self.assertEqual(out.get("skipped"), "mr_blocks_dominate")
 
     def test_soft_path_skips_without_near_score(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -138,13 +224,17 @@ class TestInfraSoftPath(unittest.TestCase):
                         "utils.si_participation_actions._infra_session_exits",
                         return_value=0,
                     ):
-                        out = apply_infra_strong_tape_soft_path(
-                            port={
-                                "strong_tape_1d": True,
-                                "session_exit_count": 0,
-                                "alpha_vs_spy_pct": -0.3,
-                            }
-                        )
+                        with patch(
+                            "utils.si_participation_actions._mr_blocks_dominate",
+                            return_value={"dominate": False},
+                        ):
+                            out = apply_infra_strong_tape_soft_path(
+                                port={
+                                    "strong_tape_1d": True,
+                                    "session_exit_count": 0,
+                                    "alpha_vs_spy_pct": -0.3,
+                                }
+                            )
         self.assertEqual(out.get("skipped"), "not_near_entry_threshold")
 
 
@@ -169,6 +259,35 @@ class TestParticipationCycle(unittest.TestCase):
                     out = run_participation_si_cycle()
         self.assertTrue(deep.called)
         self.assertEqual((out.get("deep_lag") or {}).get("strategy"), "deep_lag_wait")
+
+    def test_cycle_routes_mid_lag_before_soft(self) -> None:
+        with patch(
+            "utils.si_participation_actions.ensure_participation_policy_session",
+            return_value={"session_date_et": "2026-08-07"},
+        ):
+            with patch(
+                "utils.si_participation_actions.audit_denylist_vs_universe",
+                return_value={"ok": True},
+            ):
+                with patch(
+                    "utils.si_participation_actions.apply_mid_lag_strategy",
+                    return_value={"ok": True, "strategy": "mid_lag_focus"},
+                ) as mid:
+                    with patch(
+                        "utils.si_participation_actions.apply_infra_strong_tape_soft_path"
+                    ) as soft:
+                        with patch(
+                            "utils.si_participation_actions._portfolio",
+                            return_value={
+                                "strong_tape_1d": True,
+                                "alpha_vs_spy_pct": -0.55,
+                                "participation_shortfall_exits": 5,
+                            },
+                        ):
+                            out = run_participation_si_cycle()
+        self.assertTrue(mid.called)
+        self.assertFalse(soft.called)
+        self.assertEqual((out.get("infra_soft") or {}).get("skipped"), "mid_lag_focus_active")
 
 
 class TestDeployedQueueNoise(unittest.TestCase):
@@ -224,6 +343,28 @@ class TestBrokerErrorSpike(unittest.TestCase):
         )
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["code"], "broker_error_session_spike")
+
+    def test_scan_broker_error_from_results_not_wave_int(self) -> None:
+        """Regression: wave key is an int index, not an iterable of items."""
+        from utils.integrity_diagnostics import scan_broker_error_spike
+
+        rows = [
+            {
+                "wave": 3,
+                "results": [
+                    {"act": {"block_reason": "broker_error"}, "symbol": "AAPL"},
+                    {"act": {"block_reason": "broker_error"}, "symbol": "MSFT"},
+                    {"act": {"block_reason": "broker_error"}, "symbol": "GOOG"},
+                ],
+            }
+        ]
+        out = scan_broker_error_spike(
+            component="skim_swarm",
+            blocks={},
+            rows=rows,
+        )
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["count_sampled"], 3)
 
 
 if __name__ == "__main__":

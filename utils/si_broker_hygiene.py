@@ -71,6 +71,75 @@ def collect_broker_error_symbols(component: str) -> dict[str, Any]:
     }
 
 
+def _side_conflict_detail(detail: str) -> bool:
+    d = (detail or "").lower()
+    needles = (
+        "side",
+        "403",
+        "existing order",
+        "open sell",
+        "open buy",
+        "opposite",
+        "conflict",
+        "would take",
+        "wash",
+    )
+    return any(n in d for n in needles)
+
+
+def clear_broker_side_conflicts(component: str, *, samples: list[str] | None = None) -> dict[str, Any]:
+    """Cancel open orders on symbols with side-conflict / open-order broker rejects."""
+    if str(os.environ.get("FORTRESS_SI_BROKER_CANCEL_OPEN", "1")).strip().lower() not in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        return {"skipped": "cancel_open_disabled", "cancelled": []}
+
+    summary = collect_broker_error_symbols(component)
+    raw_samples = list(samples if samples is not None else (summary.get("samples") or []))
+    targets: set[str] = set()
+    for sample in raw_samples:
+        s = str(sample or "")
+        sym = s.split(":", 1)[0].strip().upper()
+        detail = s.split(":", 1)[1] if ":" in s else s
+        if sym and _side_conflict_detail(detail):
+            targets.add(sym)
+    # Also include high-count offenders when samples look like order rejects
+    thr = _threshold()
+    for sym, n in (summary.get("counts") or {}).items():
+        if int(n) >= thr and any(sym in str(x) and _side_conflict_detail(str(x)) for x in raw_samples):
+            targets.add(str(sym).upper())
+
+    cancelled: list[str] = []
+    if not targets:
+        return {"ok": True, "cancelled": [], "targets": [], "marker": _MARKER}
+
+    try:
+        from utils.alpaca_execution import cancel_open_orders
+    except Exception as e:
+        return {"error": f"cancel_import:{e}"[:120], "cancelled": [], "marker": _MARKER}
+
+    for sym in sorted(targets):
+        try:
+            n = int(cancel_open_orders(sym) or 0)
+            if n > 0:
+                cancelled.append(f"{sym}:cancelled_open={n}")
+            else:
+                cancelled.append(f"{sym}:cancelled_open=0")
+        except Exception as e:
+            cancelled.append(f"{sym}:error={str(e)[:40]}")
+    if cancelled:
+        log.info("%s side_conflict_cancel component=%s %s", _MARKER, component, cancelled[:8])
+    return {
+        "ok": True,
+        "cancelled": cancelled,
+        "targets": sorted(targets),
+        "marker": _MARKER,
+    }
+
+
 def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
     """Pause new entries on symbols with ≥N broker_error blocks this session."""
     if not _enabled():
@@ -80,6 +149,7 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
 
     summary = collect_broker_error_symbols(component)
     thr = _threshold()
+    side_clear = clear_broker_side_conflicts(component, samples=list(summary.get("samples") or []))
     offenders = sorted(
         (s for s, n in (summary.get("counts") or {}).items() if int(n) >= thr),
         key=lambda s: -int((summary.get("counts") or {}).get(s) or 0),
@@ -89,6 +159,7 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
             "ok": True,
             "brakes": [],
             "newly_applied": [],
+            "side_conflict_clear": side_clear,
             "summary": summary,
             "marker": _MARKER,
         }
@@ -166,6 +237,7 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
                     "brakes": newly[:12],
                     "all_brakes": brakes[:12],
                     "counts": summary.get("counts"),
+                    "side_conflict_clear": side_clear,
                 },
                 scoreable=True,
             )
@@ -177,6 +249,7 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
         "brakes": brakes,
         "newly_applied": newly,
         "threshold": thr,
+        "side_conflict_clear": side_clear,
         "summary": summary,
         "marker": _MARKER,
     }
@@ -191,6 +264,7 @@ def run_broker_hygiene_cycle() -> dict[str, Any]:
 
 __all__ = [
     "apply_broker_error_symbol_brakes",
+    "clear_broker_side_conflicts",
     "collect_broker_error_symbols",
     "run_broker_hygiene_cycle",
 ]

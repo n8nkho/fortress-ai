@@ -1,10 +1,10 @@
 {
-  "version": 3,
+  "version": 4,
   "description": "Map SI objective/finding codes to Tier 0/1/2 actions.",
   "status": "wired",
   "tiers": {
     "0": "bounded overlays / cooldowns / max_open (existing governance)",
-    "1": "symbol session pause, clip shrink, denylist thaw, deep-lag wait",
+    "1": "symbol session pause, clip shrink, denylist thaw, deep/mid-lag wait",
     "2": "allowlisted code via Cursor SI (e2e + markers + registry)"
   },
   "actions": {
@@ -19,6 +19,10 @@
     "deep_lag_wait": {
       "tier": 1,
       "handler": "utils.si_participation_actions.apply_deep_lag_wait_strategy"
+    },
+    "mid_lag_focus": {
+      "tier": 1,
+      "handler": "utils.si_participation_actions.apply_mid_lag_strategy"
     },
     "denylist_audit": {
       "tier": 1,
@@ -51,7 +55,7 @@
       "forbidden": ["loosen_pre_trade_gate"]
     },
     "infra_session_expectancy": {
-      "preferred_actions": ["swarm_session_adapt", "symbol_session_brake", "infra_strong_tape_soft"],
+      "preferred_actions": ["swarm_session_adapt", "symbol_session_brake", "mid_lag_focus", "infra_strong_tape_soft"],
       "forbidden": ["loosen_pre_trade_gate"]
     },
     "si_intervention_effectiveness_gap": {
@@ -63,11 +67,11 @@
       "forbidden": ["revive_classic_without_ops"]
     },
     "portfolio_session_alpha_vs_spy": {
-      "preferred_actions": ["deep_lag_wait", "denylist_audit", "denylist_thaw", "constructive_tape_override"],
+      "preferred_actions": ["deep_lag_wait", "mid_lag_focus", "denylist_audit", "denylist_thaw"],
       "forbidden": ["loosen_pre_trade_gate", "disable_market_relative_gate"]
     },
     "portfolio_participation_on_strong_tape": {
-      "preferred_actions": ["deep_lag_wait", "denylist_audit", "infra_strong_tape_soft", "denylist_thaw", "constructive_tape_override"],
+      "preferred_actions": ["deep_lag_wait", "mid_lag_focus", "denylist_audit", "infra_strong_tape_soft", "denylist_thaw"],
       "forbidden": ["loosen_pre_trade_gate", "disable_market_relative_gate"]
     },
     "broker_error_session_spike": {
