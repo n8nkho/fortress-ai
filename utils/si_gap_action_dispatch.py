@@ -39,6 +39,7 @@ _GAP_ALIASES = {
     "si_intervention_effectiveness_gap": "si_intervention_effectiveness_gap",
     "classic_fill_recency": "classic_fill_recency_gap",
     "classic_fill_recency_gap": "classic_fill_recency_gap",
+    "orphan_symbol_outside_universe": "orphan_symbol_outside_universe",
 }
 
 
@@ -135,10 +136,12 @@ def _invoke_action(action: str, meta: dict[str, Any], *, component: str) -> dict
         elif action in (
             "constructive_tape_override",
             "deep_lag_wait",
+            "mid_lag_focus",
             "denylist_audit",
             "denylist_reconcile",
             "denylist_thaw",
             "infra_strong_tape_soft",
+            "orphan_universe_hygiene",
         ):
             # Portfolio-level handlers — no sleeve component required.
             try:
@@ -198,7 +201,16 @@ def _result_material(action: str, payload: dict[str, Any]) -> bool:
             "skipped"
         )
     if action == "broker_error_hygiene":
-        return bool(res.get("newly_applied") or res.get("brakes"))
+        sc = res.get("side_conflict_clear") if isinstance(res.get("side_conflict_clear"), dict) else {}
+        cancelled_ok = any(
+            "cancelled_open=" in str(x) and not str(x).endswith("=0")
+            for x in (sc.get("cancelled") or [])
+        )
+        return bool(res.get("newly_applied") or res.get("brakes") or cancelled_ok)
+    if action == "orphan_universe_hygiene":
+        return bool(res.get("purged") or res.get("newly_applied") or res.get("removed_flat"))
+    if action == "mid_lag_focus":
+        return bool(res.get("ok")) and str(res.get("strategy") or "") == "mid_lag_focus"
     if action == "constructive_tape_override":
         # Review-only path — strong_tape alone is not a material intervention.
         # Score only when override is actively eligible to change entry behavior.
@@ -275,7 +287,9 @@ def dispatch_gap_actions(
         # Portfolio-level actions run once (on skim component slot), not per sleeve.
         gap_components = (
             ("skim_swarm",)
-            if key.startswith("portfolio_") or key.startswith("si_")
+            if key.startswith("portfolio_")
+            or key.startswith("si_")
+            or key == "orphan_symbol_outside_universe"
             else components
         )
 
@@ -392,9 +406,11 @@ def ensure_effectiveness_actions(*, metrics: dict[str, Any] | None = None) -> di
 
             scan = run_integrity_scan(log=False)
             for f in scan.get("findings") or []:
-                if str(f.get("code") or "") == "broker_error_session_spike":
+                code = str(f.get("code") or "")
+                if code == "broker_error_session_spike":
                     force.append("broker_error_session_spike")
-                    break
+                if code == "orphan_symbol_outside_universe":
+                    force.append("orphan_symbol_outside_universe")
         except Exception:
             pass
     except Exception:

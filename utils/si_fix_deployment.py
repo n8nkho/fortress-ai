@@ -64,7 +64,11 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
     ],
     "swarm_orphan_symbol_entry": [
         _ROOT / "utils" / "swarm_universe_guard.py",
+        _ROOT / "utils" / "swarm_runtime.py",
         _ROOT / "agents" / "skim_swarm" / "signal.py",
+        _ROOT / "agents" / "infra_swarm" / "signal.py",
+        _ROOT / "agents" / "skim_swarm_agent.py",
+        _ROOT / "agents" / "infra_swarm_agent.py",
     ],
     "alpaca_bracket_tick_violation": [
         _ROOT / "utils" / "edge_quality.py",
@@ -386,7 +390,16 @@ _GUARD_SOURCES: dict[str, list[Path]] = {
         _ROOT / "utils" / "si_broker_hygiene.py",
         _ROOT / "utils" / "si_decision_scan.py",
         _ROOT / "config" / "si_fix_registry.json",
+        _ROOT / "config" / "si_gap_action_registry.json",
         _ROOT / "tests" / "test_si_broker_hygiene.py",
+    ],
+    "orphan_symbol_outside_universe": [
+        _ROOT / "utils" / "swarm_universe_guard.py",
+        _ROOT / "utils" / "swarm_runtime.py",
+        _ROOT / "utils" / "integrity_diagnostics.py",
+        _ROOT / "agents" / "skim_swarm_agent.py",
+        _ROOT / "agents" / "infra_swarm_agent.py",
+        _ROOT / "config" / "si_gap_action_registry.json",
     ],
     "symbol_first_session_loss_brake": [
         _ROOT / "utils" / "si_adaptive_actions.py",

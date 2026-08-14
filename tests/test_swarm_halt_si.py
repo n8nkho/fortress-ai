@@ -145,6 +145,19 @@ class TestSwarmRuntime(unittest.TestCase):
         )
         self.assertIn("LLY", syms)
 
+    def test_wave_symbols_does_not_union_market_context(self):
+        from utils.swarm_runtime import wave_symbols
+
+        syms = wave_symbols(
+            ["MSFT"],
+            {},
+            context=["SPY", "SOXX"],
+            owned_symbols={"MSFT"},
+        )
+        self.assertIn("MSFT", syms)
+        self.assertNotIn("SOXX", syms)
+        self.assertNotIn("SPY", syms)
+
     def test_held_position_symbols_reads_state(self):
         import json
         import tempfile as _tf

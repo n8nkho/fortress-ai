@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "description": "Map SI objective/finding codes to Tier 0/1/2 actions.",
   "status": "wired",
   "tiers": {
@@ -43,6 +43,10 @@
     "denylist_reconcile": {
       "tier": 1,
       "handler": "utils.si_participation_actions.audit_denylist_vs_universe"
+    },
+    "orphan_universe_hygiene": {
+      "tier": 1,
+      "handler": "utils.swarm_universe_guard.run_orphan_universe_hygiene"
     }
   },
   "gaps": {
@@ -59,7 +63,7 @@
       "forbidden": ["loosen_pre_trade_gate"]
     },
     "si_intervention_effectiveness_gap": {
-      "preferred_actions": ["edge_autofix_exhausted", "symbol_session_brake"],
+      "preferred_actions": ["edge_autofix_exhausted", "symbol_session_brake", "mid_lag_focus", "denylist_audit"],
       "forbidden": ["lower_intervention_target_min"]
     },
     "classic_fill_recency_gap": {
@@ -76,6 +80,10 @@
     },
     "broker_error_session_spike": {
       "preferred_actions": ["broker_error_hygiene", "symbol_session_brake"],
+      "forbidden": ["loosen_pre_trade_gate"]
+    },
+    "orphan_symbol_outside_universe": {
+      "preferred_actions": ["orphan_universe_hygiene"],
       "forbidden": ["loosen_pre_trade_gate"]
     }
   }

@@ -53,6 +53,9 @@ def wave_symbols(
     unioned in. This prevents sibling swarms sharing one broker account from
     liquidating each other's positions (foreign positions are skipped). When None,
     all open positions are unioned (legacy behavior).
+
+    ``context`` is market-data only (SPY/SOXX/anchor) and is **not** added to the
+    tradable wave — fetch those bars separately to avoid orphan_symbol_outside_universe.
     """
     open_syms = open_position_symbols(positions)
     if owned_symbols is not None:
@@ -60,12 +63,14 @@ def wave_symbols(
         open_syms = [s for s in open_syms if s in owned_upper]
     merged: list[str] = []
     seen: set[str] = set()
-    for sym in list(configured or []) + open_syms + list(context or []):
+    for sym in list(configured or []) + open_syms:
         s = str(sym or "").strip().upper()
         if not s or s in seen:
             continue
         seen.add(s)
         merged.append(s)
+    # `context` is accepted for call-site compat but never unioned into the tradable wave.
+    _ = context
     return merged
 
 

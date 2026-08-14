@@ -48,6 +48,44 @@ class TestBrokerHygiene(unittest.TestCase):
             learned = json.loads((data / "skim_swarm" / "learned" / "qqq.json").read_text())
             self.assertTrue(learned["params"]["pause_entries"])
 
+    def test_session_spike_brakes_count_one_offenders(self) -> None:
+        from utils.si_broker_hygiene import apply_broker_error_symbol_brakes
+
+        with tempfile.TemporaryDirectory() as td:
+            data = Path(td)
+            dec = data / "skim_swarm" / "decisions.jsonl"
+            dec.parent.mkdir(parents=True)
+            today = now().date().isoformat()
+            row = {
+                "ts": f"{today}T14:00:00-04:00",
+                "session_date_et": today,
+                "results": [
+                    {
+                        "symbol": sym,
+                        "decision": {"symbol": sym, "action": "enter_long"},
+                        "act": {"executed": False, "block_reason": "broker_error", "detail": "403"},
+                    }
+                    for sym in ("AAA", "BBB", "CCC")
+                ],
+            }
+            dec.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            with patch.dict(
+                "os.environ",
+                {
+                    "FORTRESS_AI_DATA_DIR": td,
+                    "FORTRESS_SI_BROKER_ERROR_SYMBOL_MIN": "2",
+                    "FORTRESS_SI_BROKER_ERROR_SPIKE": "3",
+                },
+                clear=False,
+            ):
+                with patch(
+                    "utils.si_capability_review.collect_metrics",
+                    return_value={"skim_swarm": {"rolling_expectancy_usd": 0.1}},
+                ):
+                    out = apply_broker_error_symbol_brakes("skim_swarm")
+            self.assertTrue(out.get("brakes"))
+            self.assertTrue(any("AAA" in b for b in out.get("brakes") or []))
+
 
 class TestDenylistDecisionTrail(unittest.TestCase):
     def test_audit_sees_results_array_denylist(self) -> None:

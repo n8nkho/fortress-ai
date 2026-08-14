@@ -150,12 +150,57 @@ def _session_key(row: dict[str, Any]) -> str:
     return str(row.get("session_date_et") or str(row.get("ts") or "")[:10])
 
 
+_POST_FORMAT_MARKERS = frozenset(
+    {
+        "si_intervention_recorded",
+        "si_predictability",
+        "gap_action_dispatch",
+    }
+)
+
+
+def _is_post_format_scoreable(row: dict[str, Any]) -> bool:
+    """True SI format: session_date_et + scoreable, excluding exhausted/no-op noise.
+
+    If markers are present they must include an SI post-format marker (or a
+    prediction payload). Bare session_date_et still counts so tests/legacy
+    post-fix rows remain scoreable.
+    """
+    if row.get("scoreable") is False:
+        return False
+    if not row.get("session_date_et"):
+        return False
+    action = str(row.get("action") or "")
+    if action in _NO_OP_ACTIONS:
+        return False
+    detail = row.get("detail") or {}
+    if str(detail.get("marker") or "") == "edge_autofix_exhausted":
+        return False
+    if str(detail.get("skipped") or "") == "edge_autofix_exhausted":
+        return False
+    markers = row.get("markers")
+    if isinstance(markers, list) and markers:
+        tagged = {str(m) for m in markers}
+        if tagged & _POST_FORMAT_MARKERS:
+            return True
+        if any(str(m).startswith("si_") for m in markers):
+            return True
+        if isinstance(row.get("prediction"), dict) and row.get("prediction"):
+            return True
+        return False
+    return True
+
+
 def intervention_success_rate(
     metrics: dict[str, Any],
     *,
     lookback: int = 24,
 ) -> float | None:
-    """Fraction of distinct recent actionable interventions with material improvement."""
+    """Fraction of distinct recent post-format interventions with material improvement.
+
+    Prefer the current ET session so older snapshots are not scored against
+    today's rolling expectancy (that mix was collapsing the headline rate).
+    """
     rows = _read_tail(intervention_log_path())[-lookback:]
     if not rows:
         return None
@@ -166,28 +211,22 @@ def intervention_success_rate(
     # must not poison intervention_success_rate.
     deduped: dict[tuple[str, str, str], dict[str, Any]] = {}
     for row in rows:
-        action = str(row.get("action") or "")
-        if action in _NO_OP_ACTIONS:
-            continue
-        if row.get("scoreable") is False:
-            continue
-        # Require new attribution format (shipped with edge_autofix_exhausted / brakes).
-        if not row.get("session_date_et"):
-            continue
-        detail = row.get("detail") or {}
-        if str(detail.get("marker") or "") == "edge_autofix_exhausted":
-            continue
-        if str(detail.get("skipped") or "") == "edge_autofix_exhausted":
+        if not _is_post_format_scoreable(row):
             continue
         comp = str(row.get("component") or "")
         if not comp or comp == "si_meta":
             continue
+        action = str(row.get("action") or "")
         key = (comp, action, _session_key(row))
         deduped[key] = row  # keep latest in session
 
+    today = now().date().isoformat()
+    today_rows = [r for r in deduped.values() if _session_key(r) == today]
+    pool = today_rows if today_rows else list(deduped.values())
+
     improved = 0
     scored = 0
-    for row in deduped.values():
+    for row in pool:
         comp = str(row.get("component") or "")
         action = str(row.get("action") or "")
         protective = _is_protective(action)

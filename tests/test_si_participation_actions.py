@@ -99,6 +99,15 @@ class TestMidLag(unittest.TestCase):
         )
         self.assertEqual(out.get("skipped"), "shortfall_low")
 
+    def test_participation_mult_lowers_shortfall_min(self) -> None:
+        with patch(
+            "utils.si_participation_actions._participation_mult",
+            return_value=1.2,
+        ):
+            from utils.si_participation_actions import _mid_shortfall_min
+
+            self.assertEqual(_mid_shortfall_min(), 2)
+
 
 class TestSessionRollover(unittest.TestCase):
     def test_rollover_clears_stale_strategy(self) -> None:
@@ -343,6 +352,18 @@ class TestBrokerErrorSpike(unittest.TestCase):
         )
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["code"], "broker_error_session_spike")
+
+    def test_scan_orphan_universe_blocks(self) -> None:
+        from utils.integrity_diagnostics import scan_orphan_universe_blocks
+
+        out = scan_orphan_universe_blocks(
+            component="skim_swarm",
+            blocks={"orphan_symbol_outside_universe": 8},
+            rows=[],
+        )
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["code"], "orphan_symbol_outside_universe")
+        self.assertEqual(out[0]["marker"], "si_orphan_universe")
 
     def test_scan_broker_error_from_results_not_wave_int(self) -> None:
         """Regression: wave key is an int index, not an iterable of items."""

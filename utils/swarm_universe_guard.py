@@ -89,4 +89,57 @@ def purge_orphan_symbol_states(component: str, *, dry_run: bool = False) -> dict
         "removed_flat": sorted(set(removed)),
         "kept_open_orphans": sorted(set(kept_open)),
         "dry_run": dry_run,
+        "marker": "si_orphan_universe",
     }
+
+
+def run_orphan_universe_hygiene(component: str | None = None) -> dict[str, Any]:
+    """SI cycle: purge leftover flat orphan state; record when files actually drop."""
+    comps = (
+        (component,)
+        if component in ("skim_swarm", "infra_swarm")
+        else ("skim_swarm", "infra_swarm")
+    )
+    out: dict[str, Any] = {"ok": True, "marker": "si_orphan_universe", "sleeves": {}}
+    newly: list[str] = []
+    for comp in comps:
+        report = purge_orphan_symbol_states(comp)
+        out["sleeves"][comp] = report
+        for sym in report.get("removed_flat") or []:
+            newly.append(f"{comp}:{sym}")
+    if newly:
+        try:
+            from utils.si_capability_review import collect_metrics
+            from utils.si_intervention_log import record_intervention
+
+            record_intervention(
+                component=str(comps[0]),
+                action="orphan_universe_hygiene",
+                metrics_snapshot=collect_metrics(),
+                detail={
+                    "marker": "si_orphan_universe",
+                    "purged": newly[:20],
+                    "sleeves": {
+                        k: {
+                            "removed_flat": (v or {}).get("removed_flat"),
+                            "kept_open_orphans": (v or {}).get("kept_open_orphans"),
+                        }
+                        for k, v in (out.get("sleeves") or {}).items()
+                    },
+                },
+                scoreable=True,
+            )
+        except Exception:
+            pass
+    out["purged"] = newly
+    out["newly_applied"] = newly
+    return out
+
+
+__all__ = [
+    "configured_universe",
+    "entry_blocked_outside_universe",
+    "purge_orphan_symbol_states",
+    "run_orphan_universe_hygiene",
+    "wave_context_symbols",
+]

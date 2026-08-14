@@ -398,6 +398,7 @@ def scan_skim_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[st
     findings.extend(scan_swarm_halt_exit_trap(rows=rows, component="skim_swarm"))
     findings.extend(scan_swarm_universe_drift(component="skim_swarm", metric_path=skim_dir / "latest_metric.json"))
     findings.extend(scan_swarm_session_policy(component="skim_swarm"))
+    findings.extend(scan_orphan_universe_blocks(component="skim_swarm", blocks=blocks, rows=rows))
 
     qty_invalid = int(blocks.get("qty_invalid") or 0)
     if qty_invalid >= 5:
@@ -518,6 +519,48 @@ def scan_broker_error_spike(
     ]
 
 
+def scan_orphan_universe_blocks(
+    *,
+    component: str,
+    blocks: dict[str, int] | None = None,
+    rows: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Context/stale symbols in the tradable wave → SI orphan hygiene (never loosen rails)."""
+    try:
+        threshold = max(3, int(os.environ.get("FORTRESS_SI_ORPHAN_BLOCK_SPIKE", "4") or 4))
+    except ValueError:
+        threshold = 4
+    count = int((blocks or {}).get("orphan_symbol_outside_universe") or 0)
+    if count < threshold and rows is not None:
+        from utils.si_decision_scan import block_reason, iter_wave_items
+
+        count = 0
+        for r in rows[-RECENT_DECISION_WINDOW:]:
+            if not isinstance(r, dict):
+                continue
+            for item in iter_wave_items(r):
+                if block_reason(item) == "orphan_symbol_outside_universe":
+                    count += 1
+    if count < threshold:
+        return []
+    return [
+        {
+            "code": "orphan_symbol_outside_universe",
+            "severity": "medium",
+            "component": component,
+            "count_sampled": count,
+            "threshold": threshold,
+            "recommendation": (
+                "Keep market-context symbols (SPY/SOXX/anchor) off the tradable wave; "
+                "SI purges leftover flat orphan state. Do not loosen pre_trade_gate."
+            ),
+            "si_action": "orphan_universe_hygiene",
+            "runtime_monitor_when_deployed": False,
+            "marker": "si_orphan_universe",
+        }
+    ]
+
+
 def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     infra_dir = _data_dir() / "infra_swarm"
     rows = rows if rows is not None else _read_jsonl_tail(infra_dir / "decisions.jsonl")
@@ -561,6 +604,7 @@ def scan_infra_swarm(*, rows: list[dict[str, Any]] | None = None) -> list[dict[s
         )
 
     findings.extend(scan_broker_error_spike(component="infra_swarm", blocks=blocks, rows=rows))
+    findings.extend(scan_orphan_universe_blocks(component="infra_swarm", blocks=blocks, rows=rows))
 
     return findings
 

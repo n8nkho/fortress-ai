@@ -282,7 +282,7 @@
       "effort": "medium",
       "impact": "medium",
       "recommendation": "Do the thing.",
-      "registered_at_utc": "2026-08-08T10:41:27.994733-04:00"
+      "registered_at_utc": "2026-08-14T12:45:14.129397-04:00"
     },
     "edge_rr_cost_gates": {
       "title": "RR and cost-aware entry gates",
@@ -332,7 +332,8 @@
       "kind": "code_guard",
       "mitigation_markers": [
         "orphan_symbol_outside_universe",
-        "orphan_purge"
+        "orphan_purge",
+        "si_orphan_universe"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
@@ -1186,7 +1187,8 @@
         "prediction_scale_multipliers",
         "utils/si_predictability.py",
         "FORTRESS_SI_PRED_MIN_AGE_MIN",
-        "intervention_log_resolve"
+        "intervention_log_resolve",
+        "hold_or_improve_expectancy"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
@@ -1203,12 +1205,15 @@
         "si_denylist_audit",
         "si_denylist_thaw",
         "si_infra_strong_tape_soft",
+        "participation_mult",
         "si_participation_cycle",
         "si_participation_session_rollover",
         "already_applied_session",
         "not_near_entry_threshold",
         "mr_blocks_dominate",
-        "mid_or_deep_lag_blocks_soft"
+        "mid_or_deep_lag_blocks_soft",
+        "participation_mult",
+        "si_participation_mult"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,
@@ -1361,7 +1366,23 @@
       "kind": "code_guard",
       "mitigation_markers": [
         "si_intervention_recorded",
-        "intervention_success_rate"
+        "intervention_success_rate",
+        "post_format_scoreable",
+        "session_date_et"
+      ],
+      "auto_tunable": {},
+      "agent_review_if_unmitigated": false,
+      "effort": "low",
+      "impact": "medium"
+    },
+    "orphan_symbol_outside_universe": {
+      "title": "Context/stale symbols in tradable wave \u2014 exclude from wave + purge flat state",
+      "kind": "code_guard",
+      "mitigation_markers": [
+        "si_orphan_universe",
+        "orphan_symbol_outside_universe",
+        "orphan_purge",
+        "orphan_universe_hygiene"
       ],
       "auto_tunable": {},
       "agent_review_if_unmitigated": false,

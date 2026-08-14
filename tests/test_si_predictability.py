@@ -54,6 +54,33 @@ class TestSiPredictability(unittest.TestCase):
         self.assertEqual(out.get("scored"), 1)
         self.assertEqual(out.get("accuracy"), 1.0)
 
+    def test_protective_brake_hold_vs_realized_expectancy(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict("os.environ", {"FORTRESS_AI_DATA_DIR": td}, clear=False):
+                from utils.system_time import now
+
+                today = now().date().isoformat()
+                record_prediction(
+                    {
+                        "component": "skim_swarm",
+                        "action": "symbol_session_brake",
+                        "action_family": "symbol_session_brake",
+                        "baseline_expectancy_usd": 0.18,
+                        "predicted_delta_expectancy_usd": 0.0,
+                        "session_date_et": today,
+                    }
+                )
+                out = score_prediction_accuracy(
+                    {"skim_swarm": {"rolling_expectancy_usd": 0.173}},
+                    evolve=False,
+                )
+        self.assertEqual(out.get("scored"), 1)
+        self.assertEqual(out.get("accuracy"), 1.0)
+
+    def test_action_family_mid_lag(self) -> None:
+        self.assertEqual(action_family("mid_lag_focus"), "mid_lag_focus")
+        self.assertEqual(action_family("gap_dispatch:mid_lag_focus"), "mid_lag_focus")
+
 
 class TestEvolvablePredictionModel(unittest.TestCase):
     def test_evolve_updates_family_and_scale(self) -> None:

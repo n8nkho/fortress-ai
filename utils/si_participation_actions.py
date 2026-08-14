@@ -96,22 +96,37 @@ def _portfolio() -> dict[str, Any]:
         return {}
 
 
+def _participation_mult() -> float:
+    """Prediction-model participation scale (computed; must be applied here)."""
+    try:
+        from utils.si_predictability import prediction_scale_multipliers
+
+        m = float(prediction_scale_multipliers().get("participation_mult") or 1.0)
+        return max(0.8, min(1.2, m))
+    except Exception:
+        return 1.0
+
+
 def _deep_floor() -> float:
     try:
         from utils.portfolio_session.constructive_tape_override import deep_alpha_floor
 
-        return float(deep_alpha_floor())
+        base = float(deep_alpha_floor())
     except Exception:
-        return -1.0
+        base = -1.0
+    # Higher participation_mult → slightly less eager to enter deep-lag wait.
+    return round(base + (_participation_mult() - 1.0) * 0.15, 4)
 
 
 def _soft_alpha() -> float:
     try:
         from utils.portfolio_session.constructive_tape_override import soft_alpha_threshold
 
-        return float(soft_alpha_threshold())
+        base = float(soft_alpha_threshold())
     except Exception:
-        return -0.8
+        base = -0.8
+    # Higher participation_mult → thaw/soft eligibility a bit earlier.
+    return round(base + (_participation_mult() - 1.0) * 0.10, 4)
 
 
 def _denylist_sources(cfg: Any) -> dict[str, Any]:
@@ -387,10 +402,11 @@ def apply_deep_lag_wait_strategy(*, port: dict[str, Any] | None = None) -> dict[
 
             pol = load_session_policy(component)
             boost = float(pol.get("enter_long_delta_boost") or 0)
-            pol["enter_long_delta_boost"] = round(min(0.06, max(boost, 0.02)), 4)
+            min_boost = round(0.02 / _participation_mult(), 4)
+            pol["enter_long_delta_boost"] = round(min(0.06, max(boost, min_boost)), 4)
             pol["si_deep_lag_wait"] = True
             pol["notes"] = list(pol.get("notes") or [])[-6:] + [
-                f"{_MARKER_DEEP} alpha={alpha_f:.3f}<{floor}"
+                f"{_MARKER_DEEP} alpha={alpha_f:.3f}<{floor} participation_mult={_participation_mult():.3f}"
             ]
             save_session_policy(component, pol)
             session_notes[component] = {"enter_long_delta_boost": pol["enter_long_delta_boost"]}
@@ -466,6 +482,7 @@ def maybe_thaw_denylist_on_recovery(*, port: dict[str, Any] | None = None) -> di
         max_thaw = max(0, int(os.environ.get("FORTRESS_SI_DENYLIST_THAW_MAX", "2") or 2))
     except ValueError:
         max_thaw = 2
+    max_thaw = max(1, min(4, int(round(max_thaw * _participation_mult()))))
 
     audit = audit_denylist_vs_universe()
     candidates = list(audit.get("thaw_candidates") or [])[:max_thaw]
@@ -664,9 +681,11 @@ def _mid_alpha_ceiling() -> float:
 
 def _mid_shortfall_min() -> int:
     try:
-        return max(2, int(os.environ.get("FORTRESS_SI_MID_LAG_SHORTFALL_MIN", "3") or 3))
+        base = max(2, int(os.environ.get("FORTRESS_SI_MID_LAG_SHORTFALL_MIN", "3") or 3))
     except ValueError:
-        return 3
+        base = 3
+    # Higher participation_mult lowers the shortfall bar (more participation).
+    return max(2, int(base / _participation_mult()))
 
 
 def apply_mid_lag_strategy(*, port: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -745,7 +764,8 @@ def apply_mid_lag_strategy(*, port: dict[str, Any] | None = None) -> dict[str, A
         tighten = float(os.environ.get("FORTRESS_SI_MID_LAG_ENTER_DELTA", "0.02") or 0.02)
     except (TypeError, ValueError):
         tighten = 0.02
-    tighten = max(0.0, min(0.06, tighten))
+    part_m = _participation_mult()
+    tighten = max(0.0, min(0.06, tighten / part_m))
 
     session_notes: dict[str, Any] = {}
     for component in ("skim_swarm", "infra_swarm"):
@@ -763,6 +783,7 @@ def apply_mid_lag_strategy(*, port: dict[str, Any] | None = None) -> dict[str, A
             notes = list(pol.get("notes") or [])
             notes.append(
                 f"{_MARKER_MID} shortfall={shortfall} alpha={alpha_f:.3f} "
+                f"participation_mult={part_m:.3f} "
                 f"blocked={len((audit.get('skim_blocked_in_universe') or []) if component == 'skim_swarm' else (audit.get('infra_blocked_in_universe') or []))}"
             )
             pol["notes"] = notes[-8:]
@@ -814,6 +835,7 @@ def apply_mid_lag_strategy(*, port: dict[str, Any] | None = None) -> dict[str, A
                     "decision_blocked": audit.get("skim_decision_blocked"),
                 },
                 "session_notes": session_notes,
+                "participation_mult": part_m,
                 "do_not_disable_mr": True,
             },
             scoreable=True,
@@ -828,6 +850,7 @@ def apply_mid_lag_strategy(*, port: dict[str, Any] | None = None) -> dict[str, A
         "participation_shortfall_exits": shortfall,
         "audit": audit,
         "session_notes": session_notes,
+        "participation_mult": part_m,
         "marker": _MARKER_MID,
     }
 
@@ -921,9 +944,12 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
     try:
         from utils.si_predictability import prediction_scale_multipliers
 
-        soft_m = float(prediction_scale_multipliers().get("soft_path_mult") or 1.0)
+        scale = prediction_scale_multipliers()
+        soft_m = float(scale.get("soft_path_mult") or 1.0)
+        part_m = float(scale.get("participation_mult") or 1.0)
         # soft_m < 1 shrinks ease (less aggressive); > 1 deepens slightly toward -0.05 cap.
-        ease = max(-0.05, min(0.0, ease * soft_m))
+        # participation_mult is applied here (was computed but unused).
+        ease = max(-0.05, min(0.0, ease * soft_m * max(0.8, min(1.2, part_m))))
     except Exception:
         pass
 
@@ -985,6 +1011,7 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
                 "alpha_vs_spy_pct": alpha_f,
                 "near_check": near,
                 "mr_check": mr,
+                "participation_mult": _participation_mult(),
                 "once_per_session": True,
             },
             scoreable=True,
@@ -998,6 +1025,7 @@ def apply_infra_strong_tape_soft_path(*, port: dict[str, Any] | None = None) -> 
         "alpha_vs_spy_pct": alpha_f,
         "near_check": near,
         "mr_check": mr,
+        "participation_mult": _participation_mult(),
         "marker": _MARKER_INFRA,
     }
 
@@ -1014,6 +1042,7 @@ def run_participation_si_cycle(*, metrics: dict[str, Any] | None = None) -> dict
     out: dict[str, Any] = {
         "ok": True,
         "marker": "si_participation_cycle",
+        "participation_mult": _participation_mult(),
         "session_policy": {
             "session_date_et": rollover.get("session_date_et"),
             "rollover_from": rollover.get("rollover_from"),

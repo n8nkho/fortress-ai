@@ -634,4 +634,10 @@ def run_adaptive_si_cycle(
         out["broker_hygiene"] = run_broker_hygiene_cycle()
     except Exception as e:
         out["broker_hygiene"] = {"error": str(e)[:120]}
+    try:
+        from utils.swarm_universe_guard import run_orphan_universe_hygiene
+
+        out["orphan_universe_hygiene"] = run_orphan_universe_hygiene()
+    except Exception as e:
+        out["orphan_universe_hygiene"] = {"error": str(e)[:120]}
     return out

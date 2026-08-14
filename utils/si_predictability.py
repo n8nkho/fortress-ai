@@ -32,6 +32,7 @@ _FAMILY_PRIORS: dict[str, dict[str, float]] = {
     "swarm_session_churn": {"prior_delta": 0.0, "prior_conf": 0.6, "protective": 1.0},
     "edge_autofix": {"prior_delta": 0.005, "prior_conf": 0.45, "protective": 0.0},
     "deep_lag_wait": {"prior_delta": 0.0, "prior_conf": 0.7, "protective": 1.0},
+    "mid_lag_focus": {"prior_delta": 0.0, "prior_conf": 0.65, "protective": 1.0},
     "infra_strong_tape_soft": {"prior_delta": 0.003, "prior_conf": 0.4, "protective": 0.0},
     "denylist_thaw": {"prior_delta": 0.002, "prior_conf": 0.4, "protective": 0.0},
     "denylist_audit": {"prior_delta": 0.0, "prior_conf": 0.55, "protective": 1.0},
@@ -93,6 +94,8 @@ def action_family(action: str) -> str:
         return "gap_dispatch"
     if a in _FAMILY_PRIORS:
         return a
+    if "mid_lag" in a:
+        return "mid_lag_focus"
     if "brake" in a or "pause" in a or "first_session_loss" in a:
         return "symbol_session_brake"
     if "tight" in a:
@@ -772,6 +775,10 @@ def score_prediction_accuracy(
     rows = _read_tail(predictability_log_path())[-lookback:]
     # Skip evolution/audit rows.
     rows = [r for r in rows if r.get("type") != "evolution_batch" and r.get("scoreable") is not False]
+    today = now().date().isoformat()
+    same_session = [r for r in rows if str(r.get("session_date_et") or "")[:10] == today]
+    if same_session:
+        rows = same_session
     if not rows:
         return {
             "accuracy": None,
@@ -784,6 +791,7 @@ def score_prediction_accuracy(
 
     scored = 0
     hits = 0
+    model_pre = load_prediction_model()
     for row in rows:
         comp = str(row.get("component") or "")
         if not comp or comp == "si_meta":
@@ -801,9 +809,16 @@ def score_prediction_accuracy(
             pred_d = float(pred_delta or 0)
         except (TypeError, ValueError):
             continue
-        scored += 1
         actual_delta = after_f - baseline_f
-        if actual_delta >= pred_d - 0.01:
+        if abs(actual_delta) > 0.5:
+            continue
+        family = str(row.get("action_family") or action_family(str(row.get("action") or "")))
+        st = _family_state(model_pre, family)
+        protective = float(st.get("protective") or 0) >= 0.5
+        # Brakes/holds: score vs realized expectancy hold, not a lift the model never claimed.
+        hit = actual_delta >= -0.01 if protective else actual_delta >= pred_d - 0.01
+        scored += 1
+        if hit:
             hits += 1
 
     model = load_prediction_model()

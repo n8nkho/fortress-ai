@@ -123,6 +123,25 @@ class TestSwarmUniverseGuard(unittest.TestCase):
             blocked, _ = entry_blocked_outside_universe("skim_swarm", "MSFT")
         self.assertFalse(blocked)
 
+    def test_orphan_hygiene_purges_flat_state(self):
+        from utils.swarm_universe_guard import run_orphan_universe_hygiene
+
+        with tempfile.TemporaryDirectory() as td:
+            state = Path(td) / "skim_swarm" / "state"
+            state.mkdir(parents=True)
+            (state / "soxx.json").write_text(json.dumps({"symbol": "SOXX", "side": "flat"}), encoding="utf-8")
+            (state / "msft.json").write_text(json.dumps({"symbol": "MSFT", "side": "flat"}), encoding="utf-8")
+            with patch.dict(os.environ, {"FORTRESS_AI_DATA_DIR": td, "FORTRESS_SKIM_UNIVERSE": "MSFT"}):
+                with patch(
+                    "utils.si_capability_review.collect_metrics",
+                    return_value={"skim_swarm": {"rolling_expectancy_usd": 0.1}},
+                ):
+                    out = run_orphan_universe_hygiene("skim_swarm")
+            self.assertIn("SOXX", [s.split(":")[-1] for s in out.get("purged") or []])
+            self.assertFalse((state / "soxx.json").exists())
+            self.assertTrue((state / "msft.json").exists())
+            self.assertEqual(out.get("marker"), "si_orphan_universe")
+
 
 class TestUnifiedSymbolPool(unittest.TestCase):
     def test_eligible_excludes_denylist(self):

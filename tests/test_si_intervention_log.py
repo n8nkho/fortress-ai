@@ -52,6 +52,48 @@ class TestSiInterventionLog(unittest.TestCase):
 
             self.assertAlmostEqual(rate or 0.0, 1.0)
 
+    def test_current_session_not_poisoned_by_older_snapshots(self):
+        from utils import si_intervention_log as log
+        from utils.system_time import now
+
+        today = now().date().isoformat()
+        with tempfile.TemporaryDirectory() as td:
+            data = Path(td)
+            log_path = data / "si_capability" / "interventions.jsonl"
+            log_path.parent.mkdir(parents=True)
+            rows = [
+                {
+                    "component": "skim_swarm",
+                    "action": "symbol_session_brake",
+                    "session_date_et": "2026-08-10",
+                    "scoreable": True,
+                    "markers": ["si_intervention_recorded"],
+                    "metrics_snapshot": {
+                        "skim_swarm": {"rolling_expectancy_usd": 0.40}
+                    },
+                },
+                {
+                    "component": "skim_swarm",
+                    "action": "broker_error_hygiene",
+                    "session_date_et": today,
+                    "scoreable": True,
+                    "markers": ["si_intervention_recorded"],
+                    "metrics_snapshot": {
+                        "skim_swarm": {"rolling_expectancy_usd": 0.16}
+                    },
+                },
+            ]
+            log_path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+            orig = log.intervention_log_path
+            log.intervention_log_path = lambda: log_path  # type: ignore[assignment]
+            try:
+                rate = log.intervention_success_rate(
+                    {"skim_swarm": {"rolling_expectancy_usd": 0.17}}
+                )
+            finally:
+                log.intervention_log_path = orig  # type: ignore[assignment]
+            self.assertAlmostEqual(rate or 0.0, 1.0)
+
     def test_insufficient_actionable_returns_none(self):
         from utils import si_intervention_log as log
 

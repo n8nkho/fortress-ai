@@ -169,9 +169,9 @@ def run_loop(iterations: int | None = None) -> None:
             syms = fresh
         configured = list(syms)
         owned = set(configured) | held_position_symbols(swarm_data_dir() / "state")
-        # SPY is a market-data reference only for infra — fetched for shared context
-        # below, but never added to the tradable wave (anchor stays tradable as before).
-        syms = wave_symbols(configured, positions, context=[anchor], owned_symbols=owned)
+        # Anchor + SPY are market-data references — fetched for shared context
+        # below, but never added to the tradable wave (avoids orphan_symbol_outside_universe).
+        syms = wave_symbols(configured, positions, owned_symbols=owned)
         context_syms = list(dict.fromkeys(syms + [anchor, "SPY"]))
         bars = _fetch_bars(context_syms)
         shared = build_shared_context(bars)

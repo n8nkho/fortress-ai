@@ -157,7 +157,8 @@ def run_loop(iterations: int | None = None) -> None:
             syms = fresh
         configured = list(syms)
         owned = set(configured) | held_position_symbols(swarm_data_dir() / "state")
-        syms = wave_symbols(configured, positions, context=["SPY", "SOXX"], owned_symbols=owned)
+        # SPY/SOXX are bar-context only — never tradable unless already in universe/held.
+        syms = wave_symbols(configured, positions, owned_symbols=owned)
         try:
             from utils.portfolio_swarm_bias import filter_skim_wave_symbols
 

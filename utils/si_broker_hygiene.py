@@ -150,10 +150,17 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
     summary = collect_broker_error_symbols(component)
     thr = _threshold()
     side_clear = clear_broker_side_conflicts(component, samples=list(summary.get("samples") or []))
+    total = int(summary.get("total") or 0)
+    try:
+        spike_thr = max(2, int(os.environ.get("FORTRESS_SI_BROKER_ERROR_SPIKE", "3") or 3))
+    except ValueError:
+        spike_thr = 3
+    # Session spike: brake top offenders even at count=1 so hygiene matches the scan.
+    min_n = 1 if total >= spike_thr else thr
     offenders = sorted(
-        (s for s, n in (summary.get("counts") or {}).items() if int(n) >= thr),
+        (s for s, n in (summary.get("counts") or {}).items() if int(n) >= min_n),
         key=lambda s: -int((summary.get("counts") or {}).get(s) or 0),
-    )
+    )[:8]
     if not offenders:
         return {
             "ok": True,
@@ -217,13 +224,23 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
             "counts": summary.get("counts"),
             "brakes": brakes,
             "samples": summary.get("samples"),
+            "side_conflict_clear": side_clear,
             "marker": _MARKER,
         }
         snap.write_text(json.dumps(prev, indent=2), encoding="utf-8")
     except Exception:
         pass
 
-    if newly:
+    cancelled_ok = False
+    try:
+        cancelled_ok = any(
+            "cancelled_open=" in str(x) and not str(x).endswith("=0")
+            for x in (side_clear.get("cancelled") or [])
+        )
+    except Exception:
+        cancelled_ok = False
+
+    if newly or cancelled_ok:
         try:
             from utils.si_capability_review import collect_metrics
             from utils.si_intervention_log import record_intervention
@@ -238,6 +255,7 @@ def apply_broker_error_symbol_brakes(component: str) -> dict[str, Any]:
                     "all_brakes": brakes[:12],
                     "counts": summary.get("counts"),
                     "side_conflict_clear": side_clear,
+                    "cancelled_open": cancelled_ok,
                 },
                 scoreable=True,
             )
